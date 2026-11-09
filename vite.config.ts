@@ -7,13 +7,33 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
  * `npm run dev` runs the whole stack in one process (with a local file store).
  */
 function apiDevServer(): Plugin {
+  let devServer: ViteDevServer | null = null;
   return {
     name: 'wishful-api-dev',
+    // Mirrors netlify/edge-functions/share-meta.ts so link-preview tags can be checked locally.
+    async transformIndexHtml(html, ctx) {
+      if (!devServer || !ctx.originalUrl) return html;
+      const server = devServer;
+      const { brand } = (await server.ssrLoadModule('/src/config/brand.ts')) as typeof import('./src/config/brand');
+      const { injectMeta, pageMeta } = (await server.ssrLoadModule('/shared/shareMeta.ts')) as typeof import('./shared/shareMeta');
+      const { handleRequest } = (await server.ssrLoadModule('/server/app.ts')) as typeof import('./server/app');
+      const origin = `http://localhost:${server.config.server.port ?? 5173}`;
+      const getJson = async (apiPath: string) => {
+        const res = await handleRequest(new Request(origin + apiPath));
+        return res.ok ? res.json() : null;
+      };
+      const meta = await pageMeta(new URL(ctx.originalUrl, origin).pathname, origin, brand, getJson);
+      return injectMeta(html, meta, brand.name);
+    },
     configureServer(server: ViteDevServer) {
+      devServer = server;
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-        if (!req.url?.startsWith('/api/')) return next();
+        const og = req.url?.startsWith('/og/');
+        if (!req.url?.startsWith('/api/') && !og) return next();
         try {
-          const mod = (await server.ssrLoadModule('/server/app.ts')) as typeof import('./server/app');
+          const handleRequest = og
+            ? ((await server.ssrLoadModule('/server/og/index.tsx')) as typeof import('./server/og')).handleOgRequest
+            : ((await server.ssrLoadModule('/server/app.ts')) as typeof import('./server/app')).handleRequest;
           const chunks: Buffer[] = [];
           for await (const chunk of req) chunks.push(chunk as Buffer);
           const body = chunks.length ? Buffer.concat(chunks) : undefined;
@@ -28,7 +48,7 @@ function apiDevServer(): Plugin {
             headers,
             body: body && req.method !== 'GET' && req.method !== 'HEAD' ? body : undefined,
           });
-          const response = await mod.handleRequest(request, { ip: req.socket.remoteAddress ?? '127.0.0.1' });
+          const response = await handleRequest(request, { ip: req.socket.remoteAddress ?? '127.0.0.1' });
           res.statusCode = response.status;
           response.headers.forEach((value, key) => {
             if (key === 'set-cookie') return;

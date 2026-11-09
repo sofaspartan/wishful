@@ -1,9 +1,10 @@
-import type { PublicEntry, PublicWishlistView } from '../../shared/types';
+import type { PublicEntry, PublicProfileView, PublicWishlistView } from '../../shared/types';
 import { isCollection } from '../../shared/constants';
 import { db, getMany } from '../storage';
 import { HttpError, notFound } from '../http';
 import type { ItemRecord, ShareRecord, UserRecord, WishlistRecord } from '../records';
 import { toPublicItem } from '../serialize';
+import { getUserIndex } from '../services/auth';
 import { activeClaim, getClaimsDoc } from './claims';
 import { areFriends } from './friends';
 import { accessRole, getWishlist } from './wishlists';
@@ -163,5 +164,33 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
     },
     entries,
     viewer: { isOwner: ownerSide, claimsHidden: ownerSide && wishlist.surpriseMode },
+  };
+}
+
+/** A user's public profile and their explicitly public lists. Unlisted and private lists never appear. */
+export async function buildPublicProfile(rawUsername: string): Promise<PublicProfileView> {
+  const username = rawUsername.toLowerCase();
+  const idx = await db('username-index').get<{ userId: string }>(username);
+  const user = idx ? (await db('users').get<UserRecord>(idx.value.userId))?.value : null;
+  if (!user || !user.publicProfile) throw notFound('This profile is private or does not exist.');
+  const index = await getUserIndex(user.id);
+  const lists = await getMany<WishlistRecord>(db('wishlists'), index.wishlistIds);
+  return {
+    user: { id: user.id, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl, bio: user.bio },
+    wishlists: lists
+      .filter((w) => w.ownerId === user.id && w.visibility === 'public' && !w.archivedAt && w.shareToken)
+      .map((w) => ({
+        kind: w.kind ?? 'wishlist',
+        title: w.title,
+        description: w.description,
+        coverImage: w.coverImage,
+        coverArt: w.coverArt ?? null,
+        accentColor: w.accentColor,
+        occasion: w.occasion,
+        eventDate: w.eventDate,
+        shareToken: w.shareToken!,
+        itemCount: w.entries.length,
+        updatedAt: w.updatedAt,
+      })),
   };
 }

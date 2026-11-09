@@ -31,6 +31,7 @@
 - [x] Share tokens; regenerate and revoke; private lists never resolve
 - [x] Share dialog: copy, native share, email, SMS, WhatsApp, preview
 - [x] Public wishlist page (no login): hero, filters, sort, item details
+- [x] Link previews: per-page Open Graph tags (edge function) and generated share images for the site, lists/collections and public profiles
 - [x] Atomic reservations (single winner), mark purchased, release, expiry
 - [x] Owner controls: allow claims, purchase tracking, show reserved/purchased, messages, priorities, expiry days
 - [x] Surprise Mode enforced in the API (owner, editors, owner-side public view)

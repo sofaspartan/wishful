@@ -156,6 +156,7 @@ function requestOnce(
   deadline: number,
   maxBytes: number,
   headers: Record<string, string>,
+  overflow: 'truncate' | 'reject',
 ): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
   return new Promise((resolve, reject) => {
     const mod = url.protocol === 'https:' ? https : http;
@@ -196,6 +197,12 @@ function requestOnce(
         stream.on('data', (chunk: Buffer) => {
           size += chunk.length;
           if (size > maxBytes) {
+            if (overflow === 'reject') {
+              done = true;
+              reject(new Error('Response too large'));
+              req.destroy();
+              return;
+            }
             // Enough for metadata extraction; stop downloading.
             chunks.push(chunk.subarray(0, Math.max(0, chunk.length - (size - maxBytes))));
             finish();
@@ -226,22 +233,31 @@ function decodeBody(body: Buffer, contentType: string): string {
   return new TextDecoder('utf-8').decode(body);
 }
 
-export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}): Promise<SafeFetchResult> {
+async function fetchRaw(rawUrl: string, options: SafeFetchOptions, overflow: 'truncate' | 'reject') {
   const { timeoutMs = 8000, maxBytes = 1_500_000, maxRedirects = 4, headers = DEFAULT_HEADERS } = options;
   const deadline = Date.now() + timeoutMs;
   let url = assertSafeUrl(rawUrl);
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const pinned = await resolveSafe(url.hostname);
-    const res = await requestOnce(url, pinned, deadline, maxBytes, headers);
+    const res = await requestOnce(url, pinned, deadline, maxBytes, headers, overflow);
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.location;
       if (!location) throw new Error('Redirect without location');
       url = assertSafeUrl(new URL(location, url));
       continue;
     }
-    const contentType = String(res.headers['content-type'] || '');
-    return { url: url.toString(), status: res.status, contentType, body: decodeBody(res.body, contentType) };
+    return { url: url.toString(), status: res.status, contentType: String(res.headers['content-type'] || ''), body: res.body };
   }
   throw new Error('Too many redirects');
+}
+
+export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}): Promise<SafeFetchResult> {
+  const res = await fetchRaw(rawUrl, options, 'truncate');
+  return { ...res, body: decodeBody(res.body, res.contentType) };
+}
+
+/** The same protections for binary downloads (images). A response over `maxBytes` is an error, not a truncated body. */
+export async function safeFetchBytes(rawUrl: string, options: SafeFetchOptions = {}): Promise<{ url: string; status: number; contentType: string; body: Buffer }> {
+  return fetchRaw(rawUrl, options, 'reject');
 }

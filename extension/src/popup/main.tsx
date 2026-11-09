@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './fonts.css';
 import '../../../src/styles/tokens.css';
 import './popup.css';
-import { applyBrand } from '../../../src/config/brand';
+import { applyBrand } from '../../../src/config/applyBrand';
 import { Popup } from './Popup';
 
 applyBrand();

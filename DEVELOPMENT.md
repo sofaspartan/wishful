@@ -332,10 +332,34 @@ store link in `extensionUrl` in `src/config/brand.ts`. Every download button bec
   `src/styles/tokens.css` turns into the light and dark palettes.
 * Dark mode: `:root[data-theme='dark']` in `tokens.css` overrides the palette. The
   theme is set before first paint by `public/theme-init.js` (an external file so the
-  CSP can keep `script-src 'self'`) and managed by `src/lib/theme.ts`; it follows the
-  system setting until the user picks one with the sun / moon toggle.
+  CSP can keep `script-src 'self'`) and managed by `src/lib/theme.ts`; it starts in
+  light mode and stays there until the user picks dark with the sun / moon toggle.
 * `public/favicon.svg` — the logo mark.
 * `BRAND_NAME` env var — name used in server-sent emails.
+
+### Link previews (share images)
+
+Crawlers for iMessage, Slack, WhatsApp, social sites and so on don't run JavaScript,
+so preview tags are written into the HTML on the way out:
+
+* `netlify/edge-functions/share-meta.ts` runs on every page (not `/api`, `/og` or
+  static assets) and uses `shared/shareMeta.ts` to set the title, description and
+  Open Graph / Twitter tags. Shared lists (`/s/:token`) and public profiles
+  (`/u/:username`) are looked up through the public API **without cookies**, so a
+  preview never shows more than a logged-out visitor could see; friends-only,
+  private and revoked lists get a generic preview. `npm run dev` does the same via
+  the Vite plugin in `vite.config.ts`.
+* `netlify/functions/og.ts` → `server/og/` draws 1200×630 PNGs with satori + resvg:
+  `/og/site.png` (brand card), `/og/list/:token.png` (cover backdrop, list icon,
+  owner, title, date and up to three item photos — top priorities first) and
+  `/og/profile/:username.png`. They reuse the brand colours, the cover illustrations
+  and the fonts in `server/og/fonts` (static Inter and Fraunces `.woff`, since satori
+  can't read the app's variable `woff2` files).
+* Item and avatar photos load through the SSRF-safe fetcher (`safeFetchBytes`) or
+  straight from Blobs for uploads, with a 3-second budget; WebP/AVIF photos are
+  skipped because resvg can't decode them. Image URLs carry a `?v=` fingerprint of
+  the list, so editing a list gets a fresh image instead of a stale cached one.
+* Emoji and scripts the bundled fonts don't cover are dropped from image text.
 
 ## 11. Feature status
 

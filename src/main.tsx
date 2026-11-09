@@ -7,7 +7,7 @@ import '@fontsource-variable/fraunces/soft.css';
 import './styles/tokens.css';
 import './styles/components.css';
 import './styles/layout.css';
-import { applyBrand } from './config/brand';
+import { applyBrand } from './config/applyBrand';
 import { initTheme } from './lib/theme';
 import { App } from './App';
 import { ToastProvider } from './components/ui/Toast';

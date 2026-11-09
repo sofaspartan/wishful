@@ -9,6 +9,11 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Share images: fonts are read from disk and resvg ships a native binary.
+[functions.og]
+  included_files = ["server/og/fonts/*.woff"]
+  external_node_modules = ["@resvg/resvg-js"]
+
 # The API function declares its own route (`/api/*`) via `export const config`,
 # which takes precedence over the SPA fallback below.
 [[redirects]]

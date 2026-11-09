@@ -7,14 +7,12 @@
  * Visitors never need an account, and no endpoint here can modify list
  * content or reveal owner-private data.
  */
-import type { PublicProfileView } from '../../shared/types';
 import { claimSchema, claimTokenSchema, pledgeSchema, pledgeTokenSchema } from '../../shared/schemas';
-import { db, getMany } from '../storage';
-import { forbidden, json, notFound, readJson, type RequestContext, type Router } from '../http';
-import type { UserRecord, WishlistRecord } from '../records';
-import { getCurrentUser, getUserIndex } from '../services/auth';
+import { forbidden, json, readJson, type RequestContext, type Router } from '../http';
+import type { WishlistRecord } from '../records';
+import { getCurrentUser } from '../services/auth';
 import { rateLimit } from '../services/rateLimit';
-import { assertCanOpen, buildPublicView, resolveShareToken } from '../domain/publicView';
+import { assertCanOpen, buildPublicProfile, buildPublicView, resolveShareToken } from '../domain/publicView';
 import { accessRole } from '../domain/wishlists';
 import { addPledge, claimEntry, coordinatorPurchase, purchaseClaim, releaseClaim, withdrawPledge } from '../domain/claims';
 
@@ -90,32 +88,5 @@ export function registerPublicRoutes(router: Router) {
     return json({ ok: true });
   });
 
-  router.get('/api/public/users/:username', async (ctx) => {
-    const username = ctx.params.username.toLowerCase();
-    const idx = await db('username-index').get<{ userId: string }>(username);
-    const user = idx ? (await db('users').get<UserRecord>(idx.value.userId))?.value : null;
-    if (!user || !user.publicProfile) throw notFound('This profile is private or does not exist.');
-    const index = await getUserIndex(user.id);
-    const lists = await getMany<WishlistRecord>(db('wishlists'), index.wishlistIds);
-    // Only explicitly *public* lists are listed. Unlisted/private never appear here.
-    const view: PublicProfileView = {
-      user: { id: user.id, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl, bio: user.bio },
-      wishlists: lists
-        .filter((w) => w.ownerId === user.id && w.visibility === 'public' && !w.archivedAt && w.shareToken)
-        .map((w) => ({
-          kind: w.kind ?? 'wishlist',
-          title: w.title,
-          description: w.description,
-          coverImage: w.coverImage,
-          coverArt: w.coverArt ?? null,
-          accentColor: w.accentColor,
-          occasion: w.occasion,
-          eventDate: w.eventDate,
-          shareToken: w.shareToken!,
-          itemCount: w.entries.length,
-          updatedAt: w.updatedAt,
-        })),
-    };
-    return json(view);
-  });
+  router.get('/api/public/users/:username', async (ctx) => json(await buildPublicProfile(ctx.params.username)));
 }

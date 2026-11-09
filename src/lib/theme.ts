@@ -15,10 +15,6 @@ function stored(): Theme | null {
   }
 }
 
-function systemTheme(): Theme {
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
 function apply(theme: Theme) {
   document.documentElement.dataset.theme = theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme]);
@@ -29,7 +25,7 @@ function current(): Theme {
   return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 }
 
-/** Light/dark theme. Follows the system setting until the user picks one; the choice is kept in localStorage. */
+/** Light/dark theme. Light until the user picks one; the choice is kept in localStorage. */
 export function setTheme(theme: Theme) {
   try {
     localStorage.setItem(STORAGE_KEY, theme);
@@ -40,10 +36,7 @@ export function setTheme(theme: Theme) {
 }
 
 export function initTheme() {
-  apply(stored() ?? systemTheme());
-  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (!stored()) apply(systemTheme());
-  });
+  apply(stored() ?? 'light');
 }
 
 function subscribe(listener: () => void) {

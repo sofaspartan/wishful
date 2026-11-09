@@ -6,9 +6,8 @@
   } catch (e) {
     theme = null;
   }
-  if (theme !== 'light' && theme !== 'dark') {
-    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
+  // Light until the visitor picks a theme with the toggle.
+  if (theme !== 'dark') theme = 'light';
   document.documentElement.dataset.theme = theme;
   var meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a1129' : '#f3f3f2');
