@@ -21,6 +21,7 @@ const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const ExtensionConnect = lazy(() => import('./pages/ExtensionConnect'));
+const ExtensionPage = lazy(() => import('./pages/ExtensionPage'));
 
 /** Redirects to /login (remembering the destination) when signed out. */
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -72,6 +73,7 @@ export function App() {
           <Route path="/s/:token" element={<PublicWishlist />} />
           <Route path="/u/:username" element={<PublicProfile />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/extension" element={<ExtensionPage />} />
           <Route
             path="/extension/connect"
             element={

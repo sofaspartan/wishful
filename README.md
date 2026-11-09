@@ -28,7 +28,8 @@ npm run extension:build   # → extension/dist
 ```
 
 Load `extension/dist` from `chrome://extensions` (Developer mode → Load unpacked), click
-the Wishful button on any product page and connect your account.
+the Wishful button on any product page and connect your account. On the live site,
+people download it as a zip from `/extension`, which `npm run build` creates.
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for architecture, data model, security,
 environment variables and deployment details, and [TASKS.md](./TASKS.md) for progress.

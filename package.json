@@ -6,7 +6,7 @@
   "description": "Wishful — everything you want, all in one place. A wishlist, collection and gift registry platform.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node extension/build.mjs && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p extension/tsconfig.json",
     "test": "vitest run",

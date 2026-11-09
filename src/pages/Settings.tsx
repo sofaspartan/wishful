@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bell, Camera, ExternalLink, Gift, Globe, KeyRound, LifeBuoy, LogOut, Mail, Puzzle, Shield, Trash2, UserRound, type LucideIcon } from 'lucide-react';
+import { Bell, Camera, ChevronRight, ExternalLink, Gift, Globe, KeyRound, LifeBuoy, LogOut, Mail, Puzzle, Shield, Trash2, UserRound, type LucideIcon } from 'lucide-react';
 import { VISIBILITIES, type NotificationPreferences, type SelfUser, type Visibility, type WishlistSettings } from '../../shared/types';
 import { CURRENCIES, RESERVATION_DAY_OPTIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS } from '../../shared/constants';
 import { keys, useExtensionConnections, useMe } from '../lib/queries';
@@ -10,6 +10,7 @@ import { brand } from '../config/brand';
 import { del, errorMessage, fieldErrors, patch, post } from '../lib/api';
 import { uploadImage } from '../lib/images';
 import { showRecoveryCode } from '../lib/recoveryCode';
+import { ExtensionGetButton, InstallSteps } from '../components/ExtensionInstall';
 import { Button } from '../components/ui/Button';
 import { Field, FormError } from '../components/ui/Field';
 import { Avatar, PageLoader, Segmented, SwitchRow } from '../components/ui/misc';
@@ -370,12 +371,17 @@ function ExtensionSection() {
             your list names and add the items you choose.
           </p>
         </div>
-        {brand.extensionUrl && (
-          <div>
-            <a href={brand.extensionUrl} target="_blank" rel="noreferrer" className="btn">
-              Get the extension <ExternalLink size={14} aria-hidden />
-            </a>
-          </div>
+        <ExtensionGetButton />
+        {!brand.extensionUrl && (
+          <details className="disclosure ext-settings-steps">
+            <summary>
+              <ChevronRight size={16} aria-hidden /> How to install it
+            </summary>
+            <InstallSteps />
+            <Link to="/extension" className="text-sm">
+              More about the extension
+            </Link>
+          </details>
         )}
       </div>
 

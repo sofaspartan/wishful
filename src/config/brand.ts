@@ -9,7 +9,7 @@ export const brand = {
   description: 'More than a wishlist. Collect products, experiences and ideas — and share them with the people who matter.',
   /** Shown on the privacy policy page for privacy questions and data requests. Leave empty to hide the contact section. */
   contactEmail: 'shermanea411@gmail.com',
-  /** Store listing for the browser extension. Leave empty until it's published to hide the install button. */
+  /** Chrome Web Store listing for the browser extension. While empty, the site offers the zip built into /downloads instead. */
   extensionUrl: '',
   colors: {
     accent: '#2f6fdc',

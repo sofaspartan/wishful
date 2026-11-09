@@ -9,3 +9,4 @@ dist
 coverage
 extension/dist
 extension/dist-dev
+public/downloads

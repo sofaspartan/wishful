@@ -1,6 +1,6 @@
 import { useRef, useState, type AnimationEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Gift, Library, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Gift, Library, Puzzle, Sparkles } from 'lucide-react';
 import { useMe } from '../lib/queries';
 import { brand } from '../config/brand';
 import { Logo } from '../components/Logo';
@@ -9,6 +9,7 @@ import { HeroSwirl } from '../components/HeroSwirl';
 import { ReservedListArt } from '../components/ReservedListArt';
 import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from '../components/ItemIllustrations';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { ExtensionArt } from '../components/ExtensionInstall';
 
 interface StageCloud {
   kind: 'front' | 'tint';
@@ -86,7 +87,7 @@ const FEATURES = [
     art: FEATURE_ILLUSTRATIONS.store,
     tint: '#e8745b',
     title: 'Save from any store',
-    text: 'Paste a link and we pull in the name, photo and price. Or add experiences, ideas and gift cards that don’t live online.',
+    text: 'Paste a link or use the browser extension, and we pull in the name, photo and price. Or add experiences, ideas and gift cards that don’t live online.',
   },
   {
     art: FEATURE_ILLUSTRATIONS.lists,
@@ -268,6 +269,34 @@ export default function Landing() {
           ))}
         </section>
 
+        <section className="landing-extension" aria-labelledby="landing-extension-title">
+          <div className="landing-extension-copy">
+            <span className="eyebrow">Browser extension</span>
+            <h2 id="landing-extension-title" className="display">
+              Save from any store in one click.
+            </h2>
+            <p>
+              Add {brand.name} to your browser and every online shop gets a save button. It fills in the name, price and photo — you just pick the
+              list.
+            </p>
+            <ul className="landing-extension-points">
+              <li>
+                <Check size={16} aria-hidden /> Works in Chrome, Edge, Brave and Arc
+              </li>
+              <li>
+                <Check size={16} aria-hidden /> Save to several wishlists or a collection at once
+              </li>
+              <li>
+                <Check size={16} aria-hidden /> Only reads the page when you click it
+              </li>
+            </ul>
+            <Link to="/extension" className="btn btn-primary btn-lg">
+              <Puzzle size={17} aria-hidden /> Get the extension
+            </Link>
+          </div>
+          <ExtensionArt />
+        </section>
+
         <section className="landing-band">
           <div className="landing-band-inner">
             <div className="landing-band-copy">
@@ -291,7 +320,8 @@ export default function Landing() {
           <Logo to="/" size={26} />
           <span>{brand.tagline}</span>
           <span className="spacer" />
-          <nav className="legal-links" aria-label="Legal">
+          <nav className="legal-links" aria-label="More">
+            <Link to="/extension">Browser extension</Link>
             <Link to="/privacy">Privacy</Link>
           </nav>
           <span>
