@@ -179,7 +179,8 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
 * **SSRF protection** for link previews (`server/services/safeFetch.ts`): http/https
   only, ports 80/443, no credentials, blocked internal hostnames, every DNS answer
   checked against private/reserved IPv4/IPv6 ranges, socket pinned to the validated
-  address, redirects re-validated (max 4), 8 s timeout, 1.5 MB cap.
+  address, redirects re-validated (max 4), 8 s timeout, 1.5 MB cap (3 MB for
+  previews).
 * **Uploads**: 5 MB cap, magic-byte sniffing (JPEG, PNG, GIF, WebP only — SVG and
   anything else rejected), served with `nosniff` and a sandboxed CSP. The browser
   downsizes large photos before upload.
@@ -302,12 +303,27 @@ WISHFUL_URL=https://wishful.example npm run extension:build   # another domain
 
 In Chrome open `chrome://extensions`, turn on **Developer mode**, choose **Load
 unpacked** and pick `extension/dist` (or `dist-dev`). After rebuilding, press the
-reload icon on the extension's card. If the site moves to a custom domain, rebuild
-with `WISHFUL_URL` — the site address is baked into the manifest's host permission.
+reload icon on the extension's card. The site address is baked into the manifest's
+host permission: production builds use `WISHFUL_URL`, then Netlify's `URL` (the site's
+main address during a Netlify build), then `https://wishful-lists.netlify.app`.
 
-To publish, zip the contents of `extension/dist` and upload it to the Chrome Web Store
-developer dashboard, then put the store link in `extensionUrl` in
-`src/config/brand.ts` so Settings shows a "Get the extension" button.
+**Download from the site**
+
+`npm run build` (what Netlify runs) builds the extension first. Production extension
+builds also write `public/downloads/wishful-extension.zip` (the `extension/dist`
+folder as `wishful-extension/`, zipped by `extension/zip.mjs` with no dependencies)
+and `public/downloads/extension.json` (`{ version, size, builtAt }`). Vite copies
+them into `dist/`, so every deploy serves a zip that matches the site. The folder is
+gitignored. The popup bundles Latin font subsets only (`extension/src/popup/fonts.css`)
+to keep the zip small (~290 KB).
+
+The download is offered on the public `/extension` page (what it does, install steps,
+privacy notes), in a section on the landing page, and in Settings → Browser extension.
+All three use `src/components/ExtensionInstall.tsx`.
+
+To publish, upload the zip to the Chrome Web Store developer dashboard, then put the
+store link in `extensionUrl` in `src/config/brand.ts`. Every download button becomes
+"Add to Chrome" and the manual install steps are hidden.
 
 ## 10. Branding
 
@@ -369,7 +385,8 @@ developer dashboard, then put the store link in `extensionUrl` in
 * Dark mode with a starry night sky, toggled from the top right of every header.
 * Privacy policy at `/privacy`.
 * Browser extension: save the product on the current tab to any lists, with photo
-  picker, price and note; connected browsers listed and revocable in Settings.
+  picker, price and note; connected browsers listed and revocable in Settings;
+  downloadable from `/extension`, the landing page and Settings.
 * Accessibility: semantic landmarks, skip link, labelled controls, focus-trapped modals,
   keyboard drag-and-drop, visible focus, reduced-motion support.
 
@@ -391,7 +408,20 @@ developer dashboard, then put the store link in `extensionUrl` in
 * Visitor claim tokens live in the browser's localStorage; clearing site data loses the
   ability to release a reservation unless the visitor saved the manage link (the
   reservation still expires automatically).
-* Some retailers block automated page fetches; the item can always be saved manually.
+* **Link previews and blocked stores.** `server/services/metadata.ts` fetches the page
+  and `shared/metadata.ts` reads it: JSON-LD (including ProductGroup variants), Open
+  Graph and meta tags, microdata, then the page's `<h1>`, Amazon-style photo
+  attributes and the price shown next to the name. Shopify pages missing a price or
+  photo get them from the store's `/products/<handle>.js`. If the first request is
+  blocked, fails or takes over 2.5 s, a second one with Chrome-like headers races it,
+  and the whole preview stays under 9 s. Even so, many large retailers (REI, Home
+  Depot, Etsy, LEGO, Best Buy, Nordstrom, Zara and others) run bot protection that
+  rejects any request from a server, and Netlify's data-center IPs make this worse.
+  Those pages are recognised (status codes, challenge titles and markers) and come
+  back as `blocked: true`, so the form says the store blocks previews and points to
+  the browser extension, which reads the page in the user's own browser. Prices that
+  load with JavaScript after the page (Target, Uniqlo) can't be seen by the server
+  either. The item can always be saved manually.
 * Remote product images are hot-linked; if the retailer removes them, a placeholder
   is shown.
 * Netlify Blobs has no secondary indexes; per-user indexes are maintained manually. This

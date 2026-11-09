@@ -45,7 +45,7 @@ function applyMeta(row: BulkRow, meta: UrlMetadata): BulkRow {
     brand: meta.brand ?? '',
     price: meta.price !== null ? String(meta.price) : row.price,
     currency: meta.currency,
-    note: meta.extracted ? null : "Couldn't read this page. Check the name.",
+    note: meta.extracted ? null : meta.blocked ? 'This store blocks previews. Add the name yourself.' : "Couldn't read this page. Check the name.",
   };
 }
 

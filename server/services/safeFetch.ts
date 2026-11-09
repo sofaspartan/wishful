@@ -126,6 +126,7 @@ export interface SafeFetchOptions {
   timeoutMs?: number;
   maxBytes?: number;
   maxRedirects?: number;
+  headers?: Record<string, string>;
 }
 
 const DEFAULT_HEADERS = {
@@ -136,11 +137,25 @@ const DEFAULT_HEADERS = {
   'accept-encoding': 'gzip, deflate, br',
 };
 
+/** What Chrome sends for a typed-in address — some stores only answer requests that look like this. */
+export const BROWSER_HEADERS = {
+  'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+  'accept-language': 'en-US,en;q=0.9',
+  'accept-encoding': 'gzip, deflate, br',
+  'sec-fetch-dest': 'document',
+  'sec-fetch-mode': 'navigate',
+  'sec-fetch-site': 'none',
+  'sec-fetch-user': '?1',
+  'upgrade-insecure-requests': '1',
+};
+
 function requestOnce(
   url: URL,
   pinned: { address: string; family: number },
   deadline: number,
   maxBytes: number,
+  headers: Record<string, string>,
 ): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
   return new Promise((resolve, reject) => {
     const mod = url.protocol === 'https:' ? https : http;
@@ -149,7 +164,7 @@ function requestOnce(
       url,
       {
         method: 'GET',
-        headers: DEFAULT_HEADERS,
+        headers,
         timeout: remaining,
         // Pin the socket to the pre-validated address (DNS-rebinding defence).
         lookup: ((_host: string, opts: { all?: boolean }, cb: (...args: unknown[]) => void) => {
@@ -212,13 +227,13 @@ function decodeBody(body: Buffer, contentType: string): string {
 }
 
 export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}): Promise<SafeFetchResult> {
-  const { timeoutMs = 8000, maxBytes = 1_500_000, maxRedirects = 4 } = options;
+  const { timeoutMs = 8000, maxBytes = 1_500_000, maxRedirects = 4, headers = DEFAULT_HEADERS } = options;
   const deadline = Date.now() + timeoutMs;
   let url = assertSafeUrl(rawUrl);
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const pinned = await resolveSafe(url.hostname);
-    const res = await requestOnce(url, pinned, deadline, maxBytes);
+    const res = await requestOnce(url, pinned, deadline, maxBytes, headers);
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.location;
       if (!location) throw new Error('Redirect without location');

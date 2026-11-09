@@ -6,6 +6,7 @@ import { PRIORITY_LABELS } from '../../shared/constants';
 import { isHttpUrl } from '../../shared/schemas';
 import { useMe, useSharedWishlists, useWishlists, useInvalidate } from '../lib/queries';
 import { errorMessage, fieldErrors, post } from '../lib/api';
+import { brand } from '../config/brand';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Field, FormError, FormNote } from './ui/Field';
@@ -45,6 +46,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
   const [extractNote, setExtractNote] = useState<string | null>(null);
+  const [extractHelp, setExtractHelp] = useState({ blocked: false, noPhoto: false });
   const [draft, setDraft] = useState<ItemDraft>(() => emptyDraft());
   const [selected, setSelected] = useState<string[]>([]);
   const [priority, setPriority] = useState<Priority | 'none'>('none');
@@ -123,7 +125,8 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
         price: meta.price !== null ? String(meta.price) : d.price,
         currency: meta.currency || d.currency,
       }));
-      setExtractNote(meta.extracted ? null : (meta.message ?? "We couldn't read that page. Fill in the details below."));
+      setExtractNote(meta.message ?? (meta.extracted ? null : "We couldn't read that page. Fill in the details below."));
+      setExtractHelp({ blocked: Boolean(meta.blocked), noPhoto: !meta.imageUrl });
       setStep('details');
     } catch (err) {
       if (seq !== fetchSeq.current) return;
@@ -134,6 +137,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
         // Network/rate-limit issues: still let the user continue manually.
         setDraft((d) => ({ ...d, externalUrl: target }));
         setExtractNote(`${errorMessage(err)} You can add the details yourself.`);
+        setExtractHelp({ blocked: false, noPhoto: false });
         setStep('details');
       }
     } finally {
@@ -369,7 +373,25 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
 
         {step === 'details' && (
           <form id="add-item-form" className="stack" onSubmit={save} noValidate>
-            {extractNote && <FormNote>{extractNote}</FormNote>}
+            {extractNote && (
+              <FormNote>
+                <p>{extractNote}</p>
+                {extractHelp.noPhoto && !draft.imageUrl && (
+                  <p className="text-sm muted">
+                    For the photo, right-click it on the store's page, choose <b>Copy Image Address</b>, then paste it under <b>Use an image link instead</b>.
+                  </p>
+                )}
+                {extractHelp.blocked && (
+                  <p className="text-sm muted">
+                    On a computer, the{' '}
+                    <a href="/extension" target="_blank" rel="noreferrer">
+                      {brand.name} browser extension
+                    </a>{' '}
+                    saves from stores like this in one click.
+                  </p>
+                )}
+              </FormNote>
+            )}
             <FormError message={formError} />
             <ItemFormFields
               draft={draft}

@@ -130,6 +130,7 @@
 - [x] Connect flow: approve on the site, revocable per-browser token handed to the extension; tokens work only on `/api/extension/*`
 - [x] Settings → Browser extension lists connected browsers with last-used times and Disconnect; a password change disconnects all
 - [x] Privacy policy section for the extension
+- [x] Download from the site: `npm run build` zips the extension into `/downloads`; public `/extension` page with install steps, a landing page section and footer link, and download + install steps in Settings
 - [x] API and page-reader tests (112 tests total)
 - [ ] Publish to the Chrome Web Store and set `extensionUrl` in `src/config/brand.ts`
 
@@ -141,6 +142,14 @@
 - [x] Home reminds accounts made before recovery codes to create one
 - [x] Codes stored as SHA-256 only; same error for wrong code or unknown email; rate-limited per IP and per account
 - [x] API tests (119 tests total)
+
+## More reliable link previews
+- [x] Parser reads ProductGroup variants, comment-wrapped JSON-LD, microdata text prices, `<h1>` titles, Amazon photos and the visible price next to the name (skipping crossed-out and per-unit prices)
+- [x] Shopify fallback via `/products/<handle>.js` when the page leaves out the price or photo
+- [x] Second attempt with Chrome-like headers when the first is blocked or slow, within a 9 s budget
+- [x] Bot-protection, challenge, "not found" and bounced-to-search pages detected instead of filling the form with junk
+- [x] Add Item explains what's missing, how to copy a photo link, and suggests the extension for blocked stores
+- [x] Parser and detection tests (127 tests total)
 
 ## Future
 - [ ] Price tracking & price-drop alerts

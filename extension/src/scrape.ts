@@ -1,4 +1,4 @@
-import { extractMetadata, parsePrice } from '../../shared/metadata';
+import { currencyFromPriceText, extractMetadata, parsePrice, withoutSiteName } from '../../shared/metadata';
 
 export interface PageSnapshot {
   url: string;
@@ -53,8 +53,6 @@ export function snapshotPage(): PageSnapshot {
   return { url: location.href, title: document.title, html: parts.join('\n').slice(0, 800_000), images, priceText };
 }
 
-const SYMBOL_CURRENCY: Record<string, string> = { '€': 'EUR', '£': 'GBP', '¥': 'JPY', '₹': 'INR' };
-
 export interface PageDetails {
   url: string;
   title: string;
@@ -66,12 +64,6 @@ export interface PageDetails {
   images: string[];
 }
 
-/** "Linen throw – Maison Lin" → "Linen throw": page titles usually end with the store's name. */
-function withoutSiteName(title: string): string {
-  const parts = title.split(/\s+[|–—-]\s+/);
-  return parts.length > 1 && parts[0].length >= 3 ? title.slice(0, title.lastIndexOf(parts[parts.length - 1])).replace(/\s+[|–—-]\s+$/, '') : title;
-}
-
 /** Combines structured metadata with what's visible on the page. */
 export function readDetails(snap: PageSnapshot): PageDetails {
   const meta = extractMetadata(snap.html, snap.url);
@@ -79,9 +71,7 @@ export function readDetails(snap: PageSnapshot): PageDetails {
   let { price, currency } = meta;
   if (price === null && snap.priceText) {
     price = parsePrice(snap.priceText);
-    const symbol = Object.keys(SYMBOL_CURRENCY).find((s) => snap.priceText.includes(s));
-    const code = /\b(USD|EUR|GBP|CAD|AUD)\b/.exec(snap.priceText)?.[1];
-    currency = code ?? (symbol ? SYMBOL_CURRENCY[symbol] : null);
+    currency = currencyFromPriceText(snap.priceText);
   }
   const images = [...new Set([meta.imageUrl, ...snap.images].filter((x): x is string => Boolean(x)))].slice(0, 8);
   return {

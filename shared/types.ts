@@ -469,6 +469,8 @@ export interface UrlMetadata {
   brand: string;
   /** Present when extraction failed or was partial. */
   message?: string;
+  /** The store refused or ignored our request (bot protection), as opposed to a page with no details. */
+  blocked?: boolean;
 }
 
 /** A browser extension connected to the signed-in account, as listed in Settings. */
