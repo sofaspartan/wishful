@@ -1,7 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Check, Copy, ExternalLink, Gift, Link2, Lock, Mail, MessageCircle, RefreshCw, Share2, Trash2, UserPlus, Users } from 'lucide-react';
 import { VISIBILITIES, type Priority, type Visibility, type Wishlist, type WishlistDetail, type WishlistEntry, type WishlistSettings } from '../../shared/types';
-import { PRIORITY_LABELS, RESERVATION_DAY_OPTIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS } from '../../shared/constants';
+import {
+  PRIORITY_LABELS,
+  PRIORITY_LAYOUTS,
+  RESERVATION_DAY_OPTIONS,
+  VISIBILITY_DESCRIPTIONS,
+  VISIBILITY_LABELS,
+  priorityLayout,
+  priorityLayoutSettings,
+  type PriorityLayout,
+} from '../../shared/constants';
 import { useInvalidate, useSharedWishlists, useWishlists } from '../lib/queries';
 import { del, errorMessage, fieldErrors, patch, post } from '../lib/api';
 import { shareUrl } from '../lib/prefs';
@@ -165,6 +174,30 @@ export function ShareDialog({ open, onClose, wishlist, ownerName }: { open: bool
 
 // ── Gift & privacy settings ─────────────────────────────────────────────────
 
+/** Group by priority / my order / hide priorities — one choice backed by `itemOrder` and `showPriorities`. */
+export function PriorityLayoutField({
+  settings,
+  onChange,
+}: {
+  settings: Pick<WishlistSettings, 'showPriorities' | 'itemOrder'>;
+  onChange: (change: Pick<WishlistSettings, 'showPriorities' | 'itemOrder'>) => void;
+}) {
+  const layout = priorityLayout(settings);
+  return (
+    <div className="field">
+      <span className="field-label">Priorities</span>
+      <Segmented
+        label="Priorities"
+        full
+        value={layout}
+        onChange={(v: PriorityLayout) => onChange(priorityLayoutSettings(v))}
+        options={PRIORITY_LAYOUTS.map((l) => ({ value: l.value, label: l.label }))}
+      />
+      <span className="field-hint">{PRIORITY_LAYOUTS.find((l) => l.value === layout)?.description}</span>
+    </div>
+  );
+}
+
 export function GiftSettingsDialog({ open, onClose, wishlist }: { open: boolean; onClose: () => void; wishlist: Wishlist }) {
   const invalidate = useInvalidate();
   const toast = useToast();
@@ -225,8 +258,8 @@ export function GiftSettingsDialog({ open, onClose, wishlist }: { open: boolean;
           <SwitchRow title="Show reserved items" description="Turn off to hide reserved items from other visitors." checked={settings.showReserved} onChange={(v) => set('showReserved', v)} />
           <SwitchRow title="Show purchased items" description="Turn off to hide purchased items from other visitors." checked={settings.showPurchased} onChange={(v) => set('showPurchased', v)} />
           <SwitchRow title="Allow messages" description="Visitors can leave a short note with a reservation or group gift." checked={settings.allowMessages} onChange={(v) => set('allowMessages', v)} />
-          <SwitchRow title="Show priorities" description="Let visitors see what you want most." checked={settings.showPriorities} onChange={(v) => set('showPriorities', v)} />
         </div>
+        <PriorityLayoutField settings={settings} onChange={(change) => setSettings((s) => ({ ...s, ...change }))} />
         <Field label="Reservations expire after" hint="Unpurchased reservations lapse automatically so items don't stay blocked forever.">
           <select className="select" value={settings.reservationDays} onChange={(e) => set('reservationDays', Number(e.target.value))}>
             {RESERVATION_DAY_OPTIONS.map((d) => (

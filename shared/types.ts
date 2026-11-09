@@ -10,6 +10,10 @@ export type ItemType = (typeof ITEM_TYPES)[number];
 export const PRIORITIES = ['must_have', 'really_want', 'interested'] as const;
 export type Priority = (typeof PRIORITIES)[number];
 
+/** `priority`: must-haves and really-wants first, in their own sections. `custom`: exactly the dragged order. */
+export const ITEM_ORDERS = ['priority', 'custom'] as const;
+export type ItemOrder = (typeof ITEM_ORDERS)[number];
+
 export const VISIBILITIES = ['private', 'friends', 'unlisted', 'public'] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
 
@@ -133,8 +137,10 @@ export interface WishlistSettings {
   showPurchased: boolean;
   /** Visitors may attach a message to claims and group-gift pledges. */
   allowMessages: boolean;
-  /** Item priorities are shown on the shared page. */
+  /** Item priorities are shown — on the list itself and on the shared page. */
   showPriorities: boolean;
+  /** How items are arranged, for the owner and visitors alike. Missing on older lists: `priority`. */
+  itemOrder?: ItemOrder;
   /** Days before an un-purchased reservation lapses. 0 = never. */
   reservationDays: number;
 }

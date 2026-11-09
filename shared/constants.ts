@@ -30,6 +30,7 @@ export const COLLECTION_SETTINGS: WishlistSettings = {
   showPurchased: true,
   allowMessages: false,
   showPriorities: false,
+  itemOrder: 'custom',
   reservationDays: 0,
 };
 
@@ -40,6 +41,7 @@ export const DEFAULT_WISHLIST_SETTINGS: WishlistSettings = {
   showPurchased: true,
   allowMessages: true,
   showPriorities: true,
+  itemOrder: 'priority',
   reservationDays: 30,
 };
 
@@ -77,6 +79,24 @@ export const PRIORITY_RANK: Record<Priority, number> = {
   really_want: 1,
   interested: 2,
 };
+
+/** The three ways a wishlist can present priorities — two settings shown as one choice. */
+export type PriorityLayout = 'grouped' | 'ordered' | 'hidden';
+
+export const PRIORITY_LAYOUTS: Array<{ value: PriorityLayout; label: string; description: string }> = [
+  { value: 'grouped', label: 'Group by priority', description: 'Must haves and really wants come first, in their own sections.' },
+  { value: 'ordered', label: 'My order', description: 'Items stay exactly where you drag them, with their priority badges.' },
+  { value: 'hidden', label: 'Hide priorities', description: 'Your order, and no priorities shown — to you or visitors.' },
+];
+
+export function priorityLayout(settings: Pick<WishlistSettings, 'showPriorities' | 'itemOrder'>): PriorityLayout {
+  if (!settings.showPriorities) return 'hidden';
+  return (settings.itemOrder ?? 'priority') === 'priority' ? 'grouped' : 'ordered';
+}
+
+export function priorityLayoutSettings(layout: PriorityLayout): Pick<WishlistSettings, 'showPriorities' | 'itemOrder'> {
+  return { showPriorities: layout !== 'hidden', itemOrder: layout === 'grouped' ? 'priority' : 'custom' };
+}
 
 export const VISIBILITY_LABELS: Record<Visibility, string> = {
   private: 'Private',

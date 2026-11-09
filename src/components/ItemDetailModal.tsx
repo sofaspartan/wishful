@@ -4,7 +4,7 @@ import type { Item, Priority, PublicItem } from '../../shared/types';
 import { ACQUIRED_VIA_LABELS, CONDITION_LABELS, ITEM_TYPE_LABELS } from '../../shared/constants';
 import { formatDate, formatPrice, hostname } from '../lib/format';
 import { Modal } from './ui/Modal';
-import { ItemImage, ItemTypeIcon, PriorityLabel } from './ItemVisuals';
+import { ItemImage, ItemTypeIcon, PriorityBadge } from './ItemVisuals';
 import { effectivePrice } from './ItemForm';
 
 interface Props {
@@ -95,7 +95,7 @@ export function ItemDetailModal({ item, onClose, priority, entryNote, children, 
             <span className="badge badge-outline">
               <ItemTypeIcon type={item.type} size={12} /> {ITEM_TYPE_LABELS[item.type]}
             </span>
-            {priority && <PriorityLabel priority={priority} />}
+            {priority && <PriorityBadge priority={priority} />}
             {badges}
           </div>
           {price && (

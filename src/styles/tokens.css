@@ -48,6 +48,14 @@
   --info: #2f6390;
   --info-soft: #e4edf5;
 
+  /* Priorities */
+  --prio-must: #d23f66;
+  --prio-must-soft: #fce8ee;
+  --prio-must-ink: #9f2448;
+  --prio-want: #c98a1c;
+  --prio-want-soft: #fbf0d9;
+  --prio-want-ink: #85560b;
+
   /* Collections are colour-coded blush (the original coral brand tint) */
   --blush: #e8745b;
   --blush-ink: #b0482f;
@@ -147,6 +155,12 @@
   --warning-soft: #33270f;
   --danger: #f28476;
   --danger-soft: #3a1c1f;
+  --prio-must: #f0789a;
+  --prio-must-soft: #3a1826;
+  --prio-must-ink: #f7aec1;
+  --prio-want: #e6b256;
+  --prio-want-soft: #33270f;
+  --prio-want-ink: #f2cd86;
   --info: #84b4e3;
   --info-soft: #14283f;
 

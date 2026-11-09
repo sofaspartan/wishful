@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { Users } from 'lucide-react';
 import type { Item, Priority, PublicItem, PublicOwnership } from '../../shared/types';
 import { formatPrice } from '../lib/format';
-import { ItemImage, OwnedLine, PriorityLabel } from './ItemVisuals';
+import { isTopPriority } from '../lib/priority';
+import { ItemImage, OwnedLine, PriorityBadge, PriorityLabel } from './ItemVisuals';
 import { effectivePrice } from './ItemForm';
 
 type AnyItem = Item | PublicItem;
@@ -33,10 +34,11 @@ export function ItemCard({ item, priority, status, dimmed, groupGift, onOpen, me
   const price = formatPrice(amount, item.currency);
   const amountPrefix = item.type === 'idea' && amount !== null ? '~' : '';
   const source = sourceLine(item);
+  const top = isTopPriority(priority) ? priority : null;
 
   if (view === 'list') {
     return (
-      <div className="item-row">
+      <div className={`item-row${top ? ` prio-row prio-row-${top}` : ''}`}>
         {onOpen && <button type="button" className="item-card-hit" onClick={onOpen} aria-label={`Open ${item.title}`} />}
         {dragHandle && <div style={{ position: 'relative', zIndex: 2 }}>{dragHandle}</div>}
         <div className="item-row-thumb">
@@ -45,8 +47,8 @@ export function ItemCard({ item, priority, status, dimmed, groupGift, onOpen, me
         <div className="item-row-main">
           <span className="item-title truncate">{item.title}</span>
           <span className="row text-sm muted" style={{ gap: 8, minWidth: 0 }}>
+            {priority && <PriorityBadge priority={priority} />}
             {source && <span className="truncate">{source}</span>}
-            {priority && <PriorityLabel priority={priority} />}
             {owned && <OwnedLine owned={owned} />}
           </span>
         </div>
@@ -65,16 +67,19 @@ export function ItemCard({ item, priority, status, dimmed, groupGift, onOpen, me
   }
 
   return (
-    <article className={`item-card${dimmed ? ' is-claimed' : ''}`}>
+    <article className={`item-card${dimmed ? ' is-claimed' : ''}${top ? ` prio-card prio-card-${top}` : ''}`}>
       {onOpen && <button type="button" className="item-card-hit" onClick={onOpen} aria-label={`Open ${item.title}`} />}
       <div className="item-media">
         <ItemImage src={item.imageUrl} type={item.type} />
         {status && <div className="item-status">{status}</div>}
-        {groupGift && (
+        {(top || groupGift) && (
           <div className="item-overlay-tl">
-            <span className="badge badge-info">
-              <Users aria-hidden /> Group gift
-            </span>
+            {top && <PriorityBadge priority={top} />}
+            {groupGift && (
+              <span className="badge badge-info">
+                <Users aria-hidden /> Group gift
+              </span>
+            )}
           </div>
         )}
         {(menu || dragHandle) && (
@@ -94,7 +99,7 @@ export function ItemCard({ item, priority, status, dimmed, groupGift, onOpen, me
               {price}
             </span>
           )}
-          {priority && <PriorityLabel priority={priority} />}
+          {!top && <PriorityLabel priority={priority} />}
         </div>
         {owned && <OwnedLine owned={owned} />}
         {footer}

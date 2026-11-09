@@ -27,9 +27,11 @@ import {
   Users,
 } from 'lucide-react';
 import type { Item, OwnerClaimView, OwnerPledgeView, Priority, WishlistDetail as Detail, WishlistEntry } from '../../shared/types';
-import { PRIORITY_LABELS, PRIORITY_RANK } from '../../shared/constants';
+import { PRIORITY_LABELS, PRIORITY_LAYOUTS, priorityLayout, priorityLayoutSettings, type PriorityLayout } from '../../shared/constants';
 import { keys, useMe, useWishlist, useInvalidate } from '../lib/queries';
-import { ApiError, del, errorMessage, post, put } from '../lib/api';
+import { ApiError, del, errorMessage, patch, post, put } from '../lib/api';
+import { mergeSectionOrder } from '../lib/priority';
+import { PrioritySections } from '../components/PrioritySections';
 import { countdownLabel, formatDate, relativeTime } from '../lib/format';
 import { shareUrl, useLocalPref } from '../lib/prefs';
 import { useAppActions } from '../components/appActions';
@@ -150,12 +152,17 @@ function WishlistView({ detail }: { detail: Detail }) {
 
   const rowById = useMemo(() => new Map(rows.map((r) => [r.entry.id, r])), [rows]);
 
-  const effectiveSort: Sort = collection ? (sort === 'priority' ? 'custom' : sort) : sort === 'acquired' ? 'custom' : sort;
+  // "Priority" used to be a personal sort; grouping by priority is now a setting of the list itself.
+  const effectiveSort: Sort = sort === 'priority' || (sort === 'acquired' && !collection) ? 'custom' : sort;
+  const layout: PriorityLayout = collection ? 'hidden' : priorityLayout(w.settings);
+  const showPriority = layout !== 'hidden';
+  const grouped = layout === 'grouped' && effectiveSort === 'custom';
+  const activeFilter = showPriority ? priorityFilter : 'all';
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = rows.filter((r) => {
-      if (priorityFilter !== 'all' && r.entry.priority !== priorityFilter) return false;
+      if (activeFilter !== 'all' && r.entry.priority !== activeFilter) return false;
       if (!q) return true;
       const i = r.item;
       return [i.title, i.description, i.retailer, i.brand, i.category, i.tags.join(' '), i.metadata.location ?? '', i.metadata.venue ?? ''].some((s) => s.toLowerCase().includes(q));
@@ -163,7 +170,6 @@ function WishlistView({ detail }: { detail: Detail }) {
     if (effectiveSort !== 'custom') {
       list = [...list];
       const price = (r: Row) => effectivePrice(r.item);
-      if (effectiveSort === 'priority') list.sort((a, b) => (a.entry.priority ? PRIORITY_RANK[a.entry.priority] : 9) - (b.entry.priority ? PRIORITY_RANK[b.entry.priority] : 9));
       if (effectiveSort === 'acquired') list.sort((a, b) => (b.item.owned?.acquiredOn ?? '').localeCompare(a.item.owned?.acquiredOn ?? ''));
       if (effectiveSort === 'price_asc') list.sort((a, b) => (price(a) ?? Infinity) - (price(b) ?? Infinity));
       if (effectiveSort === 'price_desc') list.sort((a, b) => (price(b) ?? -1) - (price(a) ?? -1));
@@ -171,10 +177,23 @@ function WishlistView({ detail }: { detail: Detail }) {
       if (effectiveSort === 'name') list.sort((a, b) => a.item.title.localeCompare(b.item.title));
     }
     return list;
-  }, [rows, query, priorityFilter, effectiveSort]);
+  }, [rows, query, activeFilter, effectiveSort]);
 
-  const canDrag = canEdit && effectiveSort === 'custom' && !query.trim() && priorityFilter === 'all' && rows.length > 1 && !w.archivedAt;
+  const canDrag = canEdit && effectiveSort === 'custom' && !query.trim() && activeFilter === 'all' && rows.length > 1 && !w.archivedAt;
   const orderedIds = order ?? rows.map((r) => r.entry.id);
+  const displayRows = canDrag ? orderedIds.map((eid) => rowById.get(eid)).filter((r): r is Row => Boolean(r)) : filtered;
+
+  const setLayout = async (next: PriorityLayout) => {
+    const change = priorityLayoutSettings(next);
+    qc.setQueryData<Detail>(keys.wishlist(w.id), (prev) => (prev ? { ...prev, wishlist: { ...prev.wishlist, settings: { ...prev.wishlist.settings, ...change } } } : prev));
+    try {
+      await patch(`/api/wishlists/${w.id}`, { settings: change });
+      invalidate([w.id]);
+    } catch (err) {
+      toast.error(errorMessage(err));
+      invalidate([w.id]);
+    }
+  };
 
   const openRow = openItemId ? rows.find((r) => r.item.id === openItemId) : undefined;
   const setOpenItem = (itemId: string | null) => {
@@ -294,7 +313,7 @@ function WishlistView({ detail }: { detail: Detail }) {
   const renderCard = (r: Row, dragHandle?: ReactNode) => (
     <ItemCard
       item={r.item}
-      priority={collection ? null : r.entry.priority}
+      priority={showPriority ? r.entry.priority : null}
       owned={collection ? r.item.owned : null}
       status={statusBadge(r)}
       dimmed={r.claim?.status === 'purchased'}
@@ -483,7 +502,22 @@ function WishlistView({ detail }: { detail: Detail }) {
             <Search size={16} aria-hidden />
             <input className="input" type="search" placeholder="Search this list" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search this list" />
           </div>
-          {!collection && (
+          {isOwner && !collection && (
+            <select
+              className="select"
+              value={layout}
+              onChange={(e) => setLayout(e.target.value as PriorityLayout)}
+              aria-label="Arrange items"
+              title="How this list is arranged — for you and everyone you share it with"
+            >
+              {PRIORITY_LAYOUTS.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          )}
+          {showPriority && (
             <select className="select" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as Priority | 'all')} aria-label="Filter by priority">
               <option value="all">All priorities</option>
               {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
@@ -494,8 +528,8 @@ function WishlistView({ detail }: { detail: Detail }) {
             </select>
           )}
           <select className="select" value={effectiveSort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort items">
-            <option value="custom">Custom order</option>
-            {collection ? <option value="acquired">Recently acquired</option> : <option value="priority">Priority</option>}
+            <option value="custom">{collection ? 'Custom order' : 'List order'}</option>
+            {collection && <option value="acquired">Recently acquired</option>}
             <option value="price_asc">Price: low to high</option>
             <option value="price_desc">Price: high to low</option>
             <option value="newest">Recently added</option>
@@ -542,6 +576,16 @@ function WishlistView({ detail }: { detail: Detail }) {
         <EmptyState icon={<Search size={22} />} title="No matching items">
           Try a different search or filter.
         </EmptyState>
+      ) : grouped ? (
+        <PrioritySections
+          rows={displayRows}
+          idOf={(r) => r.entry.id}
+          priorityOf={(r) => r.entry.priority}
+          view={view}
+          renderCard={renderCard}
+          onReorderSection={canDrag ? (ids) => reorder(mergeSectionOrder(orderedIds, ids)) : undefined}
+          dragLabel={(r) => `Reorder ${r.item.title}`}
+        />
       ) : canDrag ? (
         <SortableList
           ids={orderedIds}
@@ -567,7 +611,7 @@ function WishlistView({ detail }: { detail: Detail }) {
       <ItemDetailModal
         item={openRow?.item ?? null}
         onClose={() => setOpenItem(null)}
-        priority={collection ? null : openRow?.entry.priority}
+        priority={showPriority ? openRow?.entry.priority : null}
         entryNote={collection ? undefined : openRow?.entry.customNotes}
         badges={openRow ? statusBadge(openRow) : null}
         footer={

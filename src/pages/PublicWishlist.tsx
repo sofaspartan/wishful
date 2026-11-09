@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, Check, Copy, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
 import type { PublicEntry, PublicWishlistView } from '../../shared/types';
-import { PRIORITY_RANK } from '../../shared/constants';
+import { PRIORITY_RANK, priorityLayout } from '../../shared/constants';
 import { keys, useMe, usePublicList } from '../lib/queries';
 import { ApiError, errorMessage, post } from '../lib/api';
 import { countdownLabel, formatDate, possessive, relativeTime } from '../lib/format';
@@ -14,8 +14,10 @@ import { Logo } from '../components/Logo';
 import { ItemCard, ItemCardSkeleton } from '../components/ItemCard';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { CollectionBadge, StatusBadge } from '../components/ItemVisuals';
-import { CoverArt } from '../components/CoverArt';
+import { CloudBank } from '../components/Cloud';
+import { CoverArt, CoverAvatar, suggestCoverArt } from '../components/CoverArt';
 import { CollectionStats } from '../components/CollectionStats';
+import { PrioritySections } from '../components/PrioritySections';
 import { Button } from '../components/ui/Button';
 import { Field, FormError } from '../components/ui/Field';
 import { Avatar, EmptyState } from '../components/ui/misc';
@@ -241,6 +243,9 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
   const firstName = owner.displayName.split(' ')[0];
   const collection = w.kind === 'collection';
   const canClaim = !collection && w.settings.allowClaims && !viewer.isOwner;
+  const layout = collection ? 'hidden' : priorityLayout(w.settings);
+  const showPriority = layout !== 'hidden';
+  const grouped = layout === 'grouped' && sort === 'order';
   const thingCount = collection ? entries.reduce((n, e) => n + (e.item.owned?.quantity ?? 1), 0) : entries.length;
 
   const badge = (e: PublicEntry) => {
@@ -255,6 +260,18 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
     if (!e.status || e.status === 'available') return null;
     return <StatusBadge status={e.status} mine={Boolean(m?.claim) || (e.status === 'purchased' && m?.pledge?.role === 'coordinator')} />;
   };
+
+  const card = (e: PublicEntry) => (
+    <ItemCard
+      item={e.item}
+      priority={showPriority ? e.priority : null}
+      owned={collection ? e.item.owned : null}
+      status={badge(e)}
+      dimmed={e.status === 'purchased' || (e.status === 'reserved' && !mine.get(e.id)?.claim)}
+      groupGift={e.groupGift}
+      onOpen={() => setOpen(e.id)}
+    />
+  );
 
   return (
     <div className="public-shell" style={{ ['--wl-accent' as string]: w.accentColor }}>
@@ -280,35 +297,55 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
       )}
 
       <section className="public-hero">
-        <div className="public-cover">
-          {w.coverImage ? <img src={w.coverImage} alt="" referrerPolicy="no-referrer" /> : w.coverArt ? <CoverArt art={w.coverArt} /> : <div className="wl-cover-tint" />}
-        </div>
-        <div className="public-intro">
-          <Avatar name={owner.displayName} src={owner.avatarUrl} size={80} />
-          <p className="muted text-sm">
-            {possessive(owner.displayName)} {collection ? 'collection' : 'wishlist'}
-          </p>
-          <h1 className="public-title display">{w.title}</h1>
-          {w.description && (
-            <p className="muted" style={{ maxWidth: 560, whiteSpace: 'pre-line' }}>
-              {w.description}
-            </p>
-          )}
-          <div className="public-meta">
-            {w.eventDate && (
-              <span className="badge badge-outline">
-                <CalendarDays aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
-                {formatDate(w.eventDate, { month: 'long', day: 'numeric', year: 'numeric' })}
-                {days && days !== 'Passed' && !/\d{4}/.test(days) ? ` · ${days}` : ''}
-              </span>
+        <header
+          className={['wl-hero', 'public-wl-hero', !w.coverImage && (w.coverArt?.backdrop === 'night' || w.coverArt?.backdrop === 'snow') && 'wl-hero-dark']
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <div className="wl-hero-bg" aria-hidden>
+            {!w.coverImage && w.coverArt ? (
+              <CoverArt art={w.coverArt} showIcon={false} />
+            ) : (
+              <div className="wl-hero-tint">
+                <CloudBank className="wl-hero-bank" />
+              </div>
             )}
-            {!w.eventDate && w.occasion && <span className="badge badge-outline">{w.occasion}</span>}
-            {collection && <CollectionBadge outline />}
-            <span className="badge badge-outline">
-              <Gift aria-hidden /> {thingCount} {collection ? (thingCount === 1 ? 'thing' : 'things') : thingCount === 1 ? 'item' : 'items'}
-            </span>
           </div>
-        </div>
+          <div className="wl-hero-body">
+            <CoverAvatar
+              className="wl-hero-avatar"
+              icon={(w.coverArt ?? suggestCoverArt(w.occasion, w.kind)).icon}
+              frame={w.coverArt?.frame}
+              photo={w.coverImage}
+            />
+            <div className="wl-hero-main">
+              <span className="public-byline">
+                <Avatar name={owner.displayName} src={owner.avatarUrl} size={26} />
+                {possessive(owner.displayName)} {collection ? 'collection' : 'wishlist'}
+              </span>
+              <h1 className="wl-hero-title display">{w.title}</h1>
+              {w.description && (
+                <p className="muted" style={{ maxWidth: 640, whiteSpace: 'pre-line' }}>
+                  {w.description}
+                </p>
+              )}
+              <div className="row-wrap">
+                {w.eventDate && (
+                  <span className="badge badge-outline">
+                    <CalendarDays aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
+                    {formatDate(w.eventDate, { month: 'long', day: 'numeric', year: 'numeric' })}
+                    {days && days !== 'Passed' && !/\d{4}/.test(days) ? ` · ${days}` : ''}
+                  </span>
+                )}
+                {!w.eventDate && w.occasion && <span className="badge badge-outline">{w.occasion}</span>}
+                {collection && <CollectionBadge outline />}
+                <span className="badge badge-outline">
+                  <Gift aria-hidden /> {thingCount} {collection ? (thingCount === 1 ? 'thing' : 'things') : thingCount === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
       </section>
 
       <main id="main" className="public-content">
@@ -346,7 +383,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
             <div className="spacer" />
             <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
               <option value="order">{possessive(owner.displayName)} order</option>
-              {w.settings.showPriorities && !collection && <option value="priority">Most wanted first</option>}
+              {layout === 'ordered' && <option value="priority">Most wanted first</option>}
               {collection && <option value="acquired">Recently acquired</option>}
               <option value="price_asc">Price: low to high</option>
               <option value="price_desc">Price: high to low</option>
@@ -362,19 +399,14 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
           <EmptyState icon={<Gift size={22} />} title="Nothing to show">
             No items match this filter.
           </EmptyState>
+        ) : grouped ? (
+          <PrioritySections rows={shown} idOf={(e) => e.id} priorityOf={(e) => e.priority} view="grid" renderCard={card} />
         ) : (
           <div className="grid-items">
             {shown.map((e) => (
-              <ItemCard
-                key={e.id}
-                item={e.item}
-                priority={collection ? null : e.priority}
-                owned={collection ? e.item.owned : null}
-                status={badge(e)}
-                dimmed={e.status === 'purchased' || (e.status === 'reserved' && !mine.get(e.id)?.claim)}
-                groupGift={e.groupGift}
-                onOpen={() => setOpen(e.id)}
-              />
+              <div key={e.id} style={{ minWidth: 0 }}>
+                {card(e)}
+              </div>
             ))}
           </div>
         )}
@@ -394,7 +426,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
         <ItemDetailModal
           item={openEntry.item}
           onClose={() => setOpen(null)}
-          priority={collection ? null : openEntry.priority}
+          priority={showPriority ? openEntry.priority : null}
           entryNote={collection ? undefined : openEntry.customNotes}
           badges={badge(openEntry)}
         >

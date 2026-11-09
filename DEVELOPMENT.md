@@ -362,6 +362,14 @@ store link in `extensionUrl` in `src/config/brand.ts`. Every download button bec
   lists with per-list priority, note for gift-givers and order; drag-and-drop reorder;
   move between lists; add to several lists; categories, tags, private notes,
   type-specific details.
+* Priorities: Must have and Really want get badges and tinted cards. Each wishlist picks
+  an arrangement (toolbar "Arrange items" select, Gift settings, or the default in
+  Settings), stored as two settings: `showPriorities` and `itemOrder`
+  (`priority` | `custom`; missing on older lists means `priority`). "Group by priority"
+  shows Must have and Really want sections ahead of everything else, and dragging
+  within a section only moves items among that section's slots in the list order;
+  "My order" keeps the drag order with badges; "Hide priorities" strips them from the
+  public API response too. Collections always use their own order.
 * Add Item flow: paste a link (SSRF-safe metadata extraction with graceful fallback),
   write an idea, or upload a photo; choose multiple destinations or create a list inline.
 * Saved Items: grid/list views, search, filters (type, list, category, priority),

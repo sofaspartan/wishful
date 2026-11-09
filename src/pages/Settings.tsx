@@ -11,6 +11,7 @@ import { del, errorMessage, fieldErrors, patch, post } from '../lib/api';
 import { uploadImage } from '../lib/images';
 import { showRecoveryCode } from '../lib/recoveryCode';
 import { ExtensionGetButton, InstallSteps } from '../components/ExtensionInstall';
+import { PriorityLayoutField } from '../components/WishlistDialogs';
 import { Button } from '../components/ui/Button';
 import { Field, FormError } from '../components/ui/Field';
 import { Avatar, PageLoader, Segmented, SwitchRow } from '../components/ui/misc';
@@ -263,8 +264,8 @@ function PrivacySection({ me }: { me: SelfUser }) {
           <SwitchRow title="Show reserved items to visitors" checked={settings.showReserved} onChange={(v) => set('showReserved', v)} />
           <SwitchRow title="Show purchased items to visitors" checked={settings.showPurchased} onChange={(v) => set('showPurchased', v)} />
           <SwitchRow title="Allow messages from gift-givers" checked={settings.allowMessages} onChange={(v) => set('allowMessages', v)} />
-          <SwitchRow title="Show priorities" checked={settings.showPriorities} onChange={(v) => set('showPriorities', v)} />
         </div>
+        <PriorityLayoutField settings={settings} onChange={(change) => setSettings((s) => ({ ...s, ...change }))} />
         <div className="form-grid cols-2">
           <Field label="Reservations expire after">
             <select className="select" value={settings.reservationDays} onChange={(e) => set('reservationDays', Number(e.target.value))}>

@@ -14,6 +14,7 @@ import {
   COVER_FRAME_FILLS,
   COVER_FRAME_SHAPES,
   COVER_ICONS,
+  ITEM_ORDERS,
   ITEM_TYPES,
   LIST_KINDS,
   PRIORITIES,
@@ -152,6 +153,7 @@ export const wishlistSettingsSchema = z.object({
   showPurchased: z.boolean(),
   allowMessages: z.boolean(),
   showPriorities: z.boolean(),
+  itemOrder: z.enum(ITEM_ORDERS).optional(),
   reservationDays: z.number().int().min(0).max(365),
 });
 

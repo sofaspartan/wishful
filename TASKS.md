@@ -22,6 +22,7 @@
 - [x] Multiple destinations, inline wishlist creation, save to collection only
 - [x] Edit / delete items, move between lists, add to several lists
 - [x] Item reorder within a list (drag & drop, keyboard accessible)
+- [x] Priority badges; per-list arrangement: group by priority (Must have / Really want sections first), own order, or hide priorities
 - [x] Saved Items page: grid/list, search, filters, sort
 - [x] Dashboard: greeting, quick actions, onboarding, lists, recent items, occasions, activity
 - [x] Global search palette (⌘K)

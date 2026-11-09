@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Gift, Globe, Library, Lightbulb, Link2, Lock, Package, Sparkles, Ticket, Clock, Users } from 'lucide-react';
+import { CheckCircle2, Gift, Globe, Heart, Library, Lightbulb, Link2, Lock, Package, Sparkles, Star, Ticket, Clock, Users } from 'lucide-react';
 import type { ClaimStatus, ItemType, PublicOwnership, Priority, Visibility } from '../../shared/types';
 import { CONDITION_LABELS, PRIORITY_LABELS, VISIBILITY_LABELS } from '../../shared/constants';
 import { formatDate } from '../lib/format';
@@ -35,6 +35,20 @@ export function ItemImage({ src, type, alt = '', iconSize = 28, cover }: { src: 
 export function PriorityLabel({ priority }: { priority: Priority | null | undefined }) {
   if (!priority) return null;
   return <span className={`priority priority-${priority}`}>{PRIORITY_LABELS[priority]}</span>;
+}
+
+export const PRIORITY_ICONS = { must_have: Star, really_want: Heart } as const;
+
+/** The stand-out pill for must haves and really wants; plain "Interested" keeps the quiet label. */
+export function PriorityBadge({ priority }: { priority: Priority | null | undefined }) {
+  if (priority !== 'must_have' && priority !== 'really_want') return <PriorityLabel priority={priority} />;
+  const Icon = PRIORITY_ICONS[priority];
+  return (
+    <span className={`prio-badge prio-badge-${priority}`}>
+      <Icon aria-hidden />
+      {PRIORITY_LABELS[priority]}
+    </span>
+  );
 }
 
 export function VisibilityBadge({ visibility, outline }: { visibility: Visibility; outline?: boolean }) {
