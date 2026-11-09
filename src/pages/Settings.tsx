@@ -1,12 +1,15 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bell, Camera, ExternalLink, Gift, Globe, KeyRound, LogOut, Mail, Shield, Trash2, UserRound, type LucideIcon } from 'lucide-react';
+import { Bell, Camera, ExternalLink, Gift, Globe, KeyRound, LifeBuoy, LogOut, Mail, Puzzle, Shield, Trash2, UserRound, type LucideIcon } from 'lucide-react';
 import { VISIBILITIES, type NotificationPreferences, type SelfUser, type Visibility, type WishlistSettings } from '../../shared/types';
 import { CURRENCIES, RESERVATION_DAY_OPTIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS } from '../../shared/constants';
-import { keys, useMe } from '../lib/queries';
+import { keys, useExtensionConnections, useMe } from '../lib/queries';
+import { formatDate, relativeTime } from '../lib/format';
+import { brand } from '../config/brand';
 import { del, errorMessage, fieldErrors, patch, post } from '../lib/api';
 import { uploadImage } from '../lib/images';
+import { showRecoveryCode } from '../lib/recoveryCode';
 import { Button } from '../components/ui/Button';
 import { Field, FormError } from '../components/ui/Field';
 import { Avatar, PageLoader, Segmented, SwitchRow } from '../components/ui/misc';
@@ -19,6 +22,7 @@ const TABS = [
   { id: 'profile', label: 'Profile', icon: UserRound },
   { id: 'privacy', label: 'Privacy & sharing', icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'extension', label: 'Browser extension', icon: Puzzle },
   { id: 'account', label: 'Account', icon: KeyRound },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
@@ -91,6 +95,7 @@ export default function Settings() {
           {tab === 'profile' && <ProfileSection me={me} />}
           {tab === 'privacy' && <PrivacySection me={me} />}
           {tab === 'notifications' && <NotificationsSection me={me} />}
+          {tab === 'extension' && <ExtensionSection />}
           {tab === 'account' && <AccountSection me={me} />}
         </div>
       </div>
@@ -336,6 +341,147 @@ function NotificationsSection({ me }: { me: SelfUser }) {
   );
 }
 
+function ExtensionSection() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const { data: connections, isLoading } = useExtensionConnections();
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  const disconnect = async (id: string) => {
+    setRemoving(id);
+    try {
+      await del(`/api/extension/connections/${id}`);
+      await qc.invalidateQueries({ queryKey: keys.extensionConnections });
+      toast.success('Extension disconnected');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setRemoving(null);
+    }
+  };
+
+  return (
+    <div className="settings-section">
+      <div className="card card-pad stack">
+        <div>
+          <CardTitle icon={Puzzle}>{brand.name} for your browser</CardTitle>
+          <p className="muted text-sm">
+            Save products from any store with one click. The extension fills in the name, price and photo from the page you're on, and can only see
+            your list names and add the items you choose.
+          </p>
+        </div>
+        {brand.extensionUrl && (
+          <div>
+            <a href={brand.extensionUrl} target="_blank" rel="noreferrer" className="btn">
+              Get the extension <ExternalLink size={14} aria-hidden />
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div className="card card-pad stack">
+        <CardTitle icon={Globe}>Connected browsers</CardTitle>
+        {isLoading ? (
+          <p className="muted text-sm">Loading…</p>
+        ) : !connections?.length ? (
+          <p className="muted text-sm">No browsers are connected. Open the extension and choose Connect to {brand.name}.</p>
+        ) : (
+          <ul className="connection-list">
+            {connections.map((c) => (
+              <li key={c.id} className="connection-row">
+                <span className="tile-header-icon" aria-hidden>
+                  <Puzzle size={14} />
+                </span>
+                <div className="connection-copy">
+                  <strong>{c.label}</strong>
+                  <span className="muted text-sm">
+                    Connected {formatDate(c.createdAt)} · {c.lastUsedAt ? `last used ${relativeTime(c.lastUsedAt)}` : 'not used yet'}
+                  </span>
+                </div>
+                <Button size="sm" onClick={() => void disconnect(c.id)} loading={removing === c.id}>
+                  Disconnect
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <p className="muted text-sm">Changing your password also disconnects every browser.</p>
+    </div>
+  );
+}
+
+function RecoveryCodeCard({ me }: { me: SelfUser }) {
+  const saveUser = useSaveUser();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const hasCode = Boolean(me.recoveryCodeCreatedAt);
+
+  const close = () => {
+    setOpen(false);
+    setPassword('');
+    setError(null);
+  };
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await post<{ user: SelfUser; recoveryCode: string }>('/api/account/recovery-code', { password });
+      saveUser(res.user);
+      close();
+      showRecoveryCode({ code: res.recoveryCode, email: res.user.email, reason: hasCode ? 'replaced' : 'created' });
+    } catch (err) {
+      setError(fieldErrors(err).password ?? errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={`card card-pad stack${hasCode ? '' : ' recovery-missing'}`}>
+      <div>
+        <CardTitle icon={LifeBuoy}>Recovery code</CardTitle>
+        <p className="muted text-sm">
+          {hasCode
+            ? `Made ${formatDate(me.recoveryCodeCreatedAt!)}. If you forget your password, use it on the Forgot password page to choose a new one. Lost it? Make a new one — the old code stops working.`
+            : 'You don’t have a recovery code yet. Without one, there’s no way back into your account if you forget your password.'}
+        </p>
+      </div>
+      <div>
+        <Button variant={hasCode ? 'default' : 'primary'} icon={<KeyRound size={16} />} onClick={() => setOpen(true)}>
+          {hasCode ? 'Make a new code' : 'Create a recovery code'}
+        </Button>
+      </div>
+      <Modal
+        open={open}
+        onClose={close}
+        title={hasCode ? 'Make a new recovery code?' : 'Create a recovery code'}
+        size="sm"
+        footer={
+          <>
+            <Button onClick={close}>Cancel</Button>
+            <Button variant="primary" type="submit" form="recovery-code-form" loading={busy} disabled={!password}>
+              {hasCode ? 'Make new code' : 'Create code'}
+            </Button>
+          </>
+        }
+      >
+        <form id="recovery-code-form" className="stack" onSubmit={submit}>
+          {hasCode && <p className="muted">Your current code will stop working.</p>}
+          <FormError message={error} />
+          <Field label="Enter your password to continue">
+            <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} data-autofocus />
+          </Field>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
 function AccountSection({ me }: { me: SelfUser }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -416,6 +562,8 @@ function AccountSection({ me }: { me: SelfUser }) {
           </Button>
         </div>
       </form>
+
+      <RecoveryCodeCard me={me} />
 
       <div className="card card-pad row-wrap" style={{ justifyContent: 'space-between' }}>
         <div>

@@ -58,6 +58,7 @@ export const isLocalDev = () => getDriver().name !== 'netlify';
  *   ratelimits     {bucket}:{key}:{window}        → { count, expiresAt }
  *   friendships    {userIdA}.{userIdB} (sorted)   → FriendshipRecord (pending request or friends)
  *   friend-index   {userId}                       → { ids } of everyone with a friendship record
+ *   extension-tokens {userId}                     → ExtensionTokensDoc (connected browser extensions)
  */
 export const COLLECTIONS = [
   'users',
@@ -75,6 +76,7 @@ export const COLLECTIONS = [
   'ratelimits',
   'friendships',
   'friend-index',
+  'extension-tokens',
 ] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 

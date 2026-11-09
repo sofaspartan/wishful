@@ -17,8 +17,18 @@ npm test           # API test suite
 ## Deploy
 
 Push to GitHub and import the repo in Netlify — `netlify.toml` contains everything.
-Data is stored in Netlify Blobs automatically. Add `RESEND_API_KEY` and `EMAIL_FROM`
-for password-reset and invitation emails.
+Data is stored in Netlify Blobs automatically. No other setup is needed: forgotten
+passwords are reset with the recovery code each account gets at sign-up. Optionally add
+`RESEND_API_KEY` and `EMAIL_FROM` to send emails (reset links, invitations, reminders).
+
+## Browser extension
+
+```bash
+npm run extension:build   # → extension/dist
+```
+
+Load `extension/dist` from `chrome://extensions` (Developer mode → Load unpacked), click
+the Wishful button on any product page and connect your account.
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for architecture, data model, security,
 environment variables and deployment details, and [TASKS.md](./TASKS.md) for progress.

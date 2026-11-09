@@ -38,7 +38,7 @@ export default function Privacy() {
           <ul>
             <li>
               <strong>Your account:</strong> email address, display name and username. Your password is stored only as a salted scrypt hash, so
-              nobody — including us — can read it.
+              nobody — including us — can read it. Your recovery code is likewise kept only as a one-way fingerprint.
             </li>
             <li>
               <strong>Your profile:</strong> the photo, bio and visibility setting you choose to add.
@@ -76,6 +76,18 @@ export default function Privacy() {
             only fetch public web addresses, and we don’t keep the page itself.
           </p>
 
+          <h2>Browser extension</h2>
+          <p>
+            The {name} extension reads a page only when you click its button, and only the tab you’re looking at. It picks out the product
+            name, price and photos on your device, and nothing is sent to {name} until you choose Save — then only the item you saved. It
+            can’t see your browsing history or other tabs, and it doesn’t send information anywhere except {name}.
+          </p>
+          <p>
+            Connecting the extension creates a key that lets it see your list names and add items to your own lists — nothing else. We store
+            only a fingerprint of that key, along with the browser type and when it was last used, so you can recognize it in Settings.
+            Disconnect it there at any time; changing your password disconnects every browser.
+          </p>
+
           <h2>Cookies and browser storage</h2>
           <p>
             We use a single sign-in cookie to keep you logged in for up to 30 days. There are no advertising, analytics or tracking cookies.
@@ -86,8 +98,8 @@ export default function Privacy() {
 
           <h2>Services we use</h2>
           <p>
-            {name} runs on Netlify, which hosts the site and stores its data. Account emails, such as password resets and list invitations, are
-            sent through Resend. These providers process data only to run the service for us.
+            {name} runs on Netlify, which hosts the site and stores its data. When we send emails, such as list invitations and reminders, they
+            go through Resend. These providers process data only to run the service for us.
           </p>
 
           <h2>Your choices</h2>
@@ -95,8 +107,8 @@ export default function Privacy() {
             <li>Edit or delete any list, item or photo at any time.</li>
             <li>Turn email notifications on or off in Settings.</li>
             <li>
-              Delete your account from Settings. This permanently removes your account, profile, lists, items, uploaded photos, friendships
-              and notifications.
+              Delete your account from Settings. This permanently removes your account, profile, lists, items, uploaded photos, friendships,
+              notifications and connected browsers.
             </li>
           </ul>
 

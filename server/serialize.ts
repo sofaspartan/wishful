@@ -18,6 +18,7 @@ export function toSelfUser(u: UserRecord): SelfUser {
       defaultSettings: { ...DEFAULT_PREFERENCES.defaultSettings, ...u.preferences?.defaultSettings },
       notifications: { ...DEFAULT_PREFERENCES.notifications, ...u.preferences?.notifications },
     },
+    recoveryCodeCreatedAt: u.recoveryCodeCreatedAt ?? null,
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
   };

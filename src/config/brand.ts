@@ -8,7 +8,9 @@ export const brand = {
   tagline: 'Everything you want, all in one place.',
   description: 'More than a wishlist. Collect products, experiences and ideas — and share them with the people who matter.',
   /** Shown on the privacy policy page for privacy questions and data requests. Leave empty to hide the contact section. */
-  contactEmail: '',
+  contactEmail: 'shermanea411@gmail.com',
+  /** Store listing for the browser extension. Leave empty until it's published to hide the install button. */
+  extensionUrl: '',
   colors: {
     accent: '#2f6fdc',
     accentHover: '#255bc0',

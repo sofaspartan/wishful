@@ -1064,3 +1064,60 @@ kbd {
 :root[data-theme='dark'] .toast-success svg {
   color: var(--success-soft);
 }
+
+/* Recovery codes */
+.recovery-code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--accent-soft);
+  border: 1px dashed color-mix(in srgb, var(--accent-ink) 40%, transparent);
+  border-radius: var(--radius);
+  color: var(--accent-ink);
+}
+.recovery-code code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(0.95rem, 4vw, 1.15rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+.recovery-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.recovery-input::placeholder {
+  text-transform: none;
+}
+.recovery-nudge-text {
+  color: var(--warning);
+  font-weight: 500;
+}
+.card.recovery-missing {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+}
+.tile.recovery-nudge {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  background: var(--warning-soft);
+  border-color: transparent;
+}
+.recovery-nudge-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  .tile.recovery-nudge {
+    flex-wrap: wrap;
+  }
+}

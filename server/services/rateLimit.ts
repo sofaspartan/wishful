@@ -11,11 +11,15 @@ export const RATE_LIMITS = {
   login: { limit: 10, windowSec: 15 * 60 },
   register: { limit: 10, windowSec: 60 * 60 },
   forgot: { limit: 5, windowSec: 60 * 60 },
+  recover: { limit: 10, windowSec: 60 * 60 },
+  recoveryCode: { limit: 10, windowSec: 60 * 60 },
   claim: { limit: 40, windowSec: 10 * 60 },
   metadata: { limit: 150, windowSec: 60 * 60 },
   upload: { limit: 100, windowSec: 60 * 60 },
   invite: { limit: 30, windowSec: 60 * 60 },
   friend: { limit: 40, windowSec: 60 * 60 },
+  extensionConnect: { limit: 20, windowSec: 60 * 60 },
+  extensionSave: { limit: 300, windowSec: 60 * 60 },
 } as const;
 
 /**

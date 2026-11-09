@@ -17,6 +17,9 @@ export interface UserRecord {
   passwordHash: string;
   /** Sessions issued before this instant are invalid (password change / reset). */
   sessionsValidAfter: string;
+  /** SHA-256 of the account recovery code (see services/recoveryCode). Absent for accounts created before recovery codes. */
+  recoveryCodeHash?: string;
+  recoveryCodeCreatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -118,4 +121,17 @@ export interface FriendshipRecord {
 /** Ids of everyone a user has a friendship record with, for listing only. */
 export interface FriendIndex {
   ids: string[];
+}
+
+/** One connected browser extension. The bearer token is `wfx_{userId}.{secret}`; only SHA-256 of the secret is kept. */
+export interface ExtensionTokenRecord {
+  id: string;
+  secretHash: string;
+  label: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface ExtensionTokensDoc {
+  tokens: ExtensionTokenRecord[];
 }

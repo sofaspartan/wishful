@@ -124,9 +124,27 @@
 - [x] Privacy policy page at `/privacy`, linked from the landing footer and the sign-in pages
 - [x] Netlify builds on Node 22
 
+## Browser extension
+- [x] Manifest V3 extension (`extension/`) for Chrome, Edge, Brave and Arc; reads the current tab only when clicked
+- [x] Popup fills in the name, price and photos (structured data first, then the visible page), with a photo picker, currency, note and list picker that remembers your last lists
+- [x] Connect flow: approve on the site, revocable per-browser token handed to the extension; tokens work only on `/api/extension/*`
+- [x] Settings → Browser extension lists connected browsers with last-used times and Disconnect; a password change disconnects all
+- [x] Privacy policy section for the extension
+- [x] API and page-reader tests (112 tests total)
+- [ ] Publish to the Chrome Web Store and set `extensionUrl` in `src/config/brand.ts`
+
+## Recovery codes (no email needed)
+- [x] Every new account gets a one-time recovery code, shown in a "save your code" dialog with copy and download
+- [x] Forgot password uses email + recovery code + new password; signs out everywhere and issues a fresh code
+- [x] Emailed reset link still offered, but only when Resend is configured
+- [x] Settings → Account shows when the code was made and can replace it (password required)
+- [x] Home reminds accounts made before recovery codes to create one
+- [x] Codes stored as SHA-256 only; same error for wrong code or unknown email; rate-limited per IP and per account
+- [x] API tests (119 tests total)
+
 ## Future
 - [ ] Price tracking & price-drop alerts
 - [ ] Monetary contributions for group gifts
 - [ ] Email verification & email change flow
-- [ ] Browser extension / mobile share target
+- [ ] Mobile share target; Firefox and Safari versions of the extension
 - [ ] Orphaned image cleanup when images are replaced

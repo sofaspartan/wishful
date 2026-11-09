@@ -1,0 +1,506 @@
+/* Popup styles, built on the site's tokens (src/styles/tokens.css) so light and dark match the app. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  width: 380px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+strong {
+  font-weight: 600;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+  max-height: 600px;
+}
+.popup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--hero-bg);
+  background-image: var(--stars), var(--hero-bg);
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  border-radius: 8px;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.popup-brand {
+  font-family: var(--font-display);
+  font-weight: 650;
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
+}
+.popup-spacer {
+  flex: 1;
+}
+.popup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.popup-link:hover {
+  color: var(--ink);
+}
+
+.popup-center {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 28px 24px;
+}
+.popup-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.popup-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.popup-muted {
+  margin: 0;
+  color: var(--ink-2);
+}
+.popup-muted.small {
+  font-size: 13px;
+}
+.popup-fine {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.popup-notice {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--warning-soft);
+  font-size: 13px;
+}
+.popup-error {
+  margin: 0 0 8px;
+  color: var(--danger);
+  font-size: 13px;
+}
+.popup-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.popup-text-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--accent-ink);
+  font-size: 13px;
+}
+.popup-text-btn:hover {
+  text-decoration: underline;
+}
+.spin {
+  animation: spin 0.8s linear infinite;
+  color: var(--muted);
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Buttons and inputs (a small subset of the app's components.css) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-weight: 550;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--surface-2);
+}
+.btn-primary {
+  border-color: transparent;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.btn-primary:hover {
+  background: var(--ink-hover);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn-wide {
+  width: 100%;
+  height: 42px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btn:focus-visible,
+.input:focus-visible,
+.list-row:focus-within,
+.popup-text-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.input {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  resize: none;
+}
+textarea.input {
+  line-height: 1.35;
+}
+
+/* Connect */
+.connect-view {
+  gap: 12px;
+}
+.connect-art {
+  position: relative;
+  width: 120px;
+  height: 84px;
+  margin-bottom: 4px;
+}
+.connect-art-cloud {
+  position: absolute;
+  inset: 22px 0 0;
+  border-radius: 40px;
+  background: var(--accent-soft);
+}
+.connect-art-cloud::before,
+.connect-art-cloud::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: inherit;
+}
+.connect-art-cloud::before {
+  width: 56px;
+  height: 56px;
+  left: 18px;
+  top: -26px;
+}
+.connect-art-cloud::after {
+  width: 44px;
+  height: 44px;
+  right: 16px;
+  top: -16px;
+}
+.connect-art-gift {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 66px;
+  translate: -50% 0;
+}
+.connect-art-gift svg,
+.thumb svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Save form */
+.save-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.save-scroll {
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.product {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+}
+.product-image {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--media-bg);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+}
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.product-noimage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #6b7280;
+  text-align: center;
+  padding: 8px;
+}
+.image-nav {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: max-content;
+  white-space: nowrap;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgb(17 24 39 / 0.72);
+  color: #fff;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.image-nav button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.image-nav button:hover {
+  background: rgb(255 255 255 / 0.18);
+}
+.product-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.product-retailer {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.price-row {
+  display: grid;
+  grid-template-columns: 1fr 76px;
+  gap: 6px;
+}
+.add-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+}
+
+.lists {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.list-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.list-group-label {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.list-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.list-row:hover {
+  background: var(--surface-2);
+}
+.list-row.is-on {
+  background: var(--accent-soft);
+}
+.list-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.thumb {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 5px;
+}
+.thumb img {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  margin: -5px;
+  max-width: none;
+}
+.list-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.list-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+}
+.list-row.is-on .list-check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.save-bar {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.saved-check {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--success-soft);
+  color: var(--success);
+  margin-bottom: 4px;
+}
+
+.popup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* List cover backdrops, matching .cover-bg-* in the app */
+.cover-bg-sky {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, var(--tint-base)) 0%, color-mix(in srgb, var(--accent) 9%, var(--tint-base)) 100%);
+}
+.cover-bg-blush {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--blush) 26%, var(--tint-base)) 0%, color-mix(in srgb, var(--blush) 10%, var(--tint-base)) 100%);
+}
+.cover-bg-mint {
+  background: linear-gradient(180deg, color-mix(in srgb, #5f9e6e 26%, var(--tint-base)) 0%, color-mix(in srgb, #5f9e6e 10%, var(--tint-base)) 100%);
+}
+.cover-bg-lilac {
+  background: linear-gradient(180deg, color-mix(in srgb, #7c6cf0 22%, var(--tint-base)) 0%, color-mix(in srgb, #7c6cf0 8%, var(--tint-base)) 100%);
+}
+.cover-bg-sunset {
+  background: linear-gradient(180deg, #f9c9b4 0%, #fde2cc 55%, #fbe0ea 100%);
+}
+.cover-bg-night {
+  background: linear-gradient(180deg, #1d2b5a 0%, #344a8c 100%);
+}
+.cover-bg-snow {
+  background: linear-gradient(180deg, #1f4fa8 0%, #4f86d8 100%);
+}
+.cover-bg-confetti {
+  background: linear-gradient(180deg, #fff4dc 0%, #fdebe6 100%);
+}
+.cover-bg-spring {
+  background: linear-gradient(180deg, #d9efce 0%, #fdeef3 100%);
+}
+.cover-bg-summer {
+  background: linear-gradient(180deg, #6fc3ee 0%, #c9edfb 100%);
+}
+.cover-bg-autumn {
+  background: linear-gradient(180deg, #f9cf9f 0%, #fdeedb 100%);
+}
+.cover-bg-hearts {
+  background: linear-gradient(180deg, #f9c6d2 0%, #fdeef2 100%);
+}

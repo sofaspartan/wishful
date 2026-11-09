@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useMe } from './lib/queries';
 import { ErrorBoundary, PageLoader } from './components/ui/misc';
 import { AppLayout } from './components/AppLayout';
+import { RecoveryCodeDialog } from './components/RecoveryCodeDialog';
 import { brand } from './config/brand';
 
 const Landing = lazy(() => import('./pages/Landing'));
@@ -19,6 +20,7 @@ const PublicWishlist = lazy(() => import('./pages/PublicWishlist'));
 const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const ExtensionConnect = lazy(() => import('./pages/ExtensionConnect'));
 
 /** Redirects to /login (remembering the destination) when signed out. */
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -59,6 +61,7 @@ export function App() {
         Skip to content
       </a>
       <ScrollToTop />
+      <RecoveryCodeDialog />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Landing />} />
@@ -69,6 +72,14 @@ export function App() {
           <Route path="/s/:token" element={<PublicWishlist />} />
           <Route path="/u/:username" element={<PublicProfile />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route
+            path="/extension/connect"
+            element={
+              <RequireAuth>
+                <ExtensionConnect />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/app"
             element={

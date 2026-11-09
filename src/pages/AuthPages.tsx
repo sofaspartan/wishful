@@ -4,7 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, MailCheck } from 'lucide-react';
 import type { SelfUser } from '../../shared/types';
 import { keys } from '../lib/queries';
-import { errorMessage, fieldErrors, post } from '../lib/api';
+import { errorMessage, fieldErrors, get, post } from '../lib/api';
+import { showRecoveryCode } from '../lib/recoveryCode';
 import { brand, taglineParts } from '../config/brand';
 import { Logo } from '../components/Logo';
 import { Cloud, CloudBank, CloudPuff } from '../components/Cloud';
@@ -178,13 +179,14 @@ function RegisterForm() {
     setError(null);
     setErrors({});
     try {
-      const { user } = await post<{ user: SelfUser }>('/api/auth/register', {
+      const { user, recoveryCode } = await post<{ user: SelfUser; recoveryCode: string }>('/api/auth/register', {
         displayName,
         email,
         password,
         username: username || undefined,
       });
       signedIn(user);
+      showRecoveryCode({ code: recoveryCode, email: user.email, reason: 'new-account' });
     } catch (err) {
       setErrors(fieldErrors(err));
       setError(errorMessage(err));
@@ -243,6 +245,118 @@ function RegisterForm() {
 }
 
 function ForgotForm() {
+  const [emailReset, setEmailReset] = useState(false);
+  const [method, setMethod] = useState<'code' | 'email'>('code');
+
+  useEffect(() => {
+    get<{ emailReset: boolean }>('/api/auth/options')
+      .then((o) => setEmailReset(o.emailReset))
+      .catch(() => undefined);
+  }, []);
+
+  return method === 'email' ? (
+    <EmailResetForm onUseCode={() => setMethod('code')} />
+  ) : (
+    <RecoverWithCodeForm onUseEmail={emailReset ? () => setMethod('email') : undefined} />
+  );
+}
+
+function RecoverWithCodeForm({ onUseEmail }: { onUseEmail?: () => void }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const local: Record<string, string> = {};
+    if (!email.trim()) local.email = 'Enter your email';
+    if (!code.trim()) local.code = 'Enter your recovery code';
+    if (password.length < 8) local.password = 'Use at least 8 characters';
+    else if (password !== confirm) local.confirm = "Passwords don't match";
+    if (Object.keys(local).length) return setErrors(local);
+    setBusy(true);
+    setErrors({});
+    setError(null);
+    try {
+      const res = await post<{ user: SelfUser; recoveryCode: string }>('/api/auth/recover', { email, code, password });
+      qc.clear();
+      qc.setQueryData(keys.me, res.user);
+      toast.success('Password updated — you’re logged in');
+      navigate('/app', { replace: true });
+      showRecoveryCode({ code: res.recoveryCode, email: res.user.email, reason: 'recovered' });
+    } catch (err) {
+      const f = fieldErrors(err);
+      setErrors(f);
+      setError(Object.keys(f).length ? null : errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div>
+        <h1 className="display">Reset your password</h1>
+        <p className="muted" style={{ marginTop: 8 }}>
+          Enter the recovery code you saved when you created your account. You'll be logged out everywhere else.
+        </p>
+      </div>
+      <form className="stack" onSubmit={submit} noValidate>
+        <FormError message={error} />
+        <Field label="Email" error={errors.email}>
+          <input className="input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+        </Field>
+        <Field label="Recovery code" error={errors.code} hint="Like K7QM-4HXP-9TWB-RC3N-E8YF. Capitals and dashes don't matter.">
+          <input
+            className="input recovery-input"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            maxLength={60}
+          />
+        </Field>
+        <Field label="New password" error={errors.password} hint="At least 8 characters.">
+          <PasswordInput value={password} onChange={setPassword} autoComplete="new-password" />
+        </Field>
+        <Field label="Confirm password" error={errors.confirm}>
+          <PasswordInput value={confirm} onChange={setConfirm} autoComplete="new-password" />
+        </Field>
+        <Button type="submit" variant="primary" size="lg" block loading={busy}>
+          Update password
+        </Button>
+      </form>
+      <div className="stack-sm">
+        {onUseEmail && (
+          <button type="button" className="link-button text-sm" onClick={onUseEmail}>
+            Email me a reset link instead
+          </button>
+        )}
+        {brand.contactEmail && (
+          <p className="muted text-sm">
+            Lost your code? Email <a href={`mailto:${brand.contactEmail}`}>{brand.contactEmail}</a> from the address on your account.
+          </p>
+        )}
+        <p className="muted text-sm">
+          Remembered it?{' '}
+          <Link to="/login" style={{ color: 'var(--ink)', fontWeight: 600 }}>
+            Log in
+          </Link>
+        </p>
+      </div>
+    </>
+  );
+}
+
+function EmailResetForm({ onUseCode }: { onUseCode: () => void }) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -304,6 +418,9 @@ function ForgotForm() {
           Send reset link
         </Button>
       </form>
+      <button type="button" className="link-button text-sm" onClick={onUseCode}>
+        Use my recovery code instead
+      </button>
       <p className="muted text-sm">
         Remembered it?{' '}
         <Link to="/login" style={{ color: 'var(--ink)', fontWeight: 600 }}>

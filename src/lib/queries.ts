@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
   AppNotification,
+  ExtensionConnection,
   FriendProfileView,
   FriendsOverview,
   Item,
@@ -24,7 +25,15 @@ export const keys = {
   profile: (username: string) => ['profile', username] as const,
   friends: ['friends'] as const,
   friend: (id: string) => ['friend', id] as const,
+  extensionConnections: ['extension-connections'] as const,
 };
+
+export function useExtensionConnections() {
+  return useQuery({
+    queryKey: keys.extensionConnections,
+    queryFn: () => get<{ connections: ExtensionConnection[] }>('/api/extension/connections').then((r) => r.connections),
+  });
+}
 
 export function useFriends(enabled = true) {
   return useQuery({

@@ -78,6 +78,7 @@ src/
   components/      UI primitives (ui/), layout, modals, cards, dialogs
   pages/           Route components (lazy-loaded)
   styles/          tokens.css, components.css, layout.css
+extension/         Chrome / Edge extension (Manifest V3) — see section 9
 tests/             Vitest suites + helpers
 ```
 
@@ -103,6 +104,7 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
 | `friendships` | `{userIdA}.{userIdB}` (ids sorted) | `{ users, requesterId, status: pending \| accepted, createdAt, acceptedAt }` — the source of truth for friendship checks |
 | `friend-index` | userId | `{ ids }` of everyone the user has a friendship record with (listing only) |
 | `images` | imageId | Uploaded image bytes + content type metadata |
+| `extension-tokens` | userId | `{ tokens: [{ id, secretHash, label, createdAt, lastUsedAt }] }` — connected browsers (max 10), secrets stored as SHA-256 only |
 
 **Relationships**
 
@@ -142,6 +144,15 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
   invalidates all other sessions.
 * **Passwords**: scrypt (N=16384) with per-user salt; constant-time comparison; a dummy
   hash is verified for unknown emails to avoid user enumeration by timing.
+* **Recovery codes** (password reset without email): a 20-character code (~99 bits,
+  no look-alike characters) is returned once by `POST /api/auth/register` and shown
+  in a "save your code" dialog; only its SHA-256 is stored (`recoveryCodeHash`).
+  `POST /api/auth/recover { email, code, password }` sets a new password, signs out
+  every session and extension, and issues a replacement code (the check is repeated
+  inside the conditional write, so a code works once). Wrong codes and unknown emails
+  get the same answer, rate-limited per IP and per account. Signed-in users can
+  replace their code with `POST /api/account/recovery-code { password }`; accounts
+  created before codes existed get a reminder on Home.
 * **CSRF**: all mutating requests must carry `X-Requested-With: wishful` (cannot be
   sent cross-site without a CORS preflight, which the API never approves) in addition
   to SameSite cookies.
@@ -172,8 +183,14 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
 * **Uploads**: 5 MB cap, magic-byte sniffing (JPEG, PNG, GIF, WebP only — SVG and
   anything else rejected), served with `nosniff` and a sandboxed CSP. The browser
   downsizes large photos before upload.
+* **Extension tokens**: `wfx_{userId}.{secret}` bearer tokens, accepted only by the
+  `/api/extension/*` routes (`requireExtensionUser`) — every other route ignores the
+  `Authorization` header. They can read the user's list names and add items to lists
+  the user owns, nothing more. Issued only to a signed-in session after an explicit
+  approval page; revoked from Settings, from the extension, by a password change
+  (`sessionsValidAfter`) or by account deletion. Mutations still need the CSRF header.
 * **Rate limiting** on login, register, forgot-password, claims, metadata fetches,
-  uploads, invites and friend requests.
+  uploads, invites, friend requests, extension connects and extension saves.
 * **Headers**: CSP, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
   (see `netlify.toml`).
 
@@ -184,15 +201,18 @@ See `.env.example`. None are exposed to the browser.
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `APP_URL` | Recommended | Public site URL used in email links (falls back to Netlify's `URL`) |
-| `RESEND_API_KEY` | For email | Resend API key — password reset, invitations, reminders |
-| `EMAIL_FROM` | For email | Verified sender, e.g. `Wishful <hello@yourdomain.com>` |
+| `RESEND_API_KEY` | No | Resend API key — emailed reset links, invitations, reminders |
+| `EMAIL_FROM` | With `RESEND_API_KEY` | Verified sender, e.g. `Wishful <hello@yourdomain.com>` |
 | `STORAGE_DRIVER` | No | Force `netlify`, `fs` or `memory` |
 | `DATA_DIR` | No | Folder for the local `fs` driver (default `.data`) |
 | `BRAND_NAME` | No | Product name used in emails (default `Wishful`) |
 | `RATE_LIMIT_DISABLED` | No | `1` disables rate limiting (local testing only) |
 
-Without `RESEND_API_KEY`, emails are skipped. In local development they're printed
-to the terminal and the forgot-password screen shows the reset link directly.
+Email is optional. Password resets work without it through recovery codes; the
+Forgot password page only offers an emailed link when `RESEND_API_KEY` and
+`EMAIL_FROM` are both set (`GET /api/auth/options`). Without them, other emails
+(invitations, reminders, notifications) are skipped — in local development they're
+printed to the terminal instead.
 
 ## 7. Local setup
 
@@ -209,6 +229,7 @@ npm test          # API integration tests (in-memory storage)
 npm run typecheck # strict TypeScript across client, server and tests
 npm run build     # production build into dist/
 npm run check     # all of the above
+npm run extension:dev   # browser extension pointed at localhost (see section 9)
 ```
 
 To reset local data, delete the `.data/` folder.
@@ -219,8 +240,9 @@ To reset local data, delete the `.data/` folder.
 2. In Netlify: **Add new site → Import an existing project →** pick the repo.
    Build settings are read from `netlify.toml` (build `npm run build`, publish `dist`,
    functions in `netlify/functions`).
-3. Under **Site configuration → Environment variables** add `RESEND_API_KEY`,
-   `EMAIL_FROM` and (if using a custom domain) `APP_URL`.
+3. (Optional) Under **Site configuration → Environment variables** add
+   `RESEND_API_KEY` and `EMAIL_FROM` to turn on email, and `APP_URL` if you use a
+   custom domain. The site works without them; passwords are reset with recovery codes.
 4. Deploy. Netlify Blobs is enabled automatically for the site — no setup needed.
    The `daily` scheduled function is picked up automatically.
 5. (Optional) Verify your sending domain in Resend so emails are delivered.
@@ -229,7 +251,65 @@ Every push to the main branch redeploys; pull requests get preview deploys (they
 use the same Blobs stores as production — use a separate site if you need isolated
 preview data).
 
-## 9. Branding
+## 9. Browser extension
+
+`extension/` is a Manifest V3 extension for Chrome, Edge, Brave and Arc. Clicking it
+reads the current tab, shows the product's name, price and photos, and saves the item
+to any of the user's lists.
+
+```
+extension/
+  build.mjs          Builds dist/ (live site) or dist-dev/ (localhost) and writes manifest.json
+  popup.html         Popup page (React, reuses src/styles/tokens.css and the cover art)
+  src/popup/         Popup UI
+  src/scrape.ts      snapshotPage() — injected into the tab with chrome.scripting; must stay self-contained
+  src/connect.ts     Content script for /extension/connect only (receives the token)
+  src/api.ts         fetch wrapper (Bearer token + CSRF header)
+  src/storage.ts     chrome.storage.local: token, pending connect state, last-used lists
+  public/icons/      Toolbar icons (source: icon.svg)
+shared/extension.ts  Message protocol shared by the connect page and the content script
+shared/metadata.ts   The page parser, shared with the server's link previews
+```
+
+**Permissions**: `activeTab` + `scripting` (read the current tab only when the user
+clicks the button), `storage`, and host access to the Wishful site only. Extension
+pages with host access aren't subject to CORS, so the API needs no CORS headers.
+
+**Connecting**: the popup stores a random `state` and opens
+`/extension/connect?state=…`. That page (signed-in only) checks the extension is
+installed, asks for approval, calls `POST /api/extension/connect`, and hands the token
+to the content script with `window.postMessage`. The content script saves it only if
+the `state` matches; if the page gets no confirmation within 6 s it revokes the token.
+
+**API** (all under `/api/extension`):
+
+| Route | Auth | Purpose |
+| --- | --- | --- |
+| `POST /connect` | Session | Issue a token (label like "Chrome on macOS") |
+| `GET /connections` | Session | Connected browsers for Settings |
+| `DELETE /connections/:id` | Session | Disconnect a browser |
+| `GET /session` | Token | Name, currency and owned lists (id, title, kind, cover) |
+| `POST /items` | Token | Create an item on owned lists, or only in Saved Items |
+| `POST /disconnect` | Token | Revoke the calling token |
+
+**Building and loading**
+
+```bash
+npm run extension:build   # extension/dist, talks to https://wishful-lists.netlify.app
+npm run extension:dev     # extension/dist-dev, talks to http://localhost:5173
+WISHFUL_URL=https://wishful.example npm run extension:build   # another domain
+```
+
+In Chrome open `chrome://extensions`, turn on **Developer mode**, choose **Load
+unpacked** and pick `extension/dist` (or `dist-dev`). After rebuilding, press the
+reload icon on the extension's card. If the site moves to a custom domain, rebuild
+with `WISHFUL_URL` — the site address is baked into the manifest's host permission.
+
+To publish, zip the contents of `extension/dist` and upload it to the Chrome Web Store
+developer dashboard, then put the store link in `extensionUrl` in
+`src/config/brand.ts` so Settings shows a "Get the extension" button.
+
+## 10. Branding
 
 * `src/config/brand.ts` — name, tagline, description, privacy contact email, accent
   colours, fonts. Colours are applied at startup as `--brand-*` CSS variables, which
@@ -241,11 +321,12 @@ preview data).
 * `public/favicon.svg` — the logo mark.
 * `BRAND_NAME` env var — name used in server-sent emails.
 
-## 10. Feature status
+## 11. Feature status
 
 ### Completed
 
-* Accounts: register, login, logout, forgot/reset password (email), change password,
+* Accounts: register, login, logout, password reset with a recovery code (or an
+  emailed link when email is configured), change password,
   profile (name, username, bio, avatar), public profile toggle, preferences
   (default visibility, Surprise Mode, gift settings, currency), notification
   preferences, account deletion.
@@ -287,6 +368,8 @@ preview data).
 * Public profiles listing public lists.
 * Dark mode with a starry night sky, toggled from the top right of every header.
 * Privacy policy at `/privacy`.
+* Browser extension: save the product on the current tab to any lists, with photo
+  picker, price and note; connected browsers listed and revocable in Settings.
 * Accessibility: semantic landmarks, skip link, labelled controls, focus-trapped modals,
   keyboard drag-and-drop, visible focus, reduced-motion support.
 
@@ -295,11 +378,12 @@ preview data).
 * Price tracking and price-drop alerts (preference stored; feature not built).
 * Monetary contributions for group gifts (pledge `amount` reserved in the schema).
 * Email change flow with re-verification; email verification on sign-up.
-* Browser extension / share-target for saving from other apps.
+* Chrome Web Store listing; Firefox and Safari builds of the extension.
+* Mobile share target for saving from other apps.
 * Image cleanup when an uploaded image is replaced (orphans are removed on account
   deletion only).
 
-## 11. Known limitations
+## 12. Known limitations
 
 * **Owner bypass of Surprise Mode**: an owner who opens their own share link in a
   private window is treated as a visitor and sees reservation status (like any other

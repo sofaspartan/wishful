@@ -3,8 +3,10 @@ import {
   deleteAccountSchema,
   forgotPasswordSchema,
   loginSchema,
+  newRecoveryCodeSchema,
   preferencesUpdateSchema,
   profileUpdateSchema,
+  recoverAccountSchema,
   registerSchema,
   resetPasswordSchema,
 } from '../../shared/schemas';
@@ -24,7 +26,9 @@ import {
   verifyPassword,
 } from '../services/auth';
 import { rateLimit } from '../services/rateLimit';
+import { deleteExtensionTokens } from '../services/extensionTokens';
 import { emailConfigured, sendEmail } from '../services/email';
+import { hashRecoveryCode, newRecoveryCode, recoveryCodeMatches } from '../services/recoveryCode';
 import { notify } from '../services/notifications';
 import { toSelfUser } from '../serialize';
 import { appUrl, newId, newToken, now, nowIso, sha256 } from '../util';
@@ -119,6 +123,7 @@ export function registerAuthRoutes(router: Router) {
     }
 
     const stamp = nowIso();
+    const recoveryCode = newRecoveryCode();
     const user: UserRecord = {
       id: userId,
       email: input.email,
@@ -130,14 +135,19 @@ export function registerAuthRoutes(router: Router) {
       preferences: DEFAULT_PREFERENCES,
       passwordHash: await hashPassword(input.password),
       sessionsValidAfter: new Date(0).toISOString(),
+      recoveryCodeHash: hashRecoveryCode(recoveryCode),
+      recoveryCodeCreatedAt: stamp,
       createdAt: stamp,
       updatedAt: stamp,
     };
     await db('users').set(userId, user, { onlyIfNew: true });
     await applyPendingInvites(user);
     await createSession(ctx, userId);
-    return json({ user: toSelfUser(user) }, 201);
+    // The only time this code is ever sent; just its hash is stored.
+    return json({ user: toSelfUser(user), recoveryCode }, 201);
   });
+
+  router.get('/api/auth/options', async () => json({ emailReset: emailConfigured() }));
 
   router.post('/api/auth/login', async (ctx) => {
     const input = await readJson(ctx.req, loginSchema);
@@ -199,6 +209,52 @@ export function registerAuthRoutes(router: Router) {
     if (!user) throw badRequest('This reset link is invalid or has expired.');
     await createSession(ctx, user.id);
     return json({ user: toSelfUser(user) });
+  });
+
+  router.post('/api/auth/recover', async (ctx) => {
+    const input = await readJson(ctx.req, recoverAccountSchema);
+    await rateLimit('recover', ctx.ip);
+    await rateLimit('recover', `email|${input.email}`);
+    const mismatch = () =>
+      new HttpError(400, 'That email and recovery code don’t match.', 'bad_recovery_code', { code: 'That email and recovery code don’t match.' });
+    const idx = await db('email-index').get<{ userId: string }>(sha256(input.email));
+    const found = idx ? (await db('users').get<UserRecord>(idx.value.userId))?.value : null;
+    if (!found || !recoveryCodeMatches(input.code, found.recoveryCodeHash)) throw mismatch();
+
+    const passwordHash = await hashPassword(input.password);
+    const recoveryCode = newRecoveryCode();
+    // Re-checked inside the write so a code can't be used twice concurrently.
+    const user = await atomicUpdateExisting<UserRecord>(db('users'), found.id, (u) => {
+      if (!recoveryCodeMatches(input.code, u.recoveryCodeHash)) throw mismatch();
+      const stamp = nowIso();
+      return {
+        ...u,
+        passwordHash,
+        sessionsValidAfter: stamp,
+        recoveryCodeHash: hashRecoveryCode(recoveryCode),
+        recoveryCodeCreatedAt: stamp,
+        updatedAt: stamp,
+      };
+    });
+    if (!user) throw mismatch();
+    await createSession(ctx, user.id);
+    return json({ user: toSelfUser(user), recoveryCode });
+  });
+
+  router.post('/api/account/recovery-code', async (ctx) => {
+    const user = await requireUser(ctx);
+    await rateLimit('recoveryCode', user.id);
+    const { password } = await readJson(ctx.req, newRecoveryCodeSchema);
+    if (!(await verifyPassword(password, user.passwordHash))) {
+      throw new HttpError(400, 'Incorrect password.', 'bad_password', { password: 'Incorrect password.' });
+    }
+    const recoveryCode = newRecoveryCode();
+    const updated = await atomicUpdate<UserRecord>(db('users'), user.id, (u) => {
+      if (!u) throw unauthorized();
+      const stamp = nowIso();
+      return { ...u, recoveryCodeHash: hashRecoveryCode(recoveryCode), recoveryCodeCreatedAt: stamp, updatedAt: stamp };
+    });
+    return json({ user: toSelfUser(updated), recoveryCode });
   });
 
   router.post('/api/auth/change-password', async (ctx) => {
@@ -297,6 +353,7 @@ export async function deleteAccount(user: UserRecord): Promise<void> {
   await Promise.all(idx.imageIds.map((id) => images().delete(id)));
   if (user.avatarUrl?.startsWith('/api/images/')) await images().delete(user.avatarUrl.split('/').pop()!);
   await db('notifications').delete(user.id);
+  await deleteExtensionTokens(user.id);
   await db('user-index').delete(user.id);
   await db('email-index').delete(sha256(user.email));
   await db('username-index').delete(user.username);

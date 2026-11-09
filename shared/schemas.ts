@@ -116,6 +116,16 @@ export const resetPasswordSchema = z.object({
   password: passwordSchema,
 });
 
+export const recoverAccountSchema = z.object({
+  email: emailSchema,
+  code: z.string().trim().min(1, 'Enter your recovery code').max(60, 'That doesn’t look like a recovery code'),
+  password: passwordSchema,
+});
+
+export const newRecoveryCodeSchema = z.object({
+  password: z.string().min(1, 'Enter your password').max(200),
+});
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Enter your current password').max(200),
   newPassword: passwordSchema,
@@ -208,6 +218,20 @@ export const itemCreateSchema = z.object({
   ...itemFields,
   wishlistIds: z.array(idSchema).max(50).optional(),
   priority: prioritySchema.nullable().optional(),
+});
+
+/** What the browser extension may send when saving the page it's on. */
+export const extensionItemSchema = itemCreateSchema.pick({
+  title: true,
+  description: true,
+  imageUrl: true,
+  externalUrl: true,
+  retailer: true,
+  brand: true,
+  price: true,
+  currency: true,
+  notes: true,
+  wishlistIds: true,
 });
 
 export const itemBulkCreateSchema = z.object({

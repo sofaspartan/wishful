@@ -1,6 +1,6 @@
 import { useMemo, type ReactElement, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Bell, CalendarHeart, Gift, Library, Plus, Sparkles } from 'lucide-react';
+import { ArrowRight, Bell, CalendarHeart, Gift, Library, LifeBuoy, Plus, Sparkles } from 'lucide-react';
 import type { Item, WishlistSummary } from '../../shared/types';
 import { useItems, useMe, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
 import { countdownLabel, daysUntil, formatDate, formatPrice, greeting, parseDateOnly, relativeTime } from '../lib/format';
@@ -101,6 +101,21 @@ export default function Home() {
           </div>
           <CloudBank className="tile-sky-bank" />
         </section>
+
+        {me && !me.recoveryCodeCreatedAt && (
+          <section className="tile span-4 recovery-nudge">
+            <span className="tile-header-icon" aria-hidden>
+              <LifeBuoy size={15} />
+            </span>
+            <div className="recovery-nudge-copy">
+              <strong>Set up a recovery code</strong>
+              <span className="muted text-sm">It’s how you get back into your account if you ever forget your password.</span>
+            </div>
+            <Link to="/app/settings?tab=account" className="btn btn-sm">
+              Set it up
+            </Link>
+          </section>
+        )}
 
         <QuickAction art={FEATURE_ILLUSTRATIONS.store} title="Paste a link" hint="From any online store" onClick={() => openAddItem({ mode: 'link' })} />
         <QuickAction art={FEATURE_ILLUSTRATIONS.idea} title="Write an idea" hint="Experiences, wishes" onClick={() => openAddItem({ mode: 'idea' })} />

@@ -167,6 +167,8 @@ export interface SelfUser extends PublicUser {
   bio: string;
   publicProfile: boolean;
   preferences: UserPreferences;
+  /** When the current recovery code was made; null if the account has none yet. */
+  recoveryCodeCreatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -467,6 +469,21 @@ export interface UrlMetadata {
   brand: string;
   /** Present when extraction failed or was partial. */
   message?: string;
+}
+
+/** A browser extension connected to the signed-in account, as listed in Settings. */
+export interface ExtensionConnection {
+  id: string;
+  /** e.g. "Chrome on macOS", derived from the browser that approved the connection. */
+  label: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+/** What the browser extension may read: who is connected and which lists it can save to. */
+export interface ExtensionSession {
+  user: { displayName: string; username: string; avatarUrl: string | null; currency: string };
+  lists: Array<Pick<Wishlist, 'id' | 'kind' | 'title' | 'coverImage' | 'accentColor'> & { coverArt: CoverArt | null }>;
 }
 
 export interface ApiErrorBody {
