@@ -1,0 +1,121 @@
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useMe } from '../lib/queries';
+import { brand } from '../config/brand';
+import { Logo } from '../components/Logo';
+import { ThemeToggle } from '../components/ThemeToggle';
+
+const UPDATED = 'November 9, 2026';
+
+export default function Privacy() {
+  const { data: me } = useMe();
+  const name = brand.name;
+
+  useEffect(() => {
+    document.title = `Privacy policy · ${name}`;
+  }, [name]);
+
+  return (
+    <div className="public-shell">
+      <header className="public-header">
+        <Logo to="/" size={28} />
+        <div className="spacer" />
+        <Link to={me ? '/app' : '/register'} className="btn btn-sm">
+          {me ? `My ${name}` : 'Get started'}
+        </Link>
+        <ThemeToggle />
+      </header>
+      <main id="main" className="public-content">
+        <article className="legal">
+          <h1 className="display">Privacy policy</h1>
+          <p className="legal-updated">Last updated {UPDATED}</p>
+          <p className="legal-lead">
+            {name} is a place to keep wishlists and collections and share them with the people you choose. We collect only what the app needs to do
+            that, we don’t show ads, and we never sell your information.
+          </p>
+
+          <h2>What we store</h2>
+          <ul>
+            <li>
+              <strong>Your account:</strong> email address, display name and username. Your password is stored only as a salted scrypt hash, so
+              nobody — including us — can read it.
+            </li>
+            <li>
+              <strong>Your profile:</strong> the photo, bio and visibility setting you choose to add.
+            </li>
+            <li>
+              <strong>Your lists and items:</strong> titles, links, prices, notes, photos you upload, cover choices, and who you’ve invited to
+              collaborate.
+            </li>
+            <li>
+              <strong>Friends and notifications:</strong> friend requests and connections, and the in-app notifications we generate for you.
+            </li>
+            <li>
+              <strong>Gift reservations:</strong> when someone reserves or chips in on a gift from a shared list, we store the name, optional
+              contact and message they enter.
+            </li>
+          </ul>
+
+          <h2>Surprises stay surprises</h2>
+          <p>
+            While Surprise Mode is on for a list, our servers never tell its owner what has been reserved or bought, or by whom — and
+            reservations made during Surprise Mode stay hidden even if it’s turned off later. This is enforced by the server, not just hidden on
+            screen, and we never send owners notifications that would spoil a gift.
+          </p>
+
+          <h2>Who can see your lists</h2>
+          <p>
+            Lists are private to you and anyone you invite to collaborate. A share link lets anyone who has it view that one list — you can
+            turn a link off or replace it at any time. Your public profile shows only the lists you choose to make public, and only if you turn
+            the profile on.
+          </p>
+
+          <h2>Link previews</h2>
+          <p>
+            When you paste a product link, our server visits that page once to read its title, price and image so the item fills itself in. We
+            only fetch public web addresses, and we don’t keep the page itself.
+          </p>
+
+          <h2>Cookies and browser storage</h2>
+          <p>
+            We use a single sign-in cookie to keep you logged in for up to 30 days. There are no advertising, analytics or tracking cookies.
+            Your browser also keeps a few conveniences on your device only: your light or dark theme and view choices, shared lists you’ve
+            opened recently, and the name and reservation keys you use on shared lists so you can change a reservation later. Clearing your
+            browser data removes them.
+          </p>
+
+          <h2>Services we use</h2>
+          <p>
+            {name} runs on Netlify, which hosts the site and stores its data. Account emails, such as password resets and list invitations, are
+            sent through Resend. These providers process data only to run the service for us.
+          </p>
+
+          <h2>Your choices</h2>
+          <ul>
+            <li>Edit or delete any list, item or photo at any time.</li>
+            <li>Turn email notifications on or off in Settings.</li>
+            <li>
+              Delete your account from Settings. This permanently removes your account, profile, lists, items, uploaded photos, friendships
+              and notifications.
+            </li>
+          </ul>
+
+          <h2>Children</h2>
+          <p>{name} isn’t intended for children under 13, and we don’t knowingly collect information from them.</p>
+
+          <h2>Changes</h2>
+          <p>If we change this policy, we’ll update the date at the top of this page.</p>
+
+          {brand.contactEmail && (
+            <>
+              <h2>Contact</h2>
+              <p>
+                Questions or requests about your data? Email <a href={`mailto:${brand.contactEmail}`}>{brand.contactEmail}</a>.
+              </p>
+            </>
+          )}
+        </article>
+      </main>
+    </div>
+  );
+}
