@@ -208,6 +208,12 @@
 - [x] "Search Amazon" link (optional Associates tag) instead of Amazon's API, which needs 10 sales a month
 - [x] Tests for reading each store's results, the request formats, caching, store failures and the endpoint's checks (208 tests total)
 - [x] Shopify Global Catalog as a keyless store (optional Dev Dashboard key for higher limits): products from Shopify shops, shown under the shop's own name, paged by cursor, cached 15 minutes because its terms cap price caching there, attribution kept on links; `SHOPIFY_CATALOG=off` turns it off (210 tests total)
+- [x] Open to signed-out visitors at `/gifts` (public header, linked from the landing page; `/app/gifts` sends visitors there). Search is rate-limited per IP for visitors (100 an hour). "+" asks them to log in or sign up, remembers the product in the tab, and opens Add item with it filled in once they're back (211 tests total)
+- [x] Commission disclosure under Gift ideas, plus Amazon Associates wording (when a tag is set) and Etsy's trademark notice (when Etsy is on)
+
+## Legal pages
+- [x] `/terms` Terms of Service (accounts, content, acceptable use, gifts and stores, ending use, no warranty, liability, changes, contact); sign-up says "By creating an account, you agree to…"; Terms links on the landing, auth and privacy pages
+- [x] Privacy policy covers Gift ideas searches, store-hosted photos, commission links and the pending-gift tab storage; no cookie banner needed (only the sign-in cookie and on-device conveniences, no tracking)
 
 ## Future
 - [ ] Price tracking & price-drop alerts

@@ -224,7 +224,9 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
   Store keys stay on the server, links and photos that aren't http(s) are dropped before
   they reach the page, and each store's pages are cached in the `gift-cache` store
   (6 hours; 15 minutes for Shopify, whose catalog terms cap price caching there).
-  Shopify links keep their attribution parameters, as its terms require.
+  Shopify links keep their attribution parameters, as its terms require. Search is
+  open to signed-out visitors (public `/gifts` page), rate-limited per IP for them;
+  adding a result to a list still needs an account.
 * **Rate limiting** on login, register, forgot-password, claims, metadata fetches,
   uploads, invites, friend requests, extension connects, extension saves and gift searches.
 * **Headers**: CSP, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy

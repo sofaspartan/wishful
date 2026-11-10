@@ -2007,6 +2007,41 @@ button.empty:hover {
     font-size: 2.6rem;
   }
 }
+/* Sky that carries on from the site header (`.landing-top`), ending in a cloud bank. */
+.sky-banner {
+  --cloud-bank-h: clamp(48px, 6vw, 96px);
+  position: relative;
+  overflow-x: clip;
+  padding-bottom: var(--cloud-bank-h);
+  background: var(--hero-bg);
+}
+.sky-banner-inner {
+  position: relative;
+  z-index: 1;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--s-4);
+}
+@media (min-width: 768px) {
+  .sky-banner-inner {
+    padding: 0 var(--s-8);
+  }
+}
+.legal-head {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--s-6) 0 var(--s-4);
+}
+.legal-head h1 {
+  margin-top: var(--s-2);
+  font-size: var(--text-4xl);
+}
+.legal-head .legal-updated {
+  margin: var(--s-2) 0 0;
+}
+.legal-banner + .public-content {
+  padding-top: var(--s-4);
+}
 .public-content {
   max-width: var(--content-max);
   margin: 0 auto;
@@ -2204,6 +2239,18 @@ button.empty:hover {
   .landing-nav {
     padding: var(--s-5) var(--s-8);
   }
+}
+.landing-nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin-left: var(--s-3);
+}
+.landing-nav-links .btn {
+  --btn-fg: var(--ink-2);
+}
+.landing-nav-links .btn[aria-current='page'] {
+  --btn-fg: var(--ink);
 }
 .landing-top,
 .landing-hero-wrap {
@@ -2600,6 +2647,35 @@ button.empty:hover {
     padding: var(--s-12) var(--s-8);
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+.landing-divider {
+  --gutter: var(--s-4);
+  width: calc(100% - 2 * var(--gutter));
+  max-width: calc(var(--content-max) - 2 * var(--gutter));
+  margin: 0 auto var(--s-10);
+}
+@media (min-width: 768px) {
+  .landing-divider {
+    --gutter: var(--s-8);
+  }
+}
+.features-head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+  text-align: center;
+}
+.features-head h2 {
+  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+}
+.features-head p {
+  max-width: 520px;
+  color: var(--ink-2);
+  font-size: var(--text-md);
+  line-height: 1.55;
 }
 .feature {
   padding: var(--s-2) var(--s-2) var(--s-5);
@@ -4049,14 +4125,85 @@ button.quick-action.tile-blush:hover {
   min-width: 0;
 }
 /* ── Gift ideas ── */
+.gift-cats-wrap {
+  --fade-start: 56px;
+  --fade-end: 56px;
+  position: relative;
+  margin: calc(-1 * var(--s-4)) calc(-1 * var(--s-1)) var(--s-4);
+}
+.gift-cats-wrap[data-at-start] {
+  --fade-start: 0px;
+}
+.gift-cats-wrap[data-at-end] {
+  --fade-end: 0px;
+}
 .gift-cats {
   display: flex;
   gap: var(--s-1);
   overflow-x: auto;
-  margin: calc(-1 * var(--s-4)) calc(-1 * var(--s-1)) var(--s-4);
   padding: 4px;
   scrollbar-width: none;
   scroll-snap-type: x proximity;
+  scroll-padding-inline: 4px;
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent);
+}
+/* Centred on the tile art: 4px scroller padding + 6px button padding + half the 58px tile. */
+.gift-cats-arrow {
+  position: absolute;
+  top: 39px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  translate: 0 -50%;
+  transition:
+    opacity var(--dur) var(--ease),
+    visibility var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.gift-cats-arrow:hover {
+  border-color: var(--border-strong);
+}
+.gift-cats-arrow.is-prev {
+  left: 0;
+}
+.gift-cats-arrow.is-next {
+  right: 0;
+}
+.gift-cats-wrap[data-at-start] .gift-cats-arrow.is-prev,
+.gift-cats-wrap[data-at-end] .gift-cats-arrow.is-next {
+  opacity: 0;
+  visibility: hidden;
+}
+/* Full-width version for signed-out visitors: the search sits straight on the sky, which carries on from the header. */
+.gift-banner .page-sky {
+  min-height: 0;
+  margin-bottom: var(--s-6);
+  padding: var(--s-6) 0 var(--s-2);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+.gift-banner .page-sky-bank {
+  display: none;
+}
+.gift-banner .gift-cats-wrap {
+  margin-bottom: 0;
+}
+.gift-banner + .page {
+  padding-top: var(--s-2);
+}
+.gift-banner + .page > .section:first-child {
+  margin-top: 0;
 }
 .gift-cats::-webkit-scrollbar {
   display: none;
@@ -4121,7 +4268,7 @@ button.quick-action.tile-blush:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.gift-cats + .section {
+.gift-cats-wrap + .section {
   margin-top: var(--s-5);
 }
 .gift-head {
@@ -4197,6 +4344,29 @@ button.quick-action.tile-blush:hover {
   .gift-filters .filter-row {
     flex: 1;
   }
+}
+.gift-disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  max-width: 640px;
+  margin: var(--s-10) auto 0;
+  text-align: center;
+}
+.gift-login-product {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.gift-login-thumb {
+  flex: 0 0 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
 }
 
 /* ── Import from a website ── */
@@ -4682,8 +4852,11 @@ button.quick-action.tile-blush:hover {
 }
 
 /* Night sky panels with a flat background; the gradient ones list var(--stars) in their own background. */
-:root[data-theme='dark'] :is(.page-sky, .tile-sky, .auth-page, .landing-hero-wrap, .friend-card-sky, .landing-footer-inner, .sky-note) {
+:root[data-theme='dark'] :is(.page-sky, .tile-sky, .auth-page, .landing-hero-wrap, .friend-card-sky, .landing-footer-inner, .sky-note, .sky-banner) {
   background-image: var(--stars);
+}
+:root[data-theme='dark'] .gift-banner .page-sky {
+  background-image: none;
 }
 :root[data-theme='dark'] .sidebar::after {
   content: '';
@@ -5238,8 +5411,10 @@ button.quick-action.tile-blush:hover {
 
 /* /extension page */
 .ext-hero {
+  --cloud-bank-h: clamp(48px, 6vw, 96px);
   position: relative;
   overflow-x: clip;
+  padding-bottom: var(--cloud-bank-h);
   background: var(--hero-bg);
 }
 .ext-hero-inner {

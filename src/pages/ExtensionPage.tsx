@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { EyeOff, ImageIcon, ListChecks, MousePointerClick, ShieldCheck, Unplug } from 'lucide-react';
 import { useMe } from '../lib/queries';
 import { brand } from '../config/brand';
-import { Logo } from '../components/Logo';
-import { ThemeToggle } from '../components/ThemeToggle';
-import { CloudPuff } from '../components/Cloud';
+import { CloudBank, CloudPuff } from '../components/Cloud';
 import { ExtensionArt, ExtensionGetButton, InstallSteps } from '../components/ExtensionInstall';
+import { SiteFooter } from '../components/SiteFooter';
+import { SiteNav } from '../components/SiteNav';
 
 const HOW = [
   { icon: MousePointerClick, title: 'Click on any product', text: 'On a product page, click the button in your toolbar.' },
@@ -24,18 +24,14 @@ export default function ExtensionPage() {
 
   return (
     <div className="public-shell">
-      <header className="public-header">
-        <Logo to="/" size={28} />
-        <div className="spacer" />
-        <Link to={me ? '/app' : '/register'} className="btn btn-sm">
-          {me ? `My ${name}` : 'Get started'}
-        </Link>
-        <ThemeToggle />
-      </header>
+      <div className="landing-top">
+        <SiteNav />
+      </div>
       <main id="main">
         <section className="ext-hero">
           <CloudPuff className="ext-hero-cloud-1" />
           <CloudPuff className="ext-hero-cloud-2" />
+          <CloudBank className="hero-bottom" />
           <div className="ext-hero-inner">
             <div className="ext-hero-copy">
               <span className="eyebrow">Browser extension</span>
@@ -118,6 +114,7 @@ export default function ExtensionPage() {
           </section>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -62,6 +62,7 @@ export default function AuthPages({ mode }: { mode: Mode }) {
           <span>
             © {new Date().getFullYear()} {brand.name}
           </span>
+          <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
         </p>
       </div>
@@ -233,6 +234,9 @@ function RegisterForm() {
         <Button type="submit" variant="primary" size="lg" block loading={busy}>
           Create account
         </Button>
+        <p className="faint text-xs" style={{ textAlign: 'center' }}>
+          By creating an account, you agree to the <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy policy</Link>.
+        </p>
       </form>
       <p className="muted text-sm">
         Already have an account?{' '}

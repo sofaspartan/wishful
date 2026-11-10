@@ -156,8 +156,25 @@ describe('reading store results', () => {
 });
 
 describe('the gift search endpoint', () => {
-  it('needs a signed-in user and a valid search', async () => {
-    expect((await new Agent().get('/api/gifts/search?q=lego')).status).toBe(401);
+  it('is open to signed-out visitors, with a tighter limit per IP address', async () => {
+    vi.stubGlobal('fetch', storeApis());
+    for (const name of Object.keys(KEYS)) vi.stubEnv(name, '');
+    vi.stubEnv('SHOPIFY_CATALOG', 'off');
+    const visitor = new Agent('198.51.100.40');
+    const first = await visitor.get('/api/gifts/search?q=lego');
+    expect(first.status).toBe(200);
+    expect(first.data.amazonUrl).toBe('https://www.amazon.com/s?k=lego');
+    let last = 0;
+    for (let i = 0; i < 100; i++) last = (await visitor.get(`/api/gifts/search?q=lego${i}`)).status;
+    expect(last).toBe(429);
+    // Another visitor, and a signed-in user on the same IP, have their own allowances.
+    expect((await new Agent('198.51.100.41').get('/api/gifts/search?q=lego')).status).toBe(200);
+    const { agent } = await signUp();
+    agent.ip = '198.51.100.40';
+    expect((await agent.get('/api/gifts/search?q=lego')).status).toBe(200);
+  });
+
+  it('checks the search', async () => {
     const { agent } = await signUp();
     expect((await agent.get('/api/gifts/search?q=')).status).toBe(400);
     expect((await agent.get('/api/gifts/search?q=lego&maxPrice=33')).status).toBe(400);

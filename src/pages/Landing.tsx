@@ -1,14 +1,13 @@
-import { useRef, useState, type AnimationEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Gift, Library, Puzzle, Sparkles } from 'lucide-react';
 import { useMe } from '../lib/queries';
 import { brand } from '../config/brand';
-import { Logo } from '../components/Logo';
 import { Cloud, CloudBank, CloudPuff } from '../components/Cloud';
 import { HeroSwirl } from '../components/HeroSwirl';
 import { ReservedListArt } from '../components/ReservedListArt';
-import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from '../components/ItemIllustrations';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
+import { SiteFooter } from '../components/SiteFooter';
+import { SiteNav } from '../components/SiteNav';
 import { ExtensionArt } from '../components/ExtensionInstall';
 
 interface StageCloud {
@@ -121,80 +120,12 @@ const FEATURES = [
   },
 ];
 
-/** "Everything you want, all in one place." → ["Everything you want, ", "all in one place."] */
-/** Items that ride across the footer in thought clouds. Must be longer than PARADE_SLOTS so on-screen clouds never repeat. */
-const PARADE_ITEMS = [FEATURE_ILLUSTRATIONS.surprise, ...ILLUSTRATED_ITEMS.map((i) => i.art), FEATURE_ILLUSTRATIONS.store];
-const PARADE_SECONDS = 42;
-const PARADE_SLOTS = [
-  { width: 112, top: 6 },
-  { width: 92, top: 30 },
-  { width: 120, top: 2 },
-  { width: 100, top: 26 },
-  { width: 108, top: 12 },
-  { width: 88, top: 34 },
-];
-
-/**
- * Thought clouds drifting left to right on a loop. Each time a cloud wraps
- * (off-screen) it takes the next item in PARADE_ITEMS, so the clouds on screen
- * are always the most recent PARADE_SLOTS.length items and never repeat.
- */
-function FooterParade() {
-  const [slotItems, setSlotItems] = useState(() => PARADE_SLOTS.map((_, i) => i));
-  const nextItem = useRef(PARADE_SLOTS.length);
-
-  const onWrap = (slot: number) => (e: AnimationEvent) => {
-    if (e.animationName !== 'thought-parade') return;
-    const item = nextItem.current++ % PARADE_ITEMS.length;
-    setSlotItems((current) => current.map((v, i) => (i === slot ? item : v)));
-  };
-
-  return (
-    <>
-      {PARADE_SLOTS.map(({ width, top }, i) => (
-        <span
-          key={i}
-          className={`footer-thought${i % 2 ? ' footer-thought-alt' : ''}`}
-          onAnimationIteration={onWrap(i)}
-          style={{
-            top,
-            ['--w' as string]: `${width}px`,
-            ['--rest' as string]: `calc(${(i + 0.3) / PARADE_SLOTS.length} * 100cqw)`,
-            animationDelay: `${(-i / PARADE_SLOTS.length) * PARADE_SECONDS}s, ${-i * 0.8}s`,
-          }}
-        >
-          <Cloud className="thought-cloud" />
-          <span className="thought-art">{PARADE_ITEMS[slotItems[i]]}</span>
-        </span>
-      ))}
-    </>
-  );
-}
-
 export default function Landing() {
   const { data: me } = useMe();
   return (
     <div>
       <div className="landing-top">
-        <header className="landing-nav">
-          <Logo to="/" />
-          <div className="spacer" />
-          <ThemeToggle />
-          {me ? (
-            <Link to="/app" className="btn btn-primary">
-              Open {brand.name} <ArrowRight size={16} aria-hidden />
-            </Link>
-          ) : (
-            <>
-              <Link to="/login" className="btn btn-ghost">
-                Log in
-              </Link>
-              <Link to="/register" className="btn btn-primary">
-                Get started
-              </Link>
-            </>
-          )}
-        </header>
+        <SiteNav current="home" />
       </div>
 
       <main id="main">
@@ -250,7 +181,14 @@ export default function Landing() {
           <CloudBank className="hero-bottom" />
         </div>
 
-        <section className="features" aria-label="Features">
+        <section className="features" aria-labelledby="landing-features-title">
+          <header className="features-head">
+            <span className="eyebrow">The details</span>
+            <h2 id="landing-features-title" className="display">
+              Thoughtful where it counts.
+            </h2>
+            <p>Secrets stay secret, families plan together, and sharing works whether or not people have an account.</p>
+          </header>
           {FEATURES.map(({ art, tint, title, text }, i) => (
             <div className="feature" key={title}>
               <div className="feature-stage" style={{ ['--tint' as string]: tint, ['--delay' as string]: `${i * -0.6}s` }}>
@@ -268,6 +206,8 @@ export default function Landing() {
             </div>
           ))}
         </section>
+
+        <hr className="divider landing-divider" />
 
         <section className="landing-extension" aria-labelledby="landing-extension-title">
           <div className="landing-extension-copy">
@@ -314,24 +254,7 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="landing-footer">
-        <div className="footer-sky" aria-hidden>
-          <FooterParade />
-          <CloudBank className="footer-bank" />
-        </div>
-        <div className="landing-footer-inner">
-          <Logo to="/" size={26} />
-          <span>{brand.tagline}</span>
-          <span className="spacer" />
-          <nav className="legal-links" aria-label="More">
-            <Link to="/extension">Browser extension</Link>
-            <Link to="/privacy">Privacy</Link>
-          </nav>
-          <span>
-            © {new Date().getFullYear()} {brand.name}
-          </span>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

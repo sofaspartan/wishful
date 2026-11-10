@@ -15,6 +15,7 @@ const WishlistDetailPage = lazy(() => import('./pages/WishlistDetail'));
 const SavedItems = lazy(() => import('./pages/SavedItems'));
 const SharedWithMe = lazy(() => import('./pages/SharedWithMe'));
 const GiftIdeas = lazy(() => import('./pages/GiftIdeas'));
+const PublicGifts = lazy(() => import('./pages/PublicGifts'));
 const Friends = lazy(() => import('./pages/Friends'));
 const FriendProfile = lazy(() => import('./pages/FriendProfile'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -22,6 +23,7 @@ const PublicWishlist = lazy(() => import('./pages/PublicWishlist'));
 const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
 const ExtensionConnect = lazy(() => import('./pages/ExtensionConnect'));
 const ExtensionPage = lazy(() => import('./pages/ExtensionPage'));
 
@@ -30,6 +32,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading } = useMe();
   const location = useLocation();
   if (isLoading) return <PageLoader />;
+  if (!user && location.pathname === '/app/gifts') return <Navigate to={`/gifts${location.search}`} replace />;
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   return <>{children}</>;
 }
@@ -83,7 +86,9 @@ export function App() {
           <Route path="/reset-password" element={<AuthPages mode="reset" />} />
           <Route path="/s/:token" element={<PublicWishlist />} />
           <Route path="/u/:username" element={<PublicProfile />} />
+          <Route path="/gifts" element={<PublicGifts />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/extension" element={<ExtensionPage />} />
           <Route
             path="/extension/connect"
