@@ -244,7 +244,8 @@ export function HeroSwirl() {
       startScene(next);
     };
     let raf = requestAnimationFrame(function tick(now) {
-      const dt = Math.min(now - last, 50) / 1000;
+      // A frame's timestamp can predate the `performance.now()` taken above; a negative step would put `elapsed` (and the scene) below zero.
+      const dt = Math.min(Math.max(now - last, 0), 50) / 1000;
       last = now;
       if (visible) {
         elapsed = (elapsed + dt) % (LOOP * SCENES.length);
