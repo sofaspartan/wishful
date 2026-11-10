@@ -191,6 +191,7 @@ export const LIMITS = {
   url: 2048,
   wishlistTitle: 120,
   bio: 500,
+  location: 80,
   message: 500,
   review: 3000,
   imageBytes: 5 * 1024 * 1024,

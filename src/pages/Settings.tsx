@@ -15,6 +15,7 @@ import {
   LifeBuoy,
   LogOut,
   Mail,
+  Palette,
   Puzzle,
   RefreshCw,
   Shield,
@@ -25,6 +26,7 @@ import {
 import {
   PROFILE_VISIBILITIES,
   VISIBILITIES,
+  type CoverArt as CoverArtValue,
   type NotificationPreferences,
   type ProfileVisibility,
   type SelfUser,
@@ -34,12 +36,17 @@ import {
 } from '../../shared/types';
 import {
   CURRENCIES,
+  LIMITS,
   PROFILE_VISIBILITY_DESCRIPTIONS,
   PROFILE_VISIBILITY_LABELS,
   RESERVATION_DAY_OPTIONS,
   VISIBILITY_DESCRIPTIONS,
   VISIBILITY_LABELS,
+  defaultCoverArt,
 } from '../../shared/constants';
+import { ageFromBirthYear } from '../../shared/profileVisibility';
+import { CoverArtPicker } from '../components/CoverArtPicker';
+import { CoverArt } from '../components/CoverArt';
 import { keys, useBrickfolio, useExtensionConnections, useInvalidate, useMe, usePlayshelf, type BrickfolioResponse, type PlayshelfResponse } from '../lib/queries';
 import { formatDate, relativeTime } from '../lib/format';
 import { brand } from '../config/brand';
@@ -157,6 +164,10 @@ function ProfileSection({ me }: { me: SelfUser }) {
   const [bio, setBio] = useState(me.bio);
   const [avatarUrl, setAvatarUrl] = useState(me.avatarUrl);
   const [profileVisibility, setProfileVisibility] = useState(me.profileVisibility);
+  const [location, setLocation] = useState(me.location);
+  const [birthYear, setBirthYear] = useState(me.birthYear ? String(me.birthYear) : '');
+  const [showAge, setShowAge] = useState(me.birthYear != null);
+  const [coverArt, setCoverArt] = useState<CoverArtValue | null>(me.profileCoverArt);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -180,9 +191,21 @@ function ProfileSection({ me }: { me: SelfUser }) {
     setBusy(true);
     setErrors({});
     setError(null);
+    const year = showAge && birthYear.trim() ? Number(birthYear) : null;
     try {
-      const { user } = await patch<{ user: SelfUser }>('/api/account/profile', { displayName, username, bio, avatarUrl, profileVisibility });
+      const { user } = await patch<{ user: SelfUser }>('/api/account/profile', {
+        displayName,
+        username,
+        bio,
+        avatarUrl,
+        profileVisibility,
+        location,
+        birthYear: year,
+        profileCoverArt: coverArt,
+      });
       saveUser(user);
+      setShowAge(user.birthYear != null);
+      setBirthYear(user.birthYear ? String(user.birthYear) : '');
       toast.success('Profile saved');
     } catch (err) {
       setErrors(fieldErrors(err));
@@ -191,6 +214,8 @@ function ProfileSection({ me }: { me: SelfUser }) {
       setBusy(false);
     }
   };
+
+  const previewAge = showAge && birthYear ? ageFromBirthYear(Number(birthYear)) : null;
 
   return (
     <form className="settings-section" onSubmit={submit} noValidate>
@@ -225,11 +250,63 @@ function ProfileSection({ me }: { me: SelfUser }) {
               spellCheck={false}
             />
           </Field>
-          <Field label="Bio" optional error={errors.bio} className="span-2">
-            <textarea className="textarea" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} placeholder="A little about you, sizes, favourite colours…" />
+          <Field label="About you" optional error={errors.bio} className="span-2" hint="Shown on your profile.">
+            <textarea className="textarea" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={LIMITS.bio} placeholder="A little about you, sizes, favourite colours…" />
           </Field>
+          <Field label="Location" optional error={errors.location} hint="Leave blank to hide it.">
+            <input className="input" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={LIMITS.location} placeholder="Brooklyn, NY" />
+          </Field>
+          <div className="field">
+            <SwitchRow title="Show my age" description="Uses your birth year so it stays accurate." checked={showAge} onChange={setShowAge} />
+            {showAge && (
+              <Field label="Birth year" error={errors.birthYear} hint={previewAge != null ? `Shown as ${previewAge}` : undefined}>
+                <input
+                  className="input"
+                  type="number"
+                  inputMode="numeric"
+                  min={1900}
+                  max={new Date().getFullYear() - 5}
+                  value={birthYear}
+                  onChange={(e) => setBirthYear(e.target.value)}
+                  placeholder="1995"
+                />
+              </Field>
+            )}
+          </div>
         </div>
       </div>
+
+      <div className="card card-pad stack">
+        <CardTitle icon={Palette}>Profile style</CardTitle>
+        <p className="muted text-sm" style={{ marginTop: '-0.5rem' }}>
+          Styles the whole public profile page — scene, colour, or gradient behind your info and lists.
+        </p>
+        <Segmented<'none' | 'graphic'>
+          label="Profile background"
+          value={coverArt ? 'graphic' : 'none'}
+          onChange={(mode) => setCoverArt(mode === 'graphic' ? (coverArt ?? defaultCoverArt('wishlist')) : null)}
+          options={[
+            { value: 'none', label: 'None' },
+            { value: 'graphic', label: 'Graphic' },
+          ]}
+        />
+        {coverArt && (
+          <>
+            <div className="profile-style-preview" aria-hidden>
+              <CoverArt art={coverArt} showIcon={false} />
+              <div className="profile-style-preview-face">
+                <Avatar name={displayName || me.displayName} src={avatarUrl} size={44} />
+                <div className="profile-style-preview-copy">
+                  <strong className="truncate">{displayName || me.displayName}</strong>
+                  <span className="truncate">@{username || me.username}</span>
+                </div>
+              </div>
+            </div>
+            <CoverArtPicker value={coverArt} onChange={setCoverArt} preview={false} title={displayName || 'Profile'} />
+          </>
+        )}
+      </div>
+
       <div className="card card-pad stack">
         <div className="field">
           <span className="field-label">Who can find your profile</span>

@@ -150,12 +150,23 @@ export const deleteAccountSchema = z.object({
 
 // ── Account ─────────────────────────────────────────────────────────────────
 
+const currentYear = () => new Date().getFullYear();
+
 export const profileUpdateSchema = z.object({
   displayName: displayNameSchema.optional(),
   username: usernameSchema.optional(),
   bio: z.string().trim().max(LIMITS.bio).optional(),
   avatarUrl: optionalImageUrlSchema.optional(),
   profileVisibility: profileVisibilitySchema.optional(),
+  profileCoverArt: coverArtSchema.nullable().optional(),
+  location: z.string().trim().max(LIMITS.location, `Keep it under ${LIMITS.location} characters`).optional(),
+  birthYear: z
+    .number()
+    .int()
+    .min(1900, 'That year is too far back')
+    .max(currentYear() - 5, 'Enter a realistic birth year')
+    .nullable()
+    .optional(),
 });
 
 export const peopleSearchSchema = z.object({

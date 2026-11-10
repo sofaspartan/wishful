@@ -515,6 +515,148 @@ a.sky-stat {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+.people-row-me {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+}
+.people-me-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.profile-editor-preview {
+  --cloud-bank-h: 40px;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  min-height: 220px;
+}
+.profile-editor-preview-sky,
+.profile-editor-preview-plain {
+  position: absolute;
+  inset: 0 0 36% 0;
+  overflow: hidden;
+}
+.profile-editor-preview-plain {
+  background: var(--hero-bg);
+}
+.profile-editor-preview-sky .cover-art {
+  --cloud-bank-h: 40px;
+}
+.profile-editor-preview-sky .cover-bank .cloud-bank-front {
+  fill: var(--bg) !important;
+}
+.profile-editor-preview-card {
+  position: relative;
+  z-index: 1;
+  margin: 72px 12px 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 8px 20px rgba(16, 38, 92, 0.08);
+}
+.profile-editor-preview:not(.has-cover) .profile-editor-preview-card {
+  margin-top: 48px;
+}
+.profile-editor-preview-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-editor-preview-copy strong {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+.profile-editor-preview-copy > span:first-of-type {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.profile-editor-preview-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.profile-editor-preview-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.profile-editor-preview-bio {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  white-space: pre-line;
+}
+.profile-editor-preview-copy .badge {
+  align-self: flex-start;
+  margin-top: 6px;
+  font-size: 0.68rem;
+}
+.profile-style-preview {
+  position: relative;
+  height: 168px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.profile-style-preview .cover-art {
+  position: absolute;
+  inset: 0;
+  --cloud-bank-h: 48px;
+}
+.profile-style-preview-face {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px rgba(16, 38, 92, 0.12);
+}
+.profile-style-preview-face .avatar {
+  border: 3px solid var(--surface);
+  flex-shrink: 0;
+}
+.profile-style-preview-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 4px;
+}
+.profile-style-preview-copy strong {
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+.profile-style-preview-copy span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
 .sky-form {
   display: flex;
   flex-direction: column;
@@ -2125,6 +2267,141 @@ button.empty:hover {
 @media (min-width: 768px) {
   .public-title {
     font-size: 2.6rem;
+  }
+}
+.public-shell-styled {
+  position: relative;
+  z-index: 0;
+  /* Soft tint carries the profile style down the page under the sky band. */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--profile-tint, var(--tint-base)) 28%, var(--bg)) 0%, var(--bg) 42%);
+}
+.public-shell-styled > :not(.profile-page-sky) {
+  position: relative;
+  z-index: 1;
+}
+/* Finite sky band so CoverArt clouds/decor keep list-cover proportions. */
+.profile-page-sky {
+  --cloud-bank-h: 64px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: clamp(220px, 34vh, 360px);
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.profile-page-sky .cover-art {
+  --cloud-bank-h: 64px;
+}
+/* Land the cloud bank into the page background, like landing/page-sky. */
+.profile-page-sky .cover-bank .cloud-bank-front {
+  fill: var(--bg) !important;
+}
+/* Logo sits bare on the profile sky: word flips black/white with the cover, mark inverts on dark scenes. */
+.public-shell-styled .public-header .logo {
+  color: var(--ink);
+  text-shadow: 0 1px 2px rgb(255 255 255 / 0.45);
+}
+.public-shell-styled .public-header .logo-mark {
+  box-shadow: 0 1px 3px rgba(16, 38, 92, 0.18);
+}
+.public-shell-styled-dark .public-header .logo {
+  color: #fff;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+.public-shell-styled-dark .public-header .logo-mark {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+.public-shell-styled-dark .public-header .logo-mark svg :is(path, circle) {
+  fill: var(--accent);
+}
+.public-shell-styled .public-header .btn {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+.profile-hero {
+  position: relative;
+  margin: 0 auto var(--s-10);
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-3);
+  padding: var(--s-2);
+}
+.profile-hero-panel {
+  width: 100%;
+  align-items: stretch;
+  text-align: left;
+  padding: 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 10px 28px rgba(16, 38, 92, 0.08);
+}
+.profile-hero-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-6) var(--s-5);
+  width: 100%;
+}
+.profile-hero-panel .profile-hero-body {
+  flex-direction: row;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--s-6) var(--s-6);
+  gap: var(--s-5);
+}
+.profile-hero-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  align-items: center;
+}
+.profile-hero-panel .profile-hero-main {
+  align-items: flex-start;
+}
+.profile-hero .avatar {
+  border: 4px solid var(--surface);
+  box-shadow: 0 6px 20px rgba(16, 38, 92, 0.14);
+  flex-shrink: 0;
+}
+.profile-hero-bio {
+  max-width: 520px;
+  white-space: pre-line;
+  margin: 0;
+}
+.profile-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+.profile-hero-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.profile-hero-actions {
+  justify-content: center;
+  margin-top: var(--s-2);
+}
+.profile-hero-panel .profile-hero-actions {
+  justify-content: flex-start;
+}
+@media (max-width: 639px) {
+  .profile-hero-panel .profile-hero-body {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 /* Sky that carries on from the site header (`.landing-top`), ending in a cloud bank. */
@@ -3753,6 +4030,39 @@ button.empty:hover {
 }
 .footer-bank .cloud-bank-front {
   fill: var(--hero-bg);
+}
+/* Profile-themed footer: page background continues above the clouds; only the bank + bar take the cover colours. */
+.landing-footer-themed {
+  --footer-base: var(--cloud-fill);
+  --footer-cloud-back: color-mix(in srgb, var(--accent) 22%, var(--tint-base));
+}
+.landing-footer-themed .footer-sky {
+  background: transparent;
+}
+.landing-footer-themed .footer-bank .cloud-bank-back {
+  fill: var(--footer-cloud-back);
+}
+.landing-footer-themed .footer-bank .cloud-bank-front {
+  fill: var(--footer-base);
+}
+.landing-footer-themed .landing-footer-inner {
+  background: var(--footer-inner-bg, var(--footer-base));
+  background-image: none;
+}
+.landing-footer-themed-dark .landing-footer-inner {
+  color: color-mix(in srgb, var(--ink) 82%, transparent);
+}
+.landing-footer-themed-dark .landing-footer-inner .logo {
+  color: var(--ink);
+}
+.landing-footer-themed-dark.is-dark-bar .landing-footer-inner {
+  color: rgb(255 255 255 / 0.84);
+}
+.landing-footer-themed-dark.is-dark-bar .landing-footer-inner .logo {
+  color: #fff;
+}
+.landing-footer-themed-dark.is-dark-bar .legal-links a {
+  color: rgb(255 255 255 / 0.84);
 }
 /* `--rest` is where a cloud sits when motion is reduced (animations end immediately). */
 .footer-thought {

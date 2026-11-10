@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { CalendarDays, Gift, Lock, UserRoundPlus, UserX, Users } from 'lucide-react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CalendarDays, Gift, Lock, MapPin, Pencil, UserRoundPlus, UserX, Users } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PROFILE_VISIBILITY_LABELS } from '../../shared/constants';
+import { coverColors, coverPaint, isDarkCover, isPlainBackdrop, type SelfUser } from '../../shared/types';
 import { keys, useMe, usePublicProfile } from '../lib/queries';
 import { countdownLabel, firstName } from '../lib/format';
 import { brand } from '../config/brand';
 import { errorMessage, post } from '../lib/api';
 import { Logo } from '../components/Logo';
+import { CoverArt } from '../components/CoverArt';
+import { EditProfileModal } from '../components/EditProfileModal';
 import { ListForLine, WishlistCover } from '../components/WishlistCard';
 import { CollectionBadge } from '../components/ItemVisuals';
+import { SiteFooter } from '../components/SiteFooter';
 import { Avatar, EmptyState, PageLoader } from '../components/ui/misc';
 import { Button } from '../components/ui/Button';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -17,11 +21,13 @@ import { useToast } from '../components/ui/Toast';
 
 export default function PublicProfile() {
   const { username } = useParams();
+  const navigate = useNavigate();
   const { data, isLoading, error } = usePublicProfile(username);
   const { data: me } = useMe();
   const toast = useToast();
   const qc = useQueryClient();
   const [friending, setFriending] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (data) document.title = `${data.user.displayName} · ${brand.name}`;
@@ -42,8 +48,39 @@ export default function PublicProfile() {
     }
   };
 
+  const onProfileSaved = (user: SelfUser) => {
+    const previous = data?.user.username;
+    qc.setQueryData(keys.me, user);
+    void qc.invalidateQueries({ queryKey: keys.profile(user.username) });
+    if (previous && previous !== user.username) {
+      void qc.removeQueries({ queryKey: keys.profile(previous) });
+      navigate(`/u/${user.username}`, { replace: true });
+    }
+  };
+
+  const cover = data?.user.profileCoverArt ?? null;
+  const dark = cover ? isDarkCover(cover) : false;
+  const pageStyle: CSSProperties | undefined =
+    cover && isPlainBackdrop(cover.backdrop)
+      ? ({ ['--profile-tint' as string]: coverPaint(cover) ?? coverColors(cover)[0] } as CSSProperties)
+      : undefined;
+  const metaBits = data
+    ? [
+        data.user.age != null ? `${data.user.age}` : null,
+        data.user.location || null,
+      ].filter(Boolean)
+    : [];
+
   return (
-    <div className="public-shell">
+    <div
+      className={['public-shell', cover && 'public-shell-styled', dark && 'public-shell-styled-dark'].filter(Boolean).join(' ')}
+      style={pageStyle}
+    >
+      {cover && (
+        <div className="profile-page-sky" aria-hidden>
+          <CoverArt art={cover} showIcon={false} />
+        </div>
+      )}
       <header className="public-header">
         <Logo to="/" size={28} />
         <div className="spacer" />
@@ -61,29 +98,46 @@ export default function PublicProfile() {
           </EmptyState>
         ) : (
           <>
-            <div className="public-intro" style={{ marginTop: 0, marginBottom: 'var(--s-10)' }}>
-              <Avatar name={data.user.displayName} src={data.user.avatarUrl} size={80} />
-              <h1 className="public-title display">{data.user.displayName}</h1>
-              <p className="muted">@{data.user.username}</p>
-              {data.user.bio && (
-                <p style={{ maxWidth: 520, whiteSpace: 'pre-line' }} className="muted">
-                  {data.user.bio}
-                </p>
-              )}
-              <div className="row-wrap" style={{ justifyContent: 'center', marginTop: 'var(--s-4)' }}>
-                <span className="badge badge-outline">{PROFILE_VISIBILITY_LABELS[data.profileVisibility]} profile</span>
-                {me && !data.viewer.isSelf && data.viewer.isFriend && (
-                  <Link to={`/app/friends/${data.user.id}`} className="btn btn-sm">
-                    See as a friend
-                  </Link>
-                )}
-                {me && !data.viewer.isSelf && !data.viewer.isFriend && (
-                  <Button size="sm" variant="primary" icon={<UserRoundPlus size={15} />} loading={friending} onClick={sendRequest}>
-                    Add friend
-                  </Button>
-                )}
+            <section className={['profile-hero', cover && 'profile-hero-panel'].filter(Boolean).join(' ')} aria-label={`${data.user.displayName}'s profile`}>
+              <div className="profile-hero-body">
+                <Avatar name={data.user.displayName} src={data.user.avatarUrl} size={cover ? 88 : 80} />
+                <div className="profile-hero-main">
+                  <h1 className="public-title display">{data.user.displayName}</h1>
+                  <p className="muted">@{data.user.username}</p>
+                  {metaBits.length > 0 && (
+                    <p className="profile-hero-meta muted">
+                      {data.user.age != null && <span>{data.user.age}</span>}
+                      {data.user.age != null && data.user.location && <span aria-hidden> · </span>}
+                      {data.user.location && (
+                        <span className="profile-hero-location">
+                          <MapPin size={13} aria-hidden /> {data.user.location}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {data.user.bio && <p className="profile-hero-bio muted">{data.user.bio}</p>}
+                  <div className="row-wrap profile-hero-actions">
+                    <span className="badge badge-outline">{PROFILE_VISIBILITY_LABELS[data.profileVisibility]} profile</span>
+                    {data.viewer.isSelf && me && (
+                      <Button size="sm" variant="primary" icon={<Pencil size={15} />} onClick={() => setEditing(true)}>
+                        Edit profile
+                      </Button>
+                    )}
+                    {me && !data.viewer.isSelf && data.viewer.isFriend && (
+                      <Link to={`/app/friends/${data.user.id}`} className="btn btn-sm">
+                        See as a friend
+                      </Link>
+                    )}
+                    {me && !data.viewer.isSelf && !data.viewer.isFriend && (
+                      <Button size="sm" variant="primary" icon={<UserRoundPlus size={15} />} loading={friending} onClick={sendRequest}>
+                        Add friend
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            </section>
+
             {data.viewer.canSeeLists ? (
               data.wishlists.length ? (
                 <div className="grid-lists">
@@ -144,6 +198,8 @@ export default function PublicProfile() {
           </>
         )}
       </main>
+      <SiteFooter coverArt={cover} />
+      {me && editing && <EditProfileModal open={editing} me={me} onClose={() => setEditing(false)} onSaved={onProfileSaved} />}
     </div>
   );
 }

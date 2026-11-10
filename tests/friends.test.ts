@@ -251,4 +251,39 @@ describe('profile visibility and people search', () => {
     const eve = await signUp(undefined, { username: 'eve' });
     expect((await eve.agent.post('/api/friends/requests', { username: 'mia' })).status).toBe(201);
   });
+
+  it('returns yourself in search as Me when discoverable, and exposes profile style fields', async () => {
+    const { mia } = await pair();
+    const year = new Date().getFullYear() - 28;
+    const cover = { backdrop: 'sky' as const, icon: 'gift' as const };
+    const saved = await mia.agent.patch('/api/account/profile', {
+      profileVisibility: 'public',
+      bio: 'Coffee and board games',
+      location: 'Brooklyn, NY',
+      birthYear: year,
+      profileCoverArt: cover,
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.data.user).toMatchObject({
+      location: 'Brooklyn, NY',
+      birthYear: year,
+      profileCoverArt: cover,
+      bio: 'Coffee and board games',
+    });
+
+    const meSearch = await mia.agent.get('/api/friends/search?q=mia');
+    expect(meSearch.data.people[0]).toMatchObject({ relationship: 'self', user: { username: 'mia' } });
+
+    const page = await new Agent().get('/api/public/users/mia');
+    expect(page.data.user).toMatchObject({
+      location: 'Brooklyn, NY',
+      age: 28,
+      bio: 'Coffee and board games',
+      profileCoverArt: cover,
+    });
+
+    await mia.agent.patch('/api/account/profile', { birthYear: null, location: '', profileCoverArt: null });
+    const cleared = await new Agent().get('/api/public/users/mia');
+    expect(cleared.data.user).toMatchObject({ location: '', age: null, profileCoverArt: null });
+  });
 });

@@ -165,21 +165,31 @@ export async function searchPeople(viewerId: string, rawQuery: string): Promise<
 
   const hits: PeopleSearchHit[] = [];
   for (const u of users) {
-    if (u.id === viewerId) continue;
     const visibility = profileVisibilityOf(u);
     if (!isDiscoverableProfile(visibility)) continue;
     const usernameHit = u.username.toLowerCase().startsWith(q);
     const nameHit = u.displayName.toLowerCase().includes(q);
     if (!usernameHit && !nameHit) continue;
+    const isSelf = u.id === viewerId;
     hits.push({
       user: toPublicUser(u),
       profileVisibility: visibility,
-      relationship: friendIds.has(u.id) ? 'friends' : outgoing.has(u.id) ? 'outgoing' : incoming.has(u.id) ? 'incoming' : 'none',
+      relationship: isSelf
+        ? 'self'
+        : friendIds.has(u.id)
+          ? 'friends'
+          : outgoing.has(u.id)
+            ? 'outgoing'
+            : incoming.has(u.id)
+              ? 'incoming'
+              : 'none',
     });
     if (hits.length >= SEARCH_LIMIT) break;
   }
 
   hits.sort((a, b) => {
+    if (a.relationship === 'self') return -1;
+    if (b.relationship === 'self') return 1;
     const aExact = a.user.username === q ? 0 : a.user.username.startsWith(q) ? 1 : 2;
     const bExact = b.user.username === q ? 0 : b.user.username.startsWith(q) ? 1 : 2;
     if (aExact !== bExact) return aExact - bExact;

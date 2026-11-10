@@ -134,6 +134,9 @@ export function registerAuthRoutes(router: Router) {
       avatarUrl: null,
       bio: '',
       profileVisibility: 'private',
+      profileCoverArt: null,
+      location: '',
+      birthYear: null,
       preferences: DEFAULT_PREFERENCES,
       passwordHash: await hashPassword(input.password),
       sessionsValidAfter: new Date(0).toISOString(),
@@ -298,6 +301,9 @@ export function registerAuthRoutes(router: Router) {
         avatarUrl: input.avatarUrl !== undefined ? input.avatarUrl : u.avatarUrl,
         profileVisibility: input.profileVisibility ?? profileVisibilityOf(u),
         publicProfile: undefined,
+        profileCoverArt: input.profileCoverArt !== undefined ? input.profileCoverArt : (u.profileCoverArt ?? null),
+        location: input.location !== undefined ? input.location : (u.location ?? ''),
+        birthYear: input.birthYear !== undefined ? input.birthYear : (u.birthYear ?? null),
         updatedAt: nowIso(),
       };
     });

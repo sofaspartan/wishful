@@ -1,6 +1,6 @@
 import type { PublicEntry, PublicProfileView, PublicWishlistView, Visibility } from '../../shared/types';
 import { isCollection } from '../../shared/constants';
-import { profileVisibilityOf } from '../../shared/profileVisibility';
+import { ageFromBirthYear, profileVisibilityOf } from '../../shared/profileVisibility';
 import { db, getMany } from '../storage';
 import { HttpError, notFound } from '../http';
 import type { ItemRecord, ShareRecord, UserRecord, WishlistRecord } from '../records';
@@ -218,13 +218,17 @@ export async function buildPublicProfile(rawUsername: string, viewer: UserRecord
     }));
   }
 
+  const hideDetails = visibility === 'private' && !isSelf;
   return {
     user: {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
-      bio: visibility === 'private' && !isSelf ? '' : user.bio,
+      bio: hideDetails ? '' : user.bio,
+      location: hideDetails ? '' : (user.location ?? ''),
+      age: hideDetails ? null : ageFromBirthYear(user.birthYear),
+      profileCoverArt: hideDetails ? null : (user.profileCoverArt ?? null),
     },
     profileVisibility: visibility,
     viewer: { isSelf, isFriend, canSeeLists },

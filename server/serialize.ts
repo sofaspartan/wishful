@@ -14,6 +14,9 @@ export function toSelfUser(u: UserRecord): SelfUser {
     email: u.email,
     bio: u.bio,
     profileVisibility: profileVisibilityOf(u),
+    profileCoverArt: u.profileCoverArt ?? null,
+    location: u.location ?? '',
+    birthYear: u.birthYear ?? null,
     preferences: {
       ...DEFAULT_PREFERENCES,
       ...u.preferences,

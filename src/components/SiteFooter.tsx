@@ -1,5 +1,6 @@
-import { useRef, useState, type AnimationEvent } from 'react';
+import { useRef, useState, type AnimationEvent, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
+import { coverColors, coverPaint, isDarkCover, isPlainBackdrop, type CoverArt as CoverArtValue } from '../../shared/types';
 import { brand } from '../config/brand';
 import { Cloud, CloudBank } from './Cloud';
 import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from './ItemIllustrations';
@@ -54,10 +55,71 @@ function FooterParade() {
   );
 }
 
-/** Sky footer for the public pages. */
-export function SiteFooter() {
+/** Soft tint for the cloud bank back, derived from a profile cover without filling the sky. */
+function themeVars(coverArt: CoverArtValue): CSSProperties {
+  if (isPlainBackdrop(coverArt.backdrop)) {
+    const [a, b] = coverColors(coverArt);
+    const base = coverArt.backdrop === 'gradient' ? b : a;
+    return {
+      ['--footer-base' as string]: base,
+      ['--footer-inner-bg' as string]: coverPaint(coverArt) ?? base,
+      ['--footer-cloud-back' as string]: `color-mix(in srgb, ${a} 45%, var(--tint-base))`,
+    } as CSSProperties;
+  }
+
+  const sceneTint: Partial<Record<CoverArtValue['backdrop'], string>> = {
+    sky: 'color-mix(in srgb, var(--accent) 22%, var(--tint-base))',
+    blush: 'color-mix(in srgb, var(--blush) 28%, var(--tint-base))',
+    mint: 'color-mix(in srgb, #5f9e6e 26%, var(--tint-base))',
+    lilac: 'color-mix(in srgb, #7c6cf0 22%, var(--tint-base))',
+    sunset: '#f6c6c4',
+    night: 'rgba(255, 255, 255, 0.16)',
+    snow: 'rgba(255, 255, 255, 0.4)',
+    spring: '#9fd18f',
+    summer: '#3fb2c9',
+    autumn: '#e7a463',
+    hearts: '#f4b0c0',
+    shamrock: '#93cf95',
+    spooky: 'rgba(255, 255, 255, 0.14)',
+    harvest: '#d98d45',
+    hanukkah: 'rgba(255, 255, 255, 0.3)',
+    confetti: 'color-mix(in srgb, var(--accent) 22%, var(--tint-base))',
+  };
+
+  const sceneBase: Partial<Record<CoverArtValue['backdrop'], string>> = {
+    night: '#e9effb',
+    spring: '#cdeabf',
+    summer: '#f8e5b5',
+    autumn: '#f7d9b2',
+    shamrock: '#e0f3d4',
+    spooky: '#e8def6',
+    harvest: '#f8dbb0',
+    hanukkah: '#e6edfb',
+    hearts: 'color-mix(in srgb, #f4b0c0 35%, var(--cloud-fill))',
+    blush: 'color-mix(in srgb, var(--blush) 18%, var(--cloud-fill))',
+    mint: 'color-mix(in srgb, #5f9e6e 14%, var(--cloud-fill))',
+    lilac: 'color-mix(in srgb, #7c6cf0 12%, var(--cloud-fill))',
+    sunset: 'color-mix(in srgb, #f6c6c4 28%, var(--cloud-fill))',
+  };
+
+  return {
+    ['--footer-cloud-back' as string]: sceneTint[coverArt.backdrop] ?? 'color-mix(in srgb, var(--accent) 22%, var(--tint-base))',
+    ['--footer-base' as string]: sceneBase[coverArt.backdrop] ?? 'var(--cloud-fill)',
+  } as CSSProperties;
+}
+
+/** Sky footer for the public pages. Optionally mirrors a profile cover graphic. */
+export function SiteFooter({ coverArt = null }: { coverArt?: CoverArtValue | null }) {
+  const themed = Boolean(coverArt);
+  const dark = coverArt ? isDarkCover(coverArt) : false;
+  const darkBar = Boolean(coverArt && dark && isPlainBackdrop(coverArt.backdrop));
+  const style = coverArt ? themeVars(coverArt) : undefined;
+
   return (
-    <footer className="landing-footer">
+    <footer
+      className={['landing-footer', themed && 'landing-footer-themed', dark && 'landing-footer-themed-dark', darkBar && 'is-dark-bar'].filter(Boolean).join(' ')}
+      style={style}
+    >
       <div className="footer-sky" aria-hidden>
         <FooterParade />
         <CloudBank className="footer-bank" />

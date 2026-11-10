@@ -322,6 +322,12 @@ export interface SelfUser extends PublicUser {
   bio: string;
   /** Who can find this profile and see lists on `/u/:username`. */
   profileVisibility: ProfileVisibility;
+  /** Cover graphic behind the public profile header. */
+  profileCoverArt: CoverArt | null;
+  /** City or region shown on the profile when non-empty. */
+  location: string;
+  /** Birth year used to show age on the profile; `null` hides age. */
+  birthYear: number | null;
   preferences: UserPreferences;
   /** When the current recovery code was made; null if the account has none yet. */
   recoveryCodeCreatedAt: string | null;
@@ -638,7 +644,13 @@ export interface PublicWishlistView {
 }
 
 export interface PublicProfileView {
-  user: PublicUser & { bio: string };
+  user: PublicUser & {
+    bio: string;
+    location: string;
+    /** Computed age when the person chose to share a birth year; otherwise null. */
+    age: number | null;
+    profileCoverArt: CoverArt | null;
+  };
   profileVisibility: ProfileVisibility;
   viewer: {
     isSelf: boolean;
@@ -666,7 +678,7 @@ export interface PublicProfileView {
 export interface PeopleSearchHit {
   user: PublicUser;
   profileVisibility: ProfileVisibility;
-  relationship: 'none' | 'friends' | 'outgoing' | 'incoming';
+  relationship: 'self' | 'none' | 'friends' | 'outgoing' | 'incoming';
 }
 
 // ── Storage boxes ───────────────────────────────────────────────────────────
