@@ -21,6 +21,7 @@ import {
   VISIBILITIES,
 } from './types';
 import { LIMITS } from './constants';
+import { GIFT_MAX_PAGE, GIFT_PRICE_CAPS, GIFT_STORES } from './giftIdeas';
 
 export function isHttpUrl(value: string): boolean {
   try {
@@ -351,6 +352,17 @@ export const pledgeTokenSchema = z.object({ pledgeToken: z.string().min(20).max(
 export const metadataRequestSchema = z.object({ url: httpUrlSchema });
 
 export const listImportRequestSchema = z.object({ url: httpUrlSchema, next: z.string().trim().max(4000).optional() });
+
+/** Query string of GET /api/gifts/search. Price caps are a fixed set so searches share cache entries. */
+export const giftSearchSchema = z.object({
+  q: z.string().trim().min(1, 'Type something to search for').max(100, 'Keep searches under 100 characters'),
+  maxPrice: z.coerce
+    .number()
+    .refine((v) => (GIFT_PRICE_CAPS as readonly number[]).includes(v), 'Pick one of the price limits')
+    .optional(),
+  store: z.enum(GIFT_STORES).optional(),
+  page: z.coerce.number().int().min(1).max(GIFT_MAX_PAGE).default(1),
+});
 
 const httpsUrl = (message: string) => httpUrlSchema.refine((v) => v.startsWith('https://'), message);
 

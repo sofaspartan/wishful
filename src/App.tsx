@@ -14,6 +14,7 @@ const Wishlists = lazy(() => import('./pages/Wishlists'));
 const WishlistDetailPage = lazy(() => import('./pages/WishlistDetail'));
 const SavedItems = lazy(() => import('./pages/SavedItems'));
 const SharedWithMe = lazy(() => import('./pages/SharedWithMe'));
+const GiftIdeas = lazy(() => import('./pages/GiftIdeas'));
 const Friends = lazy(() => import('./pages/Friends'));
 const FriendProfile = lazy(() => import('./pages/FriendProfile'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -105,6 +106,7 @@ export function App() {
             <Route path="lists/:id" element={<WishlistDetailPage />} />
             <Route path="items" element={<SavedItems />} />
             <Route path="shared" element={<SharedWithMe />} />
+            <Route path="gifts" element={<GiftIdeas />} />
             <Route path="friends" element={<Friends />} />
             <Route path="friends/:id" element={<FriendProfile />} />
             <Route path="settings" element={<Settings />} />

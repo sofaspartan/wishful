@@ -219,8 +219,12 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
   the user owns, nothing more. Issued only to a signed-in session after an explicit
   approval page; revoked from Settings, from the extension, by a password change
   (`sessionsValidAfter`) or by account deletion. Mutations still need the CSRF header.
+* **Gift search** (`server/services/giftSearch.ts`) only calls the fixed eBay, Best Buy
+  and Etsy API hosts; users send search words, never addresses. Store keys stay on the
+  server, links and photos that aren't http(s) are dropped before they reach the page,
+  and each store's pages are cached for 6 hours in the `gift-cache` store.
 * **Rate limiting** on login, register, forgot-password, claims, metadata fetches,
-  uploads, invites, friend requests, extension connects and extension saves.
+  uploads, invites, friend requests, extension connects, extension saves and gift searches.
 * **Headers**: CSP, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
   (see `netlify.toml`).
 
@@ -241,6 +245,11 @@ See `.env.example`. None are exposed to the browser.
 | `PLAYSHELF_SUPABASE_URL` | For Playshelf | Playshelf's Supabase project URL (`https://<ref>.supabase.co`) |
 | `PLAYSHELF_SUPABASE_ANON_KEY` | For Playshelf | Playshelf's public anon key (same as its `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |
 | `PLAYSHELF_SITE_URL` | No | Playshelf site address, for profile links in Settings |
+| `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | For eBay gift search | Production keyset from developer.ebay.com (App ID and Cert ID) |
+| `EBAY_CAMPAIGN_ID` | No | eBay Partner Network campaign ID, so eBay links earn commission |
+| `BESTBUY_API_KEY` | For Best Buy gift search | Free key from developer.bestbuy.com |
+| `ETSY_API_KEY`, `ETSY_SHARED_SECRET` | For Etsy gift search | Keystring and shared secret of an approved app at etsy.com/developers |
+| `AMAZON_ASSOCIATE_TAG` | No | Associates tag added to the Gift ideas "Search Amazon" link |
 
 Email is optional. Password resets work without it through recovery codes; the
 Forgot password page only offers an emailed link when `RESEND_API_KEY` and

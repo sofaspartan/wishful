@@ -61,6 +61,7 @@ export const isLocalDev = () => getDriver().name !== 'netlify';
  *   extension-tokens {userId}                     → ExtensionTokensDoc (connected browser extensions)
  *   integrations   {userId}                       → IntegrationsDoc (connected sites, e.g. Brickfolio)
  *   integration-cache {sha256(source url)}        → CatalogCacheRecord
+ *   gift-cache     {sha256(store|query|price|page)} → one store's page of gift search results
  */
 export const COLLECTIONS = [
   'users',
@@ -81,6 +82,7 @@ export const COLLECTIONS = [
   'extension-tokens',
   'integrations',
   'integration-cache',
+  'gift-cache',
 ] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 

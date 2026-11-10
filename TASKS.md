@@ -201,6 +201,13 @@
 - [x] New "Game controller" cover icon
 - [x] Tests (185 tests total)
 
+## Gift ideas
+- [x] `/app/gifts` page (sidebar link, gift icon in the mobile top bar): search bar, 25 category chips drawn with cover icons, store and price filters, "Show more"
+- [x] `GET /api/gifts/search` asks eBay (Browse API), Best Buy (Products API) and Etsy (Open API v3) at once, each switched on by its keys; results mixed store by store, each store's page cached 6 hours in `gift-cache`, rate-limited, failures shown without hiding the other stores
+- [x] "+" on a product opens Add item on the details step, already filled in (name, photo, price, link, store, brand)
+- [x] "Search Amazon" link (optional Associates tag) instead of Amazon's API, which needs 10 sales a month
+- [x] Tests for reading each store's results, the request formats, caching, store failures and the endpoint's checks (208 tests total)
+
 ## Future
 - [ ] Price tracking & price-drop alerts
 - [ ] Monetary contributions for group gifts

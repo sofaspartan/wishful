@@ -11,7 +11,7 @@ const REMINDER_DAYS = 7;
 /**
  * Daily maintenance:
  *  - occasion reminders for wishlists with an event date within 7 days;
- *  - sweep expired sessions, reset tokens and rate-limit buckets.
+ *  - sweep expired sessions, reset tokens, rate-limit buckets and cached gift searches.
  * Reminders only mention the occasion — never any gift activity.
  */
 export async function runDailyJobs(): Promise<{ reminders: number; swept: number }> {
@@ -45,6 +45,7 @@ export async function runDailyJobs(): Promise<{ reminders: number; swept: number
     ['sessions', (v: SessionRecord) => v.expiresAt],
     ['resets', (v: ResetRecord) => v.expiresAt],
     ['ratelimits', (v: { expiresAt: string }) => v.expiresAt],
+    ['gift-cache', (v: { expiresAt: string }) => v.expiresAt],
   ] as const) {
     for (const key of await db(store).list()) {
       const v = (await db(store).get<never>(key))?.value;

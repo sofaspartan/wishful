@@ -78,12 +78,28 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   useEffect(() => {
     if (!options) return;
     const m = options.mode ?? 'link';
-    setMode(m);
-    setStep(m === 'idea' ? 'details' : 'start');
-    setUrl('');
+    const product = options.product;
+    setMode(product ? 'link' : m);
+    setStep(m === 'idea' || product ? 'details' : 'start');
+    setUrl(product?.url ?? '');
     setUrlError(null);
     setExtractNote(null);
-    setDraft(emptyDraft(currency, m === 'idea' ? 'idea' : m === 'link' ? 'product' : 'custom'));
+    setExtractHelp({ blocked: false, noPhoto: false });
+    const blank = emptyDraft(currency, m === 'idea' ? 'idea' : m === 'link' || product ? 'product' : 'custom');
+    setDraft(
+      product
+        ? {
+            ...blank,
+            title: product.title,
+            externalUrl: product.url,
+            imageUrl: product.imageUrl,
+            price: product.price !== null ? String(product.price) : '',
+            currency: product.currency || blank.currency,
+            retailer: product.retailer,
+            brand: product.brand ?? '',
+          }
+        : blank,
+    );
     setSelected(options.wishlistId ? [options.wishlistId] : []);
     setPriority('none');
     setErrors({});

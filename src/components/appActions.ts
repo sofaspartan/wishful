@@ -8,6 +8,16 @@ export interface AddItemOptions {
   /** Pre-select (and, for shared lists, lock) a destination wishlist. */
   wishlistId?: string;
   lockedToWishlist?: boolean;
+  /** Open straight on the details step with a product already filled in (e.g. from Gift ideas). */
+  product?: {
+    title: string;
+    url: string;
+    imageUrl: string | null;
+    price: number | null;
+    currency: string | null;
+    retailer: string;
+    brand?: string;
+  };
 }
 
 export interface CreateListOptions {

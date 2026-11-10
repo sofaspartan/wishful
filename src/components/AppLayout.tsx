@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bookmark, House, List, LogOut, Plus, Search, Settings, User, UserRoundPlus, Users } from 'lucide-react';
+import { Bookmark, Gift, House, List, LogOut, Plus, Search, Settings, User, UserRoundPlus, Users } from 'lucide-react';
 import { useFriends, useMe, useWishlists } from '../lib/queries';
 import { post } from '../lib/api';
 import { Logo } from './Logo';
@@ -113,6 +113,10 @@ export function AppLayout() {
                 {badgeFor(to)}
               </NavLink>
             ))}
+            <NavLink to="/app/gifts" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              <Gift size={18} aria-hidden />
+              Gift ideas
+            </NavLink>
             <NavLink to="/app/settings" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               <Settings size={18} aria-hidden />
               Settings
@@ -171,6 +175,9 @@ export function AppLayout() {
             </button>
             <div className="spacer" />
             <Button variant="ghost" iconOnly className="search-icon-btn" aria-label="Search" onClick={() => setSearchOpen(true)} icon={<Search size={19} />} />
+            <NavLink to="/app/gifts" className={({ isActive }) => `btn btn-ghost btn-icon hide-desktop${isActive ? ' active' : ''}`} aria-label="Gift ideas" title="Gift ideas">
+              <Gift size={19} aria-hidden />
+            </NavLink>
             <NotificationsButton />
             <ThemeToggle className="hide-mobile" />
             <div className="hide-desktop">

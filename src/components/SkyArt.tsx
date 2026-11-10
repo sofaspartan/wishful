@@ -2,7 +2,7 @@ import type { CSSProperties, ReactElement } from 'react';
 import { Cloud } from './Cloud';
 import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from './ItemIllustrations';
 
-export type SkyScene = 'hello' | 'wishlist' | 'collection' | 'items' | 'search' | 'friends' | 'invite' | 'shared' | 'invites';
+export type SkyScene = 'hello' | 'wishlist' | 'collection' | 'items' | 'search' | 'friends' | 'invite' | 'shared' | 'invites' | 'gifts';
 
 const [camera, sweater, headphones, sneaker, watch, plant, book, mug] = ILLUSTRATED_ITEMS.map((i) => i.art);
 const F = FEATURE_ILLUSTRATIONS;
@@ -55,6 +55,11 @@ const SCENES: Record<SkyScene, Array<[ReactElement, number, number, number]>> = 
     [F.surprise, 52, 24, 16],
     [sweater, 30, 0, 2],
     [book, 30, 70, 44],
+  ],
+  gifts: [
+    [F.surprise, 52, 24, 16],
+    [headphones, 30, 0, 44],
+    [sneaker, 30, 70, 2],
   ],
 };
 
