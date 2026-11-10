@@ -300,6 +300,26 @@ const wishlistFields = {
   eventDate: dateSchema.optional(),
   surpriseMode: z.boolean().optional(),
   settings: wishlistSettingsSchema.partial().optional(),
+  /** Who it's made for; empty makes it yours again. Each `userId` must be a friend, and `canEdit` sets their access. */
+  recipients: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1, 'Enter their name').max(60, 'Keep it under 60 characters'),
+        avatarUrl: optionalImageUrlSchema.optional(),
+        userId: idSchema.nullable().optional(),
+        canEdit: z.boolean().optional(),
+      }),
+    )
+    .max(LIMITS.recipients, `A list can be for up to ${LIMITS.recipients} people`)
+    .superRefine((people, ctx) => {
+      const seen = new Set<string>();
+      people.forEach((p, i) => {
+        if (!p.userId) return;
+        if (seen.has(p.userId)) ctx.addIssue({ code: 'custom', path: [i, 'userId'], message: 'They’re already on this list.' });
+        seen.add(p.userId);
+      });
+    })
+    .optional(),
 };
 
 export const wishlistCreateSchema = z.object({ ...wishlistFields, kind: listKindSchema.optional() });

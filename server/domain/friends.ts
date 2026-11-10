@@ -4,7 +4,7 @@ import { badRequest, conflict, notFound } from '../http';
 import type { FriendIndex, FriendshipRecord, UserRecord } from '../records';
 import { toPublicUser } from '../serialize';
 import { nowIso } from '../util';
-import { listOwnedWishlists } from './wishlists';
+import { getUsers, isListRecipient, listOwnedWishlists, listSharedWishlists, publicPeople, resolveRecipients } from './wishlists';
 
 /** Friends + pending requests (either direction) a single user can have on record. */
 export const MAX_FRIEND_RECORDS = 1000;
@@ -139,32 +139,34 @@ export async function friendsOverview(userId: string): Promise<FriendsOverview> 
   return overview;
 }
 
-/** A friend's profile and the lists they've chosen to show friends. Non-friends get a 404. */
+/** A friend's profile: the lists they've chosen to show friends, and the ones other people made for them. Non-friends get a 404. */
 export async function friendProfile(viewerId: string, friendId: string): Promise<FriendProfileView> {
   const rel = await getFriendship(viewerId, friendId);
   const friend = rel?.status === 'accepted' ? (await db('users').get<UserRecord>(friendId))?.value : null;
   if (!rel || !friend) throw notFound("You can only see the lists of people you're friends with.");
-  const lists = await listOwnedWishlists(friend.id);
+  const madeFor = (await listSharedWishlists(friend.id)).filter((w) => isListRecipient(w, friend.id));
+  const lists = [...(await listOwnedWishlists(friend.id)), ...madeFor].filter((w) => FRIEND_VISIBLE.has(w.visibility) && !w.archivedAt && w.shareToken);
+  const [recipients, makers] = await Promise.all([resolveRecipients(lists), getUsers(madeFor.map((w) => w.ownerId))]);
   return {
     user: { ...toPublicUser(friend), bio: friend.bio },
     since: rel.acceptedAt ?? rel.createdAt,
-    wishlists: lists
-      .filter((w) => FRIEND_VISIBLE.has(w.visibility) && !w.archivedAt && w.shareToken)
-      .map((w) => ({
-        id: w.id,
-        kind: w.kind ?? 'wishlist',
-        title: w.title,
-        description: w.description,
-        coverImage: w.coverImage,
-        coverArt: w.coverArt ?? null,
-        accentColor: w.accentColor,
-        occasion: w.occasion,
-        eventDate: w.eventDate,
-        visibility: w.visibility,
-        shareToken: w.shareToken!,
-        itemCount: w.entries.length,
-        updatedAt: w.updatedAt,
-      })),
+    wishlists: lists.map((w) => ({
+      id: w.id,
+      kind: w.kind ?? 'wishlist',
+      title: w.title,
+      description: w.description,
+      coverImage: w.coverImage,
+      coverArt: w.coverArt ?? null,
+      accentColor: w.accentColor,
+      occasion: w.occasion,
+      eventDate: w.eventDate,
+      visibility: w.visibility,
+      shareToken: w.shareToken!,
+      itemCount: w.entries.length,
+      updatedAt: w.updatedAt,
+      recipients: publicPeople(recipients.get(w.id) ?? []),
+      madeBy: w.ownerId === friend.id ? null : (makers.get(w.ownerId) ?? null),
+    })),
   };
 }
 

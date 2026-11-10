@@ -398,7 +398,6 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                 autoComplete="off"
                 placeholder="https://www.example.com/product"
                 value={url}
-                data-autofocus
                 onChange={(e) => setUrl(e.target.value)}
                 onPaste={(e) => {
                   const pasted = e.clipboardData.getData('text').trim();
@@ -607,7 +606,6 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
               onChange={(p) => setDraft((d) => ({ ...d, ...p }))}
               errors={errors}
               onUploadingChange={setUploading}
-              autoFocusTitle={!draft.title}
             />
 
             <hr className="divider" />

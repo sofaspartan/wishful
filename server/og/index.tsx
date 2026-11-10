@@ -16,6 +16,8 @@ import { BOX_LABEL_HEIGHT, BOX_LABEL_WIDTH, BoxLabelCard, ListCard, ProfileCard,
 import { getBox } from '../domain/boxes';
 import { getCurrentUser } from '../services/auth';
 import { formatBoxCode } from '../../shared/types';
+import { possessiveNames } from '../../shared/constants';
+import { firstName } from '../../src/lib/format';
 
 const IMAGE_BUDGET_MS = 3000;
 const HOUR = 3600;
@@ -51,27 +53,29 @@ async function listCard(token: string, host: string): Promise<ReactElement | nul
   } catch {
     return null;
   }
-  const { wishlist: w, owner, entries } = view;
+  const { wishlist: w, entries } = view;
+  const everyone = view.recipients.length ? view.recipients : [{ name: view.owner.displayName, avatarUrl: view.owner.avatarUrl }];
+  const people = everyone.slice(0, 3);
   const collection = w.kind === 'collection';
   const visible = entries.filter((e) => e.status !== 'purchased' && e.item.imageUrl);
   const ordered = w.settings.showPriorities
     ? [...visible.filter((e) => isTopPriority(e.priority)), ...visible.filter((e) => !isTopPriority(e.priority))]
     : visible;
-  const [thumbs, ownerAvatar, coverPhoto] = await Promise.all([
+  const [thumbs, coverPhoto, ...avatars] = await Promise.all([
     loadFirstImages(
       ordered.map((e) => e.item.imageUrl),
       3,
       IMAGE_BUDGET_MS,
     ),
-    loadImage(owner.avatarUrl, IMAGE_BUDGET_MS),
     loadImage(w.coverImage, IMAGE_BUDGET_MS),
+    ...people.map((p) => loadImage(p.avatarUrl, IMAGE_BUDGET_MS)),
   ]);
   return (
     <ListCard
       title={w.title}
       kind={w.kind}
-      ownerName={owner.displayName}
-      ownerAvatar={ownerAvatar}
+      ownerLabel={possessiveNames(view.recipients.length ? view.recipients.map((p) => p.name) : [firstName(view.owner.displayName)])}
+      people={people.map((p, i) => ({ name: p.name, avatar: avatars[i] ?? null }))}
       coverArt={w.coverArt}
       coverPhoto={coverPhoto}
       occasion={w.occasion}

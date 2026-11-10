@@ -155,10 +155,9 @@ interface Props {
   errors: Record<string, string>;
   onUploadingChange?: (v: boolean) => void;
   hideImage?: boolean;
-  autoFocusTitle?: boolean;
 }
 
-export function ItemFormFields({ draft, onChange, errors, onUploadingChange, hideImage, autoFocusTitle }: Props) {
+export function ItemFormFields({ draft, onChange, errors, onUploadingChange, hideImage }: Props) {
   const t = draft.type;
   const amountLabel = t === 'idea' ? 'Estimated budget' : t === 'gift_card' ? 'Suggested amount' : t === 'experience' ? 'Estimated cost' : 'Price';
   const set = (key: keyof ItemDraft) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -198,7 +197,6 @@ export function ItemFormFields({ draft, onChange, errors, onUploadingChange, hid
           placeholder={
             t === 'experience' ? 'Hot air balloon ride' : t === 'idea' ? 'A cosy reading nook' : t === 'gift_card' ? 'Travel fund for Japan' : 'Noise-cancelling headphones'
           }
-          data-autofocus={autoFocusTitle || undefined}
         />
       </Field>
 

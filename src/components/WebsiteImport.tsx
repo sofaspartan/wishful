@@ -149,7 +149,6 @@ export function WebsiteImportForm({ onFound }: { onFound: (list: WebsiteList) =>
           autoComplete="off"
           placeholder="https://www.amazon.com/hz/wishlist/ls/…"
           value={url}
-          data-autofocus
           disabled={loading}
           onChange={(e) => setUrl(e.target.value)}
         />

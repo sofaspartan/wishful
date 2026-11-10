@@ -93,7 +93,6 @@ export function PackItemsDialog({ box, open, onClose }: { box: Box; open: boolea
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Search your things"
-              data-autofocus
             />
           </div>
           <select className="select" value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Show">

@@ -63,6 +63,9 @@ export interface WishlistRecord extends Omit<Wishlist, 'kind'> {
   reminderSentFor?: string | null;
 }
 
+/** The two sides of a list that can be kept from seeing gift activity: whoever manages it (owner and editors), and the person it's made for. */
+export type GiftSide = 'owner' | 'recipient';
+
 export interface ClaimRecord {
   id: string;
   entryId: string;
@@ -72,8 +75,10 @@ export interface ClaimRecord {
   message: string;
   /** SHA-256 of the bearer token given to the claimant. Never returned. */
   tokenHash: string;
-  /** Surprise Mode at the time of claiming; if true the owner may never see this claim. */
+  /** Surprise Mode at the time of claiming; if true the person it was kept from (`surpriseFor`) may never see this claim. */
   surprise: boolean;
+  /** Who the surprise was kept from: the owner's side, or the person the list was made for. Missing: the owner's side. */
+  surpriseFor?: GiftSide;
   reservedAt: string;
   expiresAt: string | null;
   purchasedAt: string | null;
@@ -90,6 +95,7 @@ export interface PledgeRecord {
   role: PledgeRole;
   tokenHash: string;
   surprise: boolean;
+  surpriseFor?: GiftSide;
   /** Reserved for future payment contributions. */
   amount: number | null;
   createdAt: string;

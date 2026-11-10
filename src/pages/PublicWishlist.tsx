@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, Check, Copy, Eye, EyeOff, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
 import { isDarkCover, type PublicEntry, type PublicWishlistView } from '../../shared/types';
-import { PRIORITY_RANK, priorityLayout } from '../../shared/constants';
+import { PRIORITY_RANK, joinNames, possessiveNames, priorityLayout } from '../../shared/constants';
 import { keys, useMe, usePublicList } from '../lib/queries';
 import { ApiError, errorMessage, post } from '../lib/api';
 import { countdownLabel, formatDate, possessive, relativeTime } from '../lib/format';
@@ -21,7 +21,7 @@ import { CollectionStats } from '../components/CollectionStats';
 import { PrioritySections } from '../components/PrioritySections';
 import { Button } from '../components/ui/Button';
 import { Field, FormError } from '../components/ui/Field';
-import { Avatar, EmptyState } from '../components/ui/misc';
+import { Avatar, AvatarStack, EmptyState } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -61,7 +61,7 @@ export default function PublicWishlist() {
     if (!data) return;
     document.title = `${data.wishlist.title} · ${brand.name}`;
     if (!data.viewer.isOwner) {
-      recordVisit({ token, title: data.wishlist.title, ownerName: data.owner.displayName, accentColor: data.wishlist.accentColor, eventDate: data.wishlist.eventDate });
+      recordVisit({ token, title: data.wishlist.title, ownerName: joinNames(listPeople(data).map((p) => p.name)), accentColor: data.wishlist.accentColor, eventDate: data.wishlist.eventDate });
     }
     // Drop locally stored tokens whose reservation has expired or been released.
     if (!data.viewer.isOwner) {
@@ -209,15 +209,25 @@ function readSpoilersShown(listId: string): boolean {
   }
 }
 
+/** Who the list is for: the people it was made for, or else its owner. */
+const listPeople = (view: PublicWishlistView) => (view.recipients.length ? view.recipients : [{ name: view.owner.displayName, avatarUrl: view.owner.avatarUrl }]);
+
+/** What to call them in a sentence: the names it was made for as written, or the owner's first name. */
+const listNames = (view: PublicWishlistView) => (view.recipients.length ? view.recipients.map((r) => r.name) : [view.owner.displayName.split(' ')[0]]);
+
 function PublicListView({ view, token }: { view: PublicWishlistView; token: string }) {
   const { wishlist: w, owner, viewer } = view;
+  const people = listPeople(view);
+  const forOthers = view.recipients.length > 0;
   const { data: me } = useMe();
   const [spoilersShown, setSpoilersShown] = useState(() => readSpoilersShown(w.id));
   const hasGiftActivity = view.entries.some((e) => (e.status !== null && e.status !== 'available') || e.pledges.length > 0);
+  // Gift activity is only a spoiler for the people the list is for; whoever made it for someone else is meant to see it.
+  const forViewer = !forOthers || viewer.isRecipient;
   // Only reachable when the API already shares claims with the owner (Surprise Mode off).
-  const giftActivity = viewer.isOwner && !viewer.claimsHidden && hasGiftActivity;
+  const giftActivity = viewer.isOwner && !viewer.claimsHidden && hasGiftActivity && forViewer;
   // Guests see gift activity, so an owner who opens their own link signed out would too.
-  const ownerSignedOut = !viewer.isOwner && !me && signedInOnThisDevice(owner.id);
+  const ownerSignedOut = !forOthers && !viewer.isOwner && !me && signedInOnThisDevice(owner.id);
   const guestSpoilers = ownerSignedOut && hasGiftActivity;
   const spoilersHidden = (giftActivity || guestSpoilers) && !spoilersShown;
   const entries = useMemo(
@@ -274,7 +284,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
   };
 
   const days = countdownLabel(w.eventDate);
-  const firstName = owner.displayName.split(' ')[0];
+  const firstName = joinNames(listNames(view));
   const collection = w.kind === 'collection';
   const canClaim = !collection && w.settings.allowClaims && !viewer.isOwner;
   const layout = collection ? 'hidden' : priorityLayout(w.settings);
@@ -316,14 +326,21 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
           <div className="notice notice-accent" style={{ marginBottom: 0 }}>
             <Info size={18} aria-hidden />
             <div style={{ flex: 1 }}>
-              <strong>This is your shared page.</strong> It's what friends and family see.{' '}
+              <strong>{viewer.isRecipient ? `${owner.displayName.split(' ')[0]} made this list for you.` : 'This is your shared page.'}</strong> It's what friends
+              and family see.{' '}
               {collection
-                ? 'What you paid stays private.'
+                ? viewer.isRecipient
+                  ? ''
+                  : 'What you paid stays private.'
                 : viewer.claimsHidden
-                  ? 'Surprise Mode is on, so reservations are hidden from you here too while you’re signed in.'
-                  : giftActivity
-                    ? 'Surprise Mode is off, so reservation details can show here.'
-                    : 'Reservation details are visible to you because Surprise Mode is off.'}
+                  ? viewer.isRecipient
+                    ? 'It’s a surprise, so who reserved or bought what is hidden from you.'
+                    : 'Surprise Mode is on, so reservations are hidden from you here too while you’re signed in.'
+                  : !forViewer
+                    ? `You can see what’s been reserved${w.surpriseMode ? `, but ${firstName} can’t` : ''}.`
+                    : giftActivity
+                      ? 'Surprise Mode is off, so reservation details can show here.'
+                      : 'Reservation details are visible to you because Surprise Mode is off.'}
             </div>
             <Link to={`/app/lists/${w.id}`} className="btn btn-sm">
               <Pencil size={14} aria-hidden /> Edit list
@@ -407,8 +424,9 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
             />
             <div className="wl-hero-main">
               <span className="public-byline">
-                <Avatar name={owner.displayName} src={owner.avatarUrl} size={26} />
-                {possessive(owner.displayName)} {collection ? 'collection' : 'wishlist'}
+                <AvatarStack people={people} size={26} max={4} />
+                {possessiveNames(listNames(view))} {collection ? 'collection' : 'wishlist'}
+                {forOthers && <span className="public-byline-by">· made by {owner.displayName}</span>}
               </span>
               <h1 className="wl-hero-title display">{w.title}</h1>
               {w.description && (
@@ -441,7 +459,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
             <HandHeart size={20} aria-hidden style={{ color: 'var(--accent)', flexShrink: 0 }} />
             <div>
               <strong>Planning to give something?</strong> Open an item and reserve it so nobody else buys the same thing. No account needed
-              {w.surpriseMode ? ` — and ${firstName} won't see who reserved what.` : '.'}
+              {w.surpriseMode ? ` — and ${firstName} won't see who reserved what${forOthers ? ` (${owner.displayName.split(' ')[0]} will, to help you coordinate)` : ''}.` : '.'}
             </div>
           </div>
         )}
@@ -481,7 +499,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
 
         {entries.length === 0 ? (
           <EmptyState icon={<Gift size={22} />} title="Nothing here yet">
-            {firstName} hasn't added anything to this list yet. Check back soon!
+            {forOthers ? `Nothing’s on ${possessiveNames(listNames(view))} list yet.` : `${firstName} hasn't added anything to this list yet.`} Check back soon!
           </EmptyState>
         ) : shown.length === 0 ? (
           <EmptyState icon={<Gift size={22} />} title="Nothing to show">
@@ -534,6 +552,9 @@ function GiftBox({ entry, view, token, mine, onChange }: { entry: PublicEntry; v
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const firstName = owner.displayName.split(' ')[0];
+  const personFirst = joinNames(listNames(view));
+  const whose = possessiveNames(listNames(view));
+  const hiddenFrom = viewer.isRecipient || !view.recipients.length ? 'you' : personFirst;
   const base = `/api/public/lists/${token}/entries/${entry.id}`;
 
   const refresh = () => {
@@ -560,7 +581,7 @@ function GiftBox({ entry, view, token, mine, onChange }: { entry: PublicEntry; v
       <div className="claim-box">
         <p className="text-sm muted">
           {viewer.claimsHidden
-            ? 'Visitors can reserve this item here. Surprise Mode keeps who reserved it hidden from you.'
+            ? `Visitors can reserve this item here. Surprise Mode keeps who reserved it hidden from ${hiddenFrom}.`
             : entry.claim
               ? `${entry.status === 'purchased' ? 'Purchased' : 'Reserved'} by ${entry.claim.name || 'someone'} ${relativeTime(entry.claim.reservedAt)}.`
               : 'Visitors can reserve this item here.'}
@@ -631,7 +652,7 @@ function GiftBox({ entry, view, token, mine, onChange }: { entry: PublicEntry; v
       <div className="claim-box">
         <strong>{entry.status === 'purchased' ? 'Already purchased' : 'Already reserved'}</strong>
         <p className="text-sm muted">
-          {entry.claim?.name ? `${entry.claim.name} ${entry.status === 'purchased' ? 'bought' : 'is getting'} this` : `Someone ${entry.status === 'purchased' ? 'bought' : 'is getting'} this`}. Pick something else to make {firstName}'s day.
+          {entry.claim?.name ? `${entry.claim.name} ${entry.status === 'purchased' ? 'bought' : 'is getting'} this` : `Someone ${entry.status === 'purchased' ? 'bought' : 'is getting'} this`}. Pick something else to make {whose} day.
         </p>
         {entry.claim?.message && <p className="text-sm">“{entry.claim.message}”</p>}
       </div>
@@ -660,7 +681,16 @@ function ReserveForm({
   const toast = useToast();
   const [name, setName] = useState(() => localStorage.getItem('wishful.visitorName') ?? '');
   const [message, setMessage] = useState('');
-  const firstName = owner.displayName.split(' ')[0];
+  const firsts = listNames(view);
+  const firstName = joinNames(firsts);
+  const maker = view.recipients.length ? owner.displayName.split(' ')[0] : null;
+  const nameHint = maker
+    ? w.surpriseMode
+      ? `Shown to other gift-givers and to ${maker} so you can coordinate.`
+      : `Shown to ${joinNames(['other gift-givers', maker, ...firsts])}.`
+    : w.surpriseMode
+      ? 'Shown to other gift-givers so you can coordinate.'
+      : `Shown to other gift-givers and to ${firstName}.`;
 
   const submit = (markPurchased: boolean) => (e?: FormEvent) => {
     e?.preventDefault();
@@ -688,7 +718,7 @@ function ReserveForm({
         {w.settings.reservationDays > 0 ? ` Reservations last ${w.settings.reservationDays} days.` : ''}
       </p>
       <FormError message={error} />
-      <Field label="Your name" optional hint={w.surpriseMode ? 'Shown to other gift-givers so you can coordinate.' : `Shown to other gift-givers and to ${firstName}.`}>
+      <Field label="Your name" optional hint={nameHint}>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" />
       </Field>
       {w.settings.allowMessages && (

@@ -59,10 +59,29 @@ export function OwnerOnlyBadge({ outline }: { outline?: boolean }) {
 
 export const thingCount = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
+type BoxCardFields = Pick<BoxSummary, 'name' | 'number' | 'color' | 'coverArt' | 'fragile' | 'access' | 'location' | 'room'>;
+
 export function BoxCard({ box, menu }: { box: BoxSummary; menu?: ReactNode }) {
   return (
     <article className="wl-card box-card" aria-label={box.name}>
       <Link to={`/app/boxes/${box.id}`} className="wl-card-link" aria-label={`Open ${boxDisplayName(box)}`} />
+      <BoxCardFace box={box} things={box.itemCount + box.lineCount} updatedAt={box.updatedAt} menu={menu} />
+    </article>
+  );
+}
+
+/** A non-interactive box card showing how a box will look while it's being edited. */
+export function BoxCardPreview({ box, things, placeholder }: { box: BoxCardFields; things: number; placeholder: string }) {
+  return (
+    <div className="wl-card box-card wl-card-preview" aria-hidden>
+      <BoxCardFace box={{ ...box, name: box.name.trim() || placeholder }} things={things} />
+    </div>
+  );
+}
+
+function BoxCardFace({ box, things, updatedAt, menu }: { box: BoxCardFields; things: number; updatedAt?: string; menu?: ReactNode }) {
+  return (
+    <>
       <div className="box-card-cover" style={{ ['--box-color' as string]: box.color }}>
         <div className="wl-cover">
           <CoverArt art={box.coverArt} />
@@ -84,17 +103,17 @@ export function BoxCard({ box, menu }: { box: BoxSummary; menu?: ReactNode }) {
         )}
         <div className="wl-meta">
           <span>
-            <Package size={13} aria-hidden /> {thingCount(box.itemCount + box.lineCount)}
+            <Package size={13} aria-hidden /> {thingCount(things)}
           </span>
           {box.room && (
             <span>
               <Truck size={13} aria-hidden /> {box.room}
             </span>
           )}
-          <span style={{ marginLeft: 'auto' }}>Updated {relativeTime(box.updatedAt)}</span>
+          {updatedAt && <span style={{ marginLeft: 'auto' }}>Updated {relativeTime(updatedAt)}</span>}
         </div>
       </div>
-    </article>
+    </>
   );
 }
 

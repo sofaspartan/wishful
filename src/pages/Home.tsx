@@ -2,6 +2,7 @@ import { useMemo, type ReactElement, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Bell, CalendarHeart, Gift, Library, LifeBuoy, Plus, Sparkles } from 'lucide-react';
 import type { Item, WishlistSummary } from '../../shared/types';
+import { joinNames } from '../../shared/constants';
 import { useItems, useMe, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
 import { countdownLabel, daysUntil, formatDate, formatPrice, greeting, parseDateOnly, relativeTime } from '../lib/format';
 import { useAppActions } from '../components/appActions';
@@ -180,7 +181,7 @@ export default function Home() {
                         {w.title}
                       </strong>
                       <span className="muted text-sm">
-                        {w.role !== 'owner' ? `${w.owner.displayName} · ` : ''}
+                        {w.recipients.length ? `For ${joinNames(w.recipients.map((r) => r.name))} · ` : w.role !== 'owner' ? `${w.owner.displayName} · ` : ''}
                         {w.occasion || formatDate(w.eventDate)}
                       </span>
                     </span>

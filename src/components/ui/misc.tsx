@@ -13,6 +13,24 @@ export function Avatar({ name, src, size = 32 }: { name: string; src?: string | 
   );
 }
 
+/** Overlapping avatars for a group; past `max`, the last spot becomes "+2". */
+export function AvatarStack({ people, size = 32, max = 3 }: { people: Array<{ name: string; avatarUrl?: string | null }>; size?: number; max?: number }) {
+  const shown = people.length > max ? people.slice(0, max - 1) : people;
+  const rest = people.length - shown.length;
+  return (
+    <span className="avatar-stack" aria-hidden>
+      {shown.map((p, i) => (
+        <Avatar key={i} name={p.name} src={p.avatarUrl} size={size} />
+      ))}
+      {rest > 0 && (
+        <span className="avatar avatar-more" style={{ ['--size' as string]: `${size}px` }}>
+          +{rest}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function Spinner({ size = 20, label = 'Loading' }: { size?: number; label?: string }) {
   return <LoaderCircle size={size} className="spinner" role="status" aria-label={label} />;
 }

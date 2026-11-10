@@ -123,7 +123,7 @@ export function GotItDialog({ item, fromWishlist, onClose }: Props) {
         </div>
         {creating && (
           <Field label="Collection name" error={errors.newCollectionTitle} hint="It starts out private — you can share it later.">
-            <input className="input" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Things I love" maxLength={120} data-autofocus />
+            <input className="input" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Things I love" maxLength={120} />
           </Field>
         )}
         {fromWishlist && (

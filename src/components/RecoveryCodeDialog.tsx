@@ -91,7 +91,7 @@ export function RecoveryCodeDialog() {
         </div>
         <p className="muted text-sm">You won’t be able to see this code again. If you lose it, you can make a new one in Settings while you’re logged in.</p>
         <label className="check" style={{ alignSelf: 'flex-start' }}>
-          <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} data-autofocus />
+          <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} />
           <span>I’ve saved my recovery code</span>
         </label>
         {nudge && !saved && (

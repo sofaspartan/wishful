@@ -5,7 +5,7 @@ import { useMe, usePublicProfile } from '../lib/queries';
 import { countdownLabel } from '../lib/format';
 import { brand } from '../config/brand';
 import { Logo } from '../components/Logo';
-import { WishlistCover } from '../components/WishlistCard';
+import { ListForLine, WishlistCover } from '../components/WishlistCard';
 import { CollectionBadge } from '../components/ItemVisuals';
 import { Avatar, EmptyState, PageLoader } from '../components/ui/misc';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -56,6 +56,7 @@ export default function PublicProfile() {
                     <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} />
                     <div className="wl-body">
                       <h2 className="wl-title truncate">{w.title}</h2>
+                      {w.recipients.length > 0 && <ListForLine people={w.recipients} />}
                       {w.description && <p className="wl-desc clamp-2">{w.description}</p>}
                       <div className="wl-meta">
                         {w.kind === 'collection' && <CollectionBadge outline />}

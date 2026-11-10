@@ -1,5 +1,6 @@
+import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, Gift, Library, Puzzle, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Gift, Library, Package, Puzzle, Sparkles } from 'lucide-react';
 import { useMe } from '../lib/queries';
 import { brand } from '../config/brand';
 import { Cloud, CloudBank, CloudPuff } from '../components/Cloud';
@@ -79,6 +80,21 @@ const STAGE_CLOUDS: StageCloud[][] = [
     { kind: 'tint', width: 52, right: 40, top: 14 },
     { kind: 'tint', width: 40, left: 76, top: 12 },
   ],
+  // Boxes (wide card): stacked banks on both sides, a cloud drifting past the phone
+  [
+    { kind: 'tint', width: 140, left: 40, bottom: -34 },
+    { kind: 'tint', width: 120, right: 50, bottom: -30 },
+    { kind: 'front', width: 180, left: -40, bottom: -40 },
+    { kind: 'front', width: 160, right: -40, bottom: -42 },
+    { kind: 'tint', width: 70, left: 30, top: 18 },
+    { kind: 'tint', width: 58, right: 36, top: 26 },
+  ],
+];
+
+const BOX_POINTS = [
+  'Print QR labels on Avery sheets, a 4×6 label printer or plain paper',
+  'Anyone who scans sees what’s inside — no app or account, prices hidden',
+  'Moving? Mark the room each box goes to and whether it’s fragile',
 ];
 
 const FEATURES = [
@@ -119,6 +135,21 @@ const FEATURES = [
     text: 'Add things the moment you spot them. Everything syncs to every device.',
   },
 ];
+
+function FeatureStage({ art, tint, index }: { art: ReactElement; tint: string; index: number }) {
+  return (
+    <div className="feature-stage" style={{ ['--tint' as string]: tint, ['--delay' as string]: `${index * -0.6}s` }}>
+      {STAGE_CLOUDS[index].map(({ kind, ...pos }, n) => (
+        <Cloud
+          key={n}
+          className={`stage-cloud stage-cloud-${kind}${pos.right !== undefined ? ' stage-cloud-flip' : ''}`}
+          style={{ ...pos, animationDuration: `${8 + ((n * 1.7) % 5)}s`, animationDirection: n % 2 ? 'alternate-reverse' : 'alternate' }}
+        />
+      ))}
+      <span className="feature-art">{art}</span>
+    </div>
+  );
+}
 
 export default function Landing() {
   const { data: me } = useMe();
@@ -163,6 +194,14 @@ export default function Landing() {
                     <strong>Collections</strong> for what you have — records, sneakers, books, plants.
                   </span>
                 </li>
+                <li>
+                  <span className="landing-pair-icon is-box" aria-hidden>
+                    <Package size={16} />
+                  </span>
+                  <span>
+                    <strong>Boxes</strong> for what’s packed away — scan the QR label to see what’s inside.
+                  </span>
+                </li>
               </ul>
               <div className="landing-ctas">
                 <Link to={me ? '/app' : '/register'} className="btn btn-primary btn-lg">
@@ -191,20 +230,29 @@ export default function Landing() {
           </header>
           {FEATURES.map(({ art, tint, title, text }, i) => (
             <div className="feature" key={title}>
-              <div className="feature-stage" style={{ ['--tint' as string]: tint, ['--delay' as string]: `${i * -0.6}s` }}>
-                {STAGE_CLOUDS[i].map(({ kind, ...pos }, n) => (
-                  <Cloud
-                    key={n}
-                    className={`stage-cloud stage-cloud-${kind}${pos.right !== undefined ? ' stage-cloud-flip' : ''}`}
-                    style={{ ...pos, animationDuration: `${8 + ((n * 1.7) % 5)}s`, animationDirection: n % 2 ? 'alternate-reverse' : 'alternate' }}
-                  />
-                ))}
-                <span className="feature-art">{art}</span>
-              </div>
+              <FeatureStage art={art} tint={tint} index={i} />
               <h3>{title}</h3>
               <p>{text}</p>
             </div>
           ))}
+          <div className="feature feature-wide">
+            <FeatureStage art={FEATURE_ILLUSTRATIONS.boxes} tint="#c8873f" index={FEATURES.length} />
+            <div className="feature-wide-copy">
+              <span className="badge badge-accent">New</span>
+              <h3>Boxes that know what’s inside</h3>
+              <p>
+                Pack things from your collections into real-world boxes and bins, add quick notes like “winter coats”, and stick a QR label on the
+                side. Scan it with any phone camera to see what’s in there — or search “Where’s my…?” and find the box.
+              </p>
+              <ul className="landing-extension-points">
+                {BOX_POINTS.map((point) => (
+                  <li key={point}>
+                    <Check size={16} aria-hidden /> {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </section>
 
         <hr className="divider landing-divider" />

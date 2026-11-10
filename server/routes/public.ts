@@ -13,8 +13,7 @@ import type { WishlistRecord } from '../records';
 import { getCurrentUser } from '../services/auth';
 import { rateLimit } from '../services/rateLimit';
 import { assertCanOpen, buildPublicProfile, buildPublicView, resolveShareToken } from '../domain/publicView';
-import { accessRole } from '../domain/wishlists';
-import { addPledge, claimEntry, coordinatorPurchase, purchaseClaim, releaseClaim, withdrawPledge } from '../domain/claims';
+import { addPledge, claimEntry, coordinatorPurchase, giftSide, purchaseClaim, releaseClaim, withdrawPledge } from '../domain/claims';
 
 /**
  * Starting a reservation or pledge requires being allowed to open the list.
@@ -25,10 +24,9 @@ async function visitorList(ctx: RequestContext): Promise<WishlistRecord> {
   const wishlist = await resolveShareToken(ctx.params.token);
   const viewer = await getCurrentUser(ctx);
   await assertCanOpen(wishlist, viewer);
-  const role = accessRole(wishlist, viewer?.id);
-  if (role === 'owner' || role === 'editor') {
-    throw forbidden("You can't reserve or pledge on a list you manage — that would spoil the surprise.");
-  }
+  const side = giftSide(wishlist, viewer?.id);
+  if (side === 'recipient') throw forbidden("This list is for you — you can't reserve or chip in for your own gifts.");
+  if (side === 'owner') throw forbidden("You can't reserve or pledge on a list you manage — that would spoil the surprise.");
   return wishlist;
 }
 

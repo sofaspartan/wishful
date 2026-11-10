@@ -5,9 +5,9 @@ import { HttpError, notFound } from '../http';
 import type { ItemRecord, ShareRecord, UserRecord, WishlistRecord } from '../records';
 import { toPublicItem } from '../serialize';
 import { getUserIndex } from '../services/auth';
-import { activeClaim, getClaimsDoc } from './claims';
+import { activeClaim, activityHidden, getClaimsDoc, giftHidden, giftSide } from './claims';
 import { areFriends } from './friends';
-import { accessRole, getWishlist } from './wishlists';
+import { accessRole, getWishlist, publicPeople, resolveListRecipients, resolveRecipients } from './wishlists';
 
 /**
  * Resolve a share token to a wishlist that may be shown anonymously.
@@ -27,7 +27,8 @@ export async function resolveShareToken(token: string): Promise<WishlistRecord> 
 
 /**
  * Friends-only lists: the share token alone isn't enough, the viewer must be
- * signed in as the owner, a collaborator or an accepted friend of the owner.
+ * signed in as the owner, a collaborator or an accepted friend of the owner
+ * (or of any linked friend the list is made for).
  * Signed-in viewers get the owner's username in `fields.owner` so the page can
  * offer to send a friend request.
  */
@@ -35,6 +36,7 @@ export async function assertCanOpen(wishlist: WishlistRecord, viewer: UserRecord
   if (wishlist.visibility !== 'friends') return;
   if (!viewer) throw new HttpError(403, 'Sign in to see this wishlist. It’s only visible to friends.', 'friends_only');
   if (accessRole(wishlist, viewer.id) || (await areFriends(wishlist.ownerId, viewer.id))) return;
+  for (const r of wishlist.recipients ?? []) if (r.userId && (await areFriends(r.userId, viewer.id))) return;
   const owner = (await db('users').get<UserRecord>(wishlist.ownerId))?.value;
   throw new HttpError(
     403,
@@ -48,9 +50,10 @@ export async function assertCanOpen(wishlist: WishlistRecord, viewer: UserRecord
  * Build the anonymous/visitor representation of a wishlist.
  *
  * Two authorization contexts:
- *  - "owner side" (the owner or an editor, identified by session): claim
- *    state is withheld entirely while Surprise Mode is on, and nothing is
- *    filtered out (hiding reserved items would itself leak claims).
+ *  - the list's own sides (the owner and editors, or the linked friend it's
+ *    made for, identified by session): claim state is withheld from whichever
+ *    side Surprise Mode protects, and nothing is filtered out (hiding reserved
+ *    items would itself leak claims).
  *  - visitors (anyone else, including viewer-collaborators): see claim state
  *    subject to the owner's visibility settings; never see contact details,
  *    claim tokens, or the owner's private notes.
@@ -58,14 +61,14 @@ export async function assertCanOpen(wishlist: WishlistRecord, viewer: UserRecord
 export async function buildPublicView(wishlist: WishlistRecord, viewer: UserRecord | null): Promise<PublicWishlistView> {
   const ownerRes = await db('users').get<UserRecord>(wishlist.ownerId);
   const owner = ownerRes?.value;
+  const recipients = await resolveListRecipients(wishlist);
   const items = await getMany<ItemRecord>(
     db('items'),
     wishlist.entries.map((e) => e.itemId),
   );
   const itemMap = new Map(items.map((i) => [i.id, i]));
   const doc = await getClaimsDoc(wishlist.id);
-  const role = accessRole(wishlist, viewer?.id);
-  const ownerSide = role === 'owner' || role === 'editor';
+  const side = giftSide(wishlist, viewer?.id);
   const { settings } = wishlist;
   const collection = isCollection(wishlist);
 
@@ -87,8 +90,8 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
     let publicClaim: PublicEntry['claim'] = null;
     let publicPledges: PublicEntry['pledges'] = [];
 
-    if (ownerSide) {
-      const visible = !wishlist.surpriseMode && (!claim || !claim.surprise);
+    if (side) {
+      const visible = !activityHidden(wishlist, side) && (!claim || !giftHidden(wishlist, claim, side));
       status = visible ? (claim?.status ?? 'available') : null;
       if (visible && claim) {
         publicClaim = {
@@ -100,9 +103,9 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
           purchasedAt: claim.purchasedAt,
         };
       }
-      if (!wishlist.surpriseMode) {
+      if (!activityHidden(wishlist, side)) {
         publicPledges = pledges
-          .filter((p) => !p.surprise)
+          .filter((p) => !giftHidden(wishlist, p, side))
           .map((p) => ({ id: p.id, name: p.name, message: p.message, role: p.role, createdAt: p.createdAt }));
       }
     } else {
@@ -130,7 +133,7 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
 
     entries.push({
       id: entry.id,
-      priority: settings.showPriorities || ownerSide ? entry.priority : null,
+      priority: settings.showPriorities || side ? entry.priority : null,
       customNotes: entry.customNotes,
       groupGift: entry.groupGift,
       groupGiftNote: entry.groupGiftNote,
@@ -164,8 +167,9 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
       avatarUrl: owner?.avatarUrl ?? null,
       bio: owner?.bio ?? '',
     },
+    recipients: publicPeople(recipients),
     entries,
-    viewer: { isOwner: ownerSide, claimsHidden: ownerSide && wishlist.surpriseMode },
+    viewer: { isOwner: side !== null, isRecipient: side === 'recipient', claimsHidden: side !== null && activityHidden(wishlist, side) },
   };
 }
 
@@ -176,23 +180,25 @@ export async function buildPublicProfile(rawUsername: string): Promise<PublicPro
   const user = idx ? (await db('users').get<UserRecord>(idx.value.userId))?.value : null;
   if (!user || !user.publicProfile) throw notFound('This profile is private or does not exist.');
   const index = await getUserIndex(user.id);
-  const lists = await getMany<WishlistRecord>(db('wishlists'), index.wishlistIds);
+  const lists = (await getMany<WishlistRecord>(db('wishlists'), index.wishlistIds)).filter(
+    (w) => w.ownerId === user.id && w.visibility === 'public' && !w.archivedAt && w.shareToken,
+  );
+  const recipients = await resolveRecipients(lists);
   return {
     user: { id: user.id, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl, bio: user.bio },
-    wishlists: lists
-      .filter((w) => w.ownerId === user.id && w.visibility === 'public' && !w.archivedAt && w.shareToken)
-      .map((w) => ({
-        kind: w.kind ?? 'wishlist',
-        title: w.title,
-        description: w.description,
-        coverImage: w.coverImage,
-        coverArt: w.coverArt ?? null,
-        accentColor: w.accentColor,
-        occasion: w.occasion,
-        eventDate: w.eventDate,
-        shareToken: w.shareToken!,
-        itemCount: w.entries.length,
-        updatedAt: w.updatedAt,
-      })),
+    wishlists: lists.map((w) => ({
+      kind: w.kind ?? 'wishlist',
+      title: w.title,
+      description: w.description,
+      coverImage: w.coverImage,
+      coverArt: w.coverArt ?? null,
+      accentColor: w.accentColor,
+      occasion: w.occasion,
+      eventDate: w.eventDate,
+      shareToken: w.shareToken!,
+      itemCount: w.entries.length,
+      updatedAt: w.updatedAt,
+      recipients: publicPeople(recipients.get(w.id) ?? []),
+    })),
   };
 }

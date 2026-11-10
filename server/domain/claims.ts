@@ -13,11 +13,14 @@
  *
  * Privacy model (Surprise Mode)
  * -----------------------------
- * Each claim/pledge records whether Surprise Mode was on when it was made
- * (`surprise`). Owner-facing serializers only ever include records where
- * Surprise Mode is currently off AND was off at claim time — so turning
- * Surprise Mode off later can't retroactively reveal earlier gifts. These
- * checks run server-side; claim data never reaches the owner's browser.
+ * Surprise Mode keeps gift activity from one side of a list (`surprisedSide`):
+ * the owner and editors on their own list, or only the people a list is made
+ * for. Each claim/pledge records whether Surprise Mode was on when it was made
+ * (`surprise`) and which side it was kept from (`surpriseFor`). That side
+ * only ever sees records where Surprise Mode is currently off AND the record
+ * wasn't kept from them — so turning Surprise Mode off, or changing who the
+ * list is for, can't retroactively reveal earlier gifts. These checks run
+ * server-side; hidden claim data never reaches that side's browser.
  *
  * Claimants authenticate follow-up actions (release, mark purchased) with a
  * random bearer token returned once at claim time; only its SHA-256 is stored.
@@ -28,10 +31,29 @@ import type { z } from 'zod';
 import type { claimSchema, pledgeSchema } from '../../shared/schemas';
 import { atomicUpdate, atomicUpdateExisting, db } from '../storage';
 import { HttpError, badRequest, conflict, forbidden, notFound } from '../http';
-import type { ClaimRecord, ClaimsDoc, PledgeRecord, WishlistRecord } from '../records';
+import type { ClaimRecord, ClaimsDoc, GiftSide, PledgeRecord, WishlistRecord } from '../records';
 import { newId, newToken, now, nowIso, safeEqual, sha256 } from '../util';
+import { accessRole, isListRecipient } from './wishlists';
 
 const emptyDoc = (wishlistId: string): ClaimsDoc => ({ wishlistId, claims: {}, pledges: {} });
+
+/** Who Surprise Mode keeps gift activity from: the people a list is made for, or on your own list, you and your editors. */
+export const surprisedSide = (wishlist: WishlistRecord): GiftSide => (wishlist.recipients?.length ? 'recipient' : 'owner');
+
+/** Which side of a list a signed-in user is on. Everyone else (visitors, viewer-collaborators) is null and sees the visitor view. */
+export function giftSide(wishlist: WishlistRecord, userId: string | null | undefined): GiftSide | null {
+  if (!userId) return null;
+  if (isListRecipient(wishlist, userId)) return 'recipient';
+  const role = accessRole(wishlist, userId);
+  return role === 'owner' || role === 'editor' ? 'owner' : null;
+}
+
+/** Surprise Mode is hiding all gift activity from this side right now. */
+export const activityHidden = (wishlist: WishlistRecord, side: GiftSide): boolean => wishlist.surpriseMode && surprisedSide(wishlist) === side;
+
+/** A claim or pledge this side may never see. */
+export const giftHidden = (wishlist: WishlistRecord, gift: Pick<ClaimRecord, 'surprise' | 'surpriseFor'>, side: GiftSide): boolean =>
+  activityHidden(wishlist, side) || (gift.surprise && (gift.surpriseFor ?? 'owner') === side);
 
 export async function getClaimsDoc(wishlistId: string): Promise<ClaimsDoc> {
   const res = await db('claims').get<ClaimsDoc>(wishlistId);
@@ -93,6 +115,7 @@ export async function claimEntry(
     message: wishlist.settings.allowMessages ? (input.message ?? '') : '',
     tokenHash: sha256(claimToken),
     surprise: wishlist.surpriseMode,
+    surpriseFor: surprisedSide(wishlist),
     reservedAt: stamp,
     expiresAt: input.markPurchased || days === 0 ? null : new Date(at.getTime() + days * 86_400_000).toISOString(),
     purchasedAt: input.markPurchased ? stamp : null,
@@ -152,11 +175,11 @@ export async function purchaseClaim(wishlist: WishlistRecord, entryId: string, c
 }
 
 /** Owner/editor manual reset — only for claims they are allowed to see. */
-export async function ownerClearClaim(wishlist: WishlistRecord, entryId: string): Promise<void> {
-  if (wishlist.surpriseMode) throw forbidden('Turn off Surprise Mode to manage reservations.');
+export async function ownerClearClaim(wishlist: WishlistRecord, entryId: string, side: GiftSide): Promise<void> {
+  if (activityHidden(wishlist, side)) throw forbidden('Turn off Surprise Mode to manage reservations.');
   const doc = await atomicUpdateExisting<ClaimsDoc>(db('claims'), wishlist.id, (d) => {
     const claim = activeClaim(d.claims[entryId]);
-    if (!claim || claim.surprise) throw notFound('There is no reservation you can manage on this item.');
+    if (!claim || giftHidden(wishlist, claim, side)) throw notFound('There is no reservation you can manage on this item.');
     delete d.claims[entryId];
     return d;
   });
@@ -191,6 +214,7 @@ export async function addPledge(
       role: input.coordinator && !hasCoordinator ? 'coordinator' : 'contributor',
       tokenHash: sha256(pledgeToken),
       surprise: wishlist.surpriseMode,
+      surpriseFor: surprisedSide(wishlist),
       amount: null,
       createdAt: nowIso(),
     };
@@ -230,6 +254,7 @@ export async function coordinatorPurchase(wishlist: WishlistRecord, entryId: str
       message: '',
       tokenHash,
       surprise: wishlist.surpriseMode,
+      surpriseFor: surprisedSide(wishlist),
       reservedAt: stamp,
       expiresAt: null,
       purchasedAt: stamp,
@@ -243,18 +268,19 @@ export async function coordinatorPurchase(wishlist: WishlistRecord, entryId: str
 
 // ── Owner-facing views (Surprise Mode enforced here) ────────────────────────
 
-/** Returns null when gift activity must be hidden from the owner/collaborators. */
+/** Gift activity for one side of the list; null when Surprise Mode is hiding all of it from them. */
 export function ownerClaimViews(
   wishlist: WishlistRecord,
   doc: ClaimsDoc,
+  side: GiftSide,
 ): { claims: OwnerClaimView[]; pledges: OwnerPledgeView[] } | null {
-  if (wishlist.surpriseMode) return null;
+  if (activityHidden(wishlist, side)) return null;
   const entryIds = new Set(wishlist.entries.map((e) => e.id));
   const at = now();
   const claims: OwnerClaimView[] = [];
   for (const raw of Object.values(doc.claims)) {
     const c = activeClaim(raw, at);
-    if (!c || c.surprise || !entryIds.has(c.entryId)) continue;
+    if (!c || giftHidden(wishlist, c, side) || !entryIds.has(c.entryId)) continue;
     claims.push({
       entryId: c.entryId,
       status: c.status,
@@ -269,7 +295,7 @@ export function ownerClaimViews(
   for (const [entryId, list] of Object.entries(doc.pledges)) {
     if (!entryIds.has(entryId)) continue;
     for (const p of list) {
-      if (p.surprise) continue;
+      if (giftHidden(wishlist, p, side)) continue;
       pledges.push({ entryId, name: p.name, message: p.message, role: p.role, createdAt: p.createdAt });
     }
   }

@@ -127,7 +127,7 @@ export function BulkPaste({ text, onChange, onSubmit }: { text: string; onChange
   return (
     <form className="stack" onSubmit={submit}>
       <Field label="Links or item names" hint="One per line. Links get their name, picture and price filled in; plain lines become items you can flesh out later.">
-        <textarea className="input bulk-textarea" rows={8} value={text} placeholder={PLACEHOLDER} data-autofocus spellCheck={false} onChange={(e) => onChange(e.target.value)} />
+        <textarea className="input bulk-textarea" rows={8} value={text} placeholder={PLACEHOLDER} spellCheck={false} onChange={(e) => onChange(e.target.value)} />
       </Field>
       {lines.length > 0 && (
         <div className="bulk-summary" aria-live="polite">

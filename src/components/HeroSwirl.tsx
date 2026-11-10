@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Cloud } from './Cloud';
-import { ILLUSTRATED_ITEMS } from './ItemIllustrations';
+import { BOX_ITEMS, COLLECTION_ITEMS, ILLUSTRATED_ITEMS, type SceneItem } from './ItemIllustrations';
 
 /*
- * Timeline, in seconds within one loop:
+ * Timeline, in seconds within one scene:
  *   0 – 2.2   items float in a loose cloud, each inside its own little cloud
  *   1.9 – 2.9 the little clouds puff away
  *   2.0 – 2.8 the list card forms in the middle
  *   2.2 – 3.6 items ease from the cloud onto an orbit around the list
  *   3.6 + i·k items dive into the list one at a time
- *   12.6–13.3 the finished list fades out, then the loop restarts
+ *   12.6–13.3 the finished list fades out, then the next scene starts
+ * Scenes play in order (wishlist, collection, box) and then loop.
  */
 const LOOP = 14;
 const LIST_IN: [number, number] = [2.0, 2.8];
@@ -37,7 +38,28 @@ const CLOUD = [
   { x: 0.84, y: 0.78, r: 10 },
 ];
 
-const N = ILLUSTRATED_ITEMS.length;
+interface Scene {
+  id: 'wishlist' | 'collection' | 'box';
+  tab: string;
+  title: string;
+  noun: [string, string];
+  /** One per CLOUD position. */
+  items: SceneItem[];
+}
+
+const SCENES: Scene[] = [
+  {
+    id: 'wishlist',
+    tab: 'Wishlists',
+    title: 'Birthday wishlist',
+    noun: ['item', 'items'],
+    items: ILLUSTRATED_ITEMS.map((i) => ({ name: i.name, meta: i.price, art: i.art })),
+  },
+  { id: 'collection', tab: 'Collections', title: 'My collection', noun: ['item', 'items'], items: COLLECTION_ITEMS },
+  { id: 'box', tab: 'Boxes', title: 'Box 3 · Living room', noun: ['thing', 'things'], items: BOX_ITEMS },
+];
+
+const N = CLOUD.length;
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -53,20 +75,25 @@ interface Row {
 
 /**
  * Decorative hero animation: item illustrations float in a cloud, a list forms, and the
- * items spiral around it before dropping in one by one. Positions are written straight
- * to the DOM from a rAF loop so React only re-renders when an item lands.
+ * items spiral around it before dropping in one by one — first into a wishlist, then a
+ * collection, then a moving box. Positions are written straight to the DOM from a rAF loop
+ * so React only re-renders when an item lands or the scene changes.
  */
 export function HeroSwirl() {
   const stageRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const rowsRef = useRef<HTMLDivElement>(null);
+  const scenesRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const measureRef = useRef<() => void>(undefined);
+  const jumpRef = useRef<(scene: number) => void>(undefined);
   const nextKey = useRef(0);
-  const [rows, setRows] = useState<Row[]>(() =>
-    prefersReducedMotion() ? ILLUSTRATED_ITEMS.map((_, item) => ({ key: nextKey.current++, item })) : [],
-  );
+  const allRows = () => Array.from({ length: N }, (_, item) => ({ key: nextKey.current++, item }));
+  const [scene, setScene] = useState(0);
+  const [rows, setRows] = useState<Row[]>(() => (prefersReducedMotion() ? allRows() : []));
   const [visibleRows, setVisibleRows] = useState(4);
+  const current = SCENES[scene];
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -95,6 +122,7 @@ export function HeroSwirl() {
       const itemW = itemRefs.current[0]?.offsetWidth || 90;
       landScale = (0.72 * (rowH - 14)) / itemW;
     };
+    measureRef.current = measure;
 
     const landed = new Array<boolean>(N).fill(false);
     const land = (i: number) => {
@@ -172,9 +200,20 @@ export function HeroSwirl() {
       }
     };
 
+    const setProgress = (p: number) => scenesRef.current?.style.setProperty('--scene-progress', p.toFixed(3));
+
     measure();
     if (reduceMotion) {
       placeStatic();
+      setProgress(1);
+      measureRef.current = () => {
+        measure();
+        placeStatic();
+      };
+      jumpRef.current = (next) => {
+        setScene(next);
+        setRows(allRows());
+      };
       const ro = new ResizeObserver(() => {
         measure();
         placeStatic();
@@ -192,20 +231,28 @@ export function HeroSwirl() {
     io.observe(stage);
 
     let elapsed = 0;
-    let prevT = 0;
+    let shownScene = 0;
     let last = performance.now();
+    const startScene = (next: number) => {
+      shownScene = next;
+      landed.fill(false);
+      setRows([]);
+      setScene(next);
+    };
+    jumpRef.current = (next) => {
+      elapsed = next * LOOP;
+      startScene(next);
+    };
     let raf = requestAnimationFrame(function tick(now) {
       const dt = Math.min(now - last, 50) / 1000;
       last = now;
       if (visible) {
-        elapsed += dt;
-        const t = elapsed % LOOP;
-        if (t < prevT) {
-          landed.fill(false);
-          setRows([]);
-        }
-        prevT = t;
+        elapsed = (elapsed + dt) % (LOOP * SCENES.length);
+        const next = Math.floor(elapsed / LOOP);
+        if (next !== shownScene) startScene(next);
+        const t = elapsed - next * LOOP;
         place(t);
+        setProgress(t / LOOP);
       }
       raf = requestAnimationFrame(tick);
     });
@@ -217,55 +264,76 @@ export function HeroSwirl() {
     };
   }, []);
 
+  // A new scene mounts new item elements and can change the card's header, so re-measure (and re-place when static).
+  useLayoutEffect(() => {
+    measureRef.current?.();
+  }, [scene]);
+
   const placeholders = Math.max(0, visibleRows - rows.length);
   const shown = rows.slice(-visibleRows - 1);
+  const [one, many] = current.noun;
 
   return (
-    <div className="swirl" ref={stageRef} role="img" aria-label="Items floating in a cloud, then spiralling into a single wishlist">
-      <div className="swirl-ring" ref={ringRef} aria-hidden />
+    <div className="swirl-wrap">
+      <div
+        className={`swirl is-${current.id}`}
+        ref={stageRef}
+        role="img"
+        aria-label="Items floating in a cloud, then spiralling into a wishlist, a collection and a moving box in turn"
+      >
+        <div className="swirl-ring" ref={ringRef} aria-hidden />
 
-      <div className="swirl-list" ref={listRef} aria-hidden>
-        <div className="swirl-list-head">
-          <span className="swirl-list-dot" />
-          <strong>Birthday wishlist</strong>
-          <span className="swirl-list-count">
-            {rows.length} item{rows.length === 1 ? '' : 's'}
-          </span>
-        </div>
-        <div className="swirl-rows" ref={rowsRef}>
-          {shown.map((row) => {
-            const item = ILLUSTRATED_ITEMS[row.item];
-            const index = rows.indexOf(row);
-            return (
-              <div className={`swirl-row${index >= visibleRows ? ' is-pushing' : ''}`} key={row.key}>
-                <span className="swirl-row-thumb">{item.art}</span>
-                <span className="swirl-row-name">{item.name}</span>
-                <span className="swirl-row-price">{item.price}</span>
+        <div className="swirl-list" ref={listRef} aria-hidden>
+          <div className="swirl-list-head">
+            <span className="swirl-list-dot" />
+            <strong>{current.title}</strong>
+            <span className="swirl-list-count">
+              {rows.length} {rows.length === 1 ? one : many}
+            </span>
+          </div>
+          <div className="swirl-rows" ref={rowsRef}>
+            {shown.map((row) => {
+              const item = current.items[row.item];
+              const index = rows.indexOf(row);
+              return (
+                <div className={`swirl-row${index >= visibleRows ? ' is-pushing' : ''}`} key={row.key}>
+                  <span className="swirl-row-thumb">{item.art}</span>
+                  <span className="swirl-row-name">{item.name}</span>
+                  <span className="swirl-row-meta">{item.meta}</span>
+                </div>
+              );
+            })}
+            {Array.from({ length: placeholders }, (_, i) => (
+              <div className="swirl-row is-empty" key={`empty-${i}`}>
+                <span className="swirl-row-thumb" />
+                <span className="swirl-row-name" />
               </div>
-            );
-          })}
-          {Array.from({ length: placeholders }, (_, i) => (
-            <div className="swirl-row is-empty" key={`empty-${i}`}>
-              <span className="swirl-row-thumb" />
-              <span className="swirl-row-name" />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        {current.items.map((item, i) => (
+          <div
+            key={`${current.id}-${item.name}`}
+            className="swirl-item"
+            aria-hidden
+            ref={(el) => {
+              itemRefs.current[i] = el;
+            }}
+          >
+            <Cloud className="swirl-item-cloud" />
+            <span className="swirl-item-art">{item.art}</span>
+          </div>
+        ))}
       </div>
 
-      {ILLUSTRATED_ITEMS.map((item, i) => (
-        <div
-          key={item.name}
-          className="swirl-item"
-          aria-hidden
-          ref={(el) => {
-            itemRefs.current[i] = el;
-          }}
-        >
-          <Cloud className="swirl-item-cloud" />
-          <span className="swirl-item-art">{item.art}</span>
-        </div>
-      ))}
+      <div className="swirl-scenes" ref={scenesRef} role="group" aria-label="Show the animation for">
+        {SCENES.map((s, i) => (
+          <button key={s.id} type="button" className={`swirl-scene is-${s.id}`} aria-pressed={i === scene} onClick={() => jumpRef.current?.(i)}>
+            {s.tab}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

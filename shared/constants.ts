@@ -180,7 +180,21 @@ export const LIMITS = {
   imageBytes: 5 * 1024 * 1024,
   /** Items per bulk add. */
   bulkItems: 25,
+  /** People one list can be made for. */
+  recipients: 6,
 } as const;
+
+/** "Ava", "Ava & Leo", "Ava, Leo & Mia". */
+export function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
+}
+
+/** "Ava’s", "Ava & Leo’s", "Chris’". */
+export function possessiveNames(names: string[]): string {
+  const joined = joinNames(names);
+  return joined.endsWith('s') ? `${joined}’` : `${joined}’s`;
+}
 
 /** The cover graphic a new list starts with when none is chosen. */
 export function defaultCoverArt(kind: ListKind): CoverArt {

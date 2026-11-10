@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Package, Users } from 'lucide-react';
-import type { CoverArt as CoverArtValue, WishlistSummary } from '../../shared/types';
+import type { CoverArt as CoverArtValue, ListPerson, WishlistSummary } from '../../shared/types';
 import { countdownLabel, daysUntil, formatDate, relativeTime } from '../lib/format';
+import { useMe } from '../lib/queries';
 import { CollectionBadge, VisibilityBadge } from './ItemVisuals';
 import { CoverArt } from './CoverArt';
+import { joinNames } from '../../shared/constants';
+import { AvatarStack } from './ui/misc';
 
 export function WishlistCover({
   title,
@@ -44,6 +47,71 @@ export function WishlistCover({
   );
 }
 
+type ListPeople = Array<Pick<ListPerson, 'name' | 'avatarUrl'> & { userId?: string | null }>;
+
+/** "For you & Leo", "For Ava, Leo & Mia": `meId` turns the signed-in user into "you". */
+export function forNames(people: ListPeople, meId?: string | null): string {
+  const isMe = (p: ListPeople[number]) => Boolean(meId && p.userId === meId);
+  return joinNames([...people.filter(isMe).map(() => 'you'), ...people.filter((p) => !isMe(p)).map((p) => p.name)]);
+}
+
+/** "For Ava & Leo · by Jo" under the title of a list made for other people. */
+export function ListForLine({ people, meId, by }: { people: ListPeople; meId?: string | null; by?: string | null }) {
+  return (
+    <p className="wl-for text-sm muted">
+      <AvatarStack people={people} size={18} />
+      <span className="truncate">
+        For {forNames(people, meId)}
+        {by && ` · by ${by}`}
+      </span>
+    </p>
+  );
+}
+
+type PreviewFields = Pick<WishlistSummary, 'kind' | 'title' | 'description' | 'coverImage' | 'coverArt' | 'accentColor' | 'visibility' | 'occasion' | 'eventDate'>;
+
+/** A non-interactive card showing how a list will look while it's being edited. */
+export function ListCardPreview({
+  list,
+  recipients,
+  itemCount,
+  placeholder,
+}: {
+  list: PreviewFields;
+  recipients: ListPeople;
+  itemCount?: number;
+  placeholder: string;
+}) {
+  const title = list.title.trim() || placeholder;
+  return (
+    <div className="wl-card wl-card-preview" aria-hidden>
+      <div style={{ position: 'relative' }}>
+        <WishlistCover title={title} coverImage={list.coverImage} coverArt={list.coverArt} accentColor={list.accentColor} />
+        <div className="wl-card-badges">
+          <VisibilityBadge visibility={list.visibility} />
+          {list.kind === 'collection' && <CollectionBadge />}
+        </div>
+      </div>
+      <div className="wl-body">
+        <h3 className="wl-title truncate">{title}</h3>
+        {recipients.length > 0 && <ListForLine people={recipients} />}
+        {list.description.trim() && <p className="wl-desc clamp-2">{list.description}</p>}
+        <div className="wl-meta">
+          <span>
+            <Package size={13} aria-hidden /> {itemCount ?? 0} item{itemCount === 1 ? '' : 's'}
+          </span>
+          {list.eventDate && (
+            <span>
+              <CalendarDays size={13} aria-hidden /> {list.occasion ? `${list.occasion} · ` : ''}
+              {countdownLabel(list.eventDate)}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   wishlist: WishlistSummary;
   menu?: ReactNode;
@@ -52,6 +120,7 @@ interface Props {
 }
 
 export function WishlistCard({ wishlist: w, menu, dragHandle, showOwner }: Props) {
+  const { data: me } = useMe();
   const days = daysUntil(w.eventDate);
   return (
     <article className="wl-card" aria-label={w.title}>
@@ -72,7 +141,11 @@ export function WishlistCard({ wishlist: w, menu, dragHandle, showOwner }: Props
       </div>
       <div className="wl-body">
         <h3 className="wl-title truncate">{w.title}</h3>
-        {showOwner && <p className="text-sm muted">by {w.owner.displayName}</p>}
+        {w.recipients.length > 0 ? (
+          <ListForLine people={w.recipients} meId={me?.id} by={w.role !== 'owner' ? w.owner.displayName : null} />
+        ) : (
+          showOwner && <p className="text-sm muted">by {w.owner.displayName}</p>
+        )}
         {w.description && <p className="wl-desc clamp-2">{w.description}</p>}
         <div className="wl-meta">
           <span>

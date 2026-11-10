@@ -29,16 +29,25 @@ import {
   Users,
 } from 'lucide-react';
 import { isDarkCover, type Item, type OwnerClaimView, type OwnerPledgeView, type Priority, type WishlistDetail as Detail, type WishlistEntry } from '../../shared/types';
-import { PRIORITY_LABELS, PRIORITY_LAYOUTS, priorityLayout, priorityLayoutSettings, type PriorityLayout } from '../../shared/constants';
+import {
+  PRIORITY_LABELS,
+  PRIORITY_LAYOUTS,
+  joinNames,
+  possessiveNames,
+  priorityLayout,
+  priorityLayoutSettings,
+  type PriorityLayout,
+} from '../../shared/constants';
 import { keys, useMe, useStaleSync, useWishlist, useInvalidate } from '../lib/queries';
 import { linkedListNote, syncSourceName } from '../lib/syncSource';
 import { ApiError, del, errorMessage, patch, post, put } from '../lib/api';
 import { mergeSectionOrder } from '../lib/priority';
 import { PrioritySections } from '../components/PrioritySections';
-import { countdownLabel, formatDate, relativeTime } from '../lib/format';
+import { countdownLabel, firstName, formatDate, relativeTime } from '../lib/format';
 import { shareUrl, useLocalPref } from '../lib/prefs';
 import { useAppActions } from '../components/appActions';
 import { ItemCard } from '../components/ItemCard';
+import { forNames } from '../components/WishlistCard';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { EditItemModal } from '../components/EditItemModal';
 import { ItemListsDialog } from '../components/ItemListsDialog';
@@ -57,7 +66,7 @@ import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { BoxChip, useBoxMap } from '../components/BoxVisuals';
 import { PutInBoxDialog } from '../components/BoxDialogs';
 import { Button } from '../components/ui/Button';
-import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
+import { Avatar, AvatarStack, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
 
 const SORTS = ['custom', 'priority', 'acquired', 'rating', 'price_asc', 'price_desc', 'newest', 'name'] as const;
@@ -112,6 +121,9 @@ function WishlistView({ detail }: { detail: Detail }) {
   const isOwner = detail.role === 'owner';
   const canEdit = detail.role !== 'viewer';
   const claimsVisible = detail.claims !== null;
+  const people = detail.recipients;
+  const isRecipient = people.some((p) => p.userId && p.userId === me?.id);
+  const linkedNames = joinNames(people.filter((p) => p.userId).map((p) => p.name));
   const collection = w.kind === 'collection';
   const synced = (item: Item) => Boolean(w.link && item.source);
   useStaleSync(isOwner ? w.link : null);
@@ -385,9 +397,9 @@ function WishlistView({ detail }: { detail: Detail }) {
                 <RefreshCw aria-hidden /> Synced from {syncSourceName(w.link.provider)}
               </span>
             )}
-            {w.surpriseMode && (
+            {w.surpriseMode && (!people.length || linkedNames) && (
               <span className="badge badge-accent">
-                <Gift aria-hidden /> Surprise Mode
+                <Gift aria-hidden /> {people.length && !isRecipient ? `A surprise for ${linkedNames}` : 'Surprise Mode'}
               </span>
             )}
             {w.archivedAt && <span className="badge">Archived</span>}
@@ -399,10 +411,17 @@ function WishlistView({ detail }: { detail: Detail }) {
             </p>
           )}
           <div className="row-wrap text-sm muted" style={{ gap: 'var(--s-4)' }}>
-            {!isOwner && (
+            {people.length ? (
               <span className="row" style={{ gap: 6 }}>
-                <Avatar name={detail.owner.displayName} src={detail.owner.avatarUrl} size={22} /> {detail.owner.displayName}
+                <AvatarStack people={people} size={22} max={4} /> For {forNames(people, me?.id)}
+                {!isOwner && <span>· by {detail.owner.displayName}</span>}
               </span>
+            ) : (
+              !isOwner && (
+                <span className="row" style={{ gap: 6 }}>
+                  <Avatar name={detail.owner.displayName} src={detail.owner.avatarUrl} size={22} /> {detail.owner.displayName}
+                </span>
+              )
             )}
             {w.eventDate && (
               <span className="row" style={{ gap: 6 }}>
@@ -516,7 +535,15 @@ function WishlistView({ detail }: { detail: Detail }) {
           </Link>
         </div>
       )}
-      {canEdit && !claimsVisible && w.surpriseMode && rows.length > 0 && (
+      {isRecipient && !claimsVisible && rows.length > 0 && (
+        <div className="notice notice-accent">
+          <Gift size={18} aria-hidden />
+          <div>
+            <strong>It’s a surprise!</strong> {firstName(detail.owner.displayName)} is keeping who reserved or bought what hidden from you.
+          </div>
+        </div>
+      )}
+      {canEdit && !isRecipient && !claimsVisible && w.surpriseMode && rows.length > 0 && (
         <div className="notice notice-accent">
           <Gift size={18} aria-hidden />
           <div>
@@ -525,10 +552,24 @@ function WishlistView({ detail }: { detail: Detail }) {
           </div>
         </div>
       )}
-      {canEdit && claimsVisible && !w.surpriseMode && !collection && rows.length > 0 && (
+      {canEdit && !isRecipient && linkedNames && w.surpriseMode && !collection && rows.length > 0 && (
+        <div className="notice notice-accent">
+          <Gift size={18} aria-hidden />
+          <div>
+            <strong>A surprise for {linkedNames}.</strong> They can see the list but not who reserved or bought what. You and your editors see everything.
+          </div>
+        </div>
+      )}
+      {canEdit && !isRecipient && claimsVisible && !w.surpriseMode && !collection && rows.length > 0 && (
         <div className="notice">
           <Gift size={18} aria-hidden />
-          <div>Surprise Mode is off — you can see what's been reserved. Gifts reserved while Surprise Mode was on stay hidden.</div>
+          <div>
+            {linkedNames
+              ? `${linkedNames} can see what’s been reserved too. Gifts reserved while it was a surprise stay hidden from them.`
+              : people.length
+                ? 'You can see what’s been reserved.'
+                : 'Surprise Mode is off — you can see what’s been reserved. Gifts reserved while Surprise Mode was on stay hidden.'}
+          </div>
         </div>
       )}
 
@@ -740,7 +781,7 @@ function WishlistView({ detail }: { detail: Detail }) {
       {isOwner && (
         <>
           <WishlistFormModal open={editingList} onClose={() => setEditingList(false)} onSaved={() => setEditingList(false)} wishlist={w} />
-          <ShareDialog open={sharing} onClose={() => setSharing(false)} wishlist={w} ownerName={detail.owner.displayName} />
+          <ShareDialog open={sharing} onClose={() => setSharing(false)} wishlist={w} whose={possessiveNames(people.length ? people.map((p) => p.name) : [firstName(detail.owner.displayName)])} />
           <GiftSettingsDialog open={giftSettings} onClose={() => setGiftSettings(false)} wishlist={w} />
         </>
       )}

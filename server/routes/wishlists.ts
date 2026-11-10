@@ -9,6 +9,7 @@ import {
   orderSchema,
   wishlistCreateSchema,
   wishlistUpdateSchema,
+  type WishlistCreateInput,
 } from '../../shared/schemas';
 import { atomicUpdate, db, getMany } from '../storage';
 import { badRequest, conflict, json, notFound, readJson, type Router } from '../http';
@@ -27,16 +28,21 @@ import {
   disableShareLink,
   duplicateWishlist,
   getUsers,
+  getWishlist,
+  isListRecipient,
   listOwnedWishlists,
   listSharedWishlists,
   mutateWishlist,
   regenerateShareToken,
   reorderOwnedWishlists,
   requireWishlistAccess,
+  resolveListRecipients,
   summarize,
+  unlinkRecipient,
 } from '../domain/wishlists';
 import { addEntry, getItem, noteCollaboratorEdit, removeEntry, syncedItemConflict } from '../domain/items';
-import { getClaimsDoc, ownerClaimViews, ownerClearClaim } from '../domain/claims';
+import { getClaimsDoc, giftSide, ownerClaimViews, ownerClearClaim } from '../domain/claims';
+import { areFriends } from '../domain/friends';
 import { BRAND_NAME } from '../brand';
 
 /** Serialize a wishlist for an in-app viewer according to their role. */
@@ -50,7 +56,7 @@ function toWishlistDto(w: WishlistRecord, role: AccessRole): Wishlist {
   };
 }
 
-async function buildDetail(w: WishlistRecord, role: AccessRole): Promise<WishlistDetail> {
+async function buildDetail(w: WishlistRecord, role: AccessRole, viewerId: string): Promise<WishlistDetail> {
   const items = await getMany<ItemRecord>(
     db('items'),
     w.entries.map((e) => e.itemId),
@@ -61,8 +67,9 @@ async function buildDetail(w: WishlistRecord, role: AccessRole): Promise<Wishlis
     // Personal notes and what was paid are visible to the owner and editors, not viewers.
     itemMap[item.id] = role === 'viewer' ? { ...item, notes: '', owned: item.owned ? { ...item.owned, pricePaid: null } : (item.owned ?? null) } : item;
   }
-  // Gift activity: only owner/editors, only outside Surprise Mode (enforced in ownerClaimViews).
-  const activity = role === 'viewer' ? null : ownerClaimViews(w, await getClaimsDoc(w.id));
+  // Gift activity: the owner's side and the person it's for, minus whatever Surprise Mode keeps from them (enforced in ownerClaimViews).
+  const side = giftSide(w, viewerId);
+  const activity = side ? ownerClaimViews(w, await getClaimsDoc(w.id), side) : null;
   const dto = toWishlistDto(w, role);
   dto.collaborators = w.collaborators.map((c) => ({ ...c, user: users.get(c.userId) }));
   return {
@@ -70,9 +77,66 @@ async function buildDetail(w: WishlistRecord, role: AccessRole): Promise<Wishlis
     items: itemMap,
     role,
     owner: users.get(w.ownerId)!,
+    recipients: await resolveListRecipients(w),
     claims: activity?.claims ?? null,
     pledges: activity?.pledges ?? null,
   };
+}
+
+type RecipientsInput = WishlistCreateInput['recipients'];
+
+/**
+ * Check who a list may be made for before anything is saved. Each linked
+ * account must be one of the owner's friends (re-saving an existing link is
+ * fine even if the friendship has since ended). Returns the friends to link.
+ */
+async function recipientTargets(owner: UserRecord, input: RecipientsInput, current: WishlistRecord | null): Promise<Map<string, UserRecord>> {
+  const targets = new Map<string, UserRecord>();
+  for (const [i, person] of (input ?? []).entries()) {
+    const userId = person.userId;
+    if (!userId) continue;
+    const field = { [`recipients.${i}.userId`]: 'Choose one of your friends.' };
+    if (userId === owner.id) throw badRequest('This list is already yours — choose “Me” instead.', field);
+    if (!(current && isListRecipient(current, userId)) && !(await areFriends(owner.id, userId))) {
+      throw badRequest('You can only share a list with your friends.', field);
+    }
+    const target = (await db('users').get<UserRecord>(userId))?.value;
+    if (!target) throw notFound('That friend’s account no longer exists.');
+    targets.set(userId, target);
+  }
+  return targets;
+}
+
+/** Set who a list is made for (nobody makes it the owner's again), keeping linked friends' access in step: linking shares it with them, unlinking takes it away. */
+async function applyRecipients(w: WishlistRecord, owner: UserRecord, input: RecipientsInput, targets: Map<string, UserRecord>): Promise<WishlistRecord> {
+  if (input === undefined) return w;
+  const previousIds = (w.recipients ?? []).flatMap((r) => (r.userId ? [r.userId] : []));
+  let updated = await mutateWishlist(w.id, (d) => {
+    d.recipients = input.map((p) => ({ name: p.name, avatarUrl: p.avatarUrl ?? null, userId: p.userId ?? null }));
+  });
+  for (const id of previousIds) if (!targets.has(id)) updated = await removeCollaborator(updated, id);
+  for (const person of input) {
+    const target = person.userId ? targets.get(person.userId) : undefined;
+    if (!target) continue;
+    const current = updated.collaborators.find((c) => c.userId === target.id)?.role;
+    const role = person.canEdit === undefined ? (current ?? 'viewer') : person.canEdit ? 'editor' : 'viewer';
+    if (role !== current) {
+      await addCollaborator(updated, target, role, owner);
+      updated = (await getWishlist(w.id)) ?? updated;
+    }
+  }
+  return updated;
+}
+
+async function removeCollaborator(w: WishlistRecord, userId: string): Promise<WishlistRecord> {
+  const updated = await mutateWishlist(w.id, (d) => {
+    d.collaborators = d.collaborators.filter((c) => c.userId !== userId);
+    unlinkRecipient(d, userId);
+  });
+  await updateUserIndex(userId, (idx) => {
+    idx.sharedWishlistIds = idx.sharedWishlistIds.filter((id) => id !== w.id);
+  });
+  return updated;
 }
 
 /** A synced set stays on its linked list until its row leaves the sheet. */
@@ -95,16 +159,18 @@ async function addCollaborator(w: WishlistRecord, target: UserRecord, role: 'vie
   });
   if (!isNew) return;
   const link = `/app/lists/${w.id}`;
-  await notify(target.id, 'shared_with_you', `${inviter.displayName} shared “${w.title}” with you.`, link);
+  const forThem = isListRecipient(w, target.id);
+  const noun = isCollection(w) ? 'collection' : 'wishlist';
+  await notify(target.id, 'shared_with_you', forThem ? `${inviter.displayName} made “${w.title}” for you.` : `${inviter.displayName} shared “${w.title}” with you.`, link);
   if (toSelfUser(target).preferences.notifications.emailSharing) {
     await sendEmail({
       to: target.email,
-      subject: `${inviter.displayName} shared a wishlist with you`,
+      subject: forThem ? `${inviter.displayName} made a ${noun} for you` : `${inviter.displayName} shared a ${noun} with you`,
       paragraphs: [
-        `${inviter.displayName} added you as ${role === 'editor' ? 'an editor' : 'a viewer'} on “${w.title}”.`,
-        role === 'editor' ? 'You can add, edit and organise items on this list.' : 'You can view this list any time.',
+        forThem ? `${inviter.displayName} made “${w.title}” for you.` : `${inviter.displayName} added you as ${role === 'editor' ? 'an editor' : 'a viewer'} on “${w.title}”.`,
+        role === 'editor' ? `You can add, edit and organise things on this ${noun}.` : `You can view this ${noun} any time.`,
       ],
-      action: { label: 'Open wishlist', url: `${appUrl()}${link}` },
+      action: { label: `Open ${noun}`, url: `${appUrl()}${link}` },
     });
   }
 }
@@ -119,7 +185,8 @@ export function registerWishlistRoutes(router: Router) {
   router.post('/api/wishlists', async (ctx) => {
     const user = await requireUser(ctx);
     const input = await readJson(ctx.req, wishlistCreateSchema);
-    const w = await createWishlist(user, input);
+    const targets = await recipientTargets(user, input.recipients, null);
+    const w = await applyRecipients(await createWishlist(user, input), user, input.recipients, targets);
     return json({ wishlist: toWishlistDto(w, 'owner') }, 201);
   });
 
@@ -139,13 +206,14 @@ export function registerWishlistRoutes(router: Router) {
   router.get('/api/wishlists/:id', async (ctx) => {
     const user = await requireUser(ctx);
     const { wishlist, role } = await requireWishlistAccess(ctx.params.id, user, 'viewer');
-    return json(await buildDetail(wishlist, role));
+    return json(await buildDetail(wishlist, role, user.id));
   });
 
   router.patch('/api/wishlists/:id', async (ctx) => {
     const user = await requireUser(ctx);
     const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'owner');
     const input = await readJson(ctx.req, wishlistUpdateSchema);
+    const targets = await recipientTargets(user, input.recipients, wishlist);
     let updated = await mutateWishlist(wishlist.id, (w) => {
       if (input.title !== undefined) w.title = input.title;
       if (input.description !== undefined) w.description = input.description;
@@ -163,9 +231,10 @@ export function registerWishlistRoutes(router: Router) {
       if (input.archived !== undefined) w.archivedAt = input.archived ? (w.archivedAt ?? nowIso()) : null;
       applyCollectionRules(w);
     });
+    updated = await applyRecipients(updated, user, input.recipients, targets);
     // A list that becomes shareable needs a link.
     if (updated.visibility !== 'private' && !updated.shareToken) updated = await regenerateShareToken(updated);
-    return json(await buildDetail(updated, 'owner'));
+    return json(await buildDetail(updated, 'owner', user.id));
   });
 
   router.delete('/api/wishlists/:id', async (ctx) => {
@@ -273,7 +342,7 @@ export function registerWishlistRoutes(router: Router) {
   router.post('/api/wishlists/:id/entries/:entryId/clear-claim', async (ctx) => {
     const user = await requireUser(ctx);
     const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'editor');
-    await ownerClearClaim(wishlist, ctx.params.entryId);
+    await ownerClearClaim(wishlist, ctx.params.entryId, giftSide(wishlist, user.id) ?? 'owner');
     return json({ ok: true });
   });
 
@@ -325,7 +394,7 @@ export function registerWishlistRoutes(router: Router) {
       });
     }
     const fresh = await requireWishlistAccess(wishlist.id, user, 'owner');
-    return json(await buildDetail(fresh.wishlist, 'owner'));
+    return json(await buildDetail(fresh.wishlist, 'owner', user.id));
   });
 
   router.patch('/api/wishlists/:id/collaborators/:userId', async (ctx) => {
@@ -337,7 +406,7 @@ export function registerWishlistRoutes(router: Router) {
       if (!c) throw notFound('Collaborator not found.');
       c.role = role;
     });
-    return json(await buildDetail(updated, 'owner'));
+    return json(await buildDetail(updated, 'owner', user.id));
   });
 
   router.delete('/api/wishlists/:id/collaborators/:userId', async (ctx) => {
@@ -346,12 +415,7 @@ export function registerWishlistRoutes(router: Router) {
     // Owners can remove anyone; collaborators can only remove themselves (leave).
     const { wishlist } = await requireWishlistAccess(ctx.params.id, user, targetId === user.id ? 'viewer' : 'owner');
     if (targetId === wishlist.ownerId) throw badRequest('The owner cannot be removed.');
-    await mutateWishlist(wishlist.id, (w) => {
-      w.collaborators = w.collaborators.filter((c) => c.userId !== targetId);
-    });
-    await updateUserIndex(targetId, (idx) => {
-      idx.sharedWishlistIds = idx.sharedWishlistIds.filter((id) => id !== wishlist.id);
-    });
+    await removeCollaborator(wishlist, targetId);
     return json({ ok: true });
   });
 
@@ -369,6 +433,6 @@ export function registerWishlistRoutes(router: Router) {
       if (invites.length) await db('invites').set(key, { invites });
       else await db('invites').delete(key);
     }
-    return json(await buildDetail(updated, 'owner'));
+    return json(await buildDetail(updated, 'owner', user.id));
   });
 }

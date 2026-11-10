@@ -91,6 +91,93 @@ const Mug = (
   </Svg>
 );
 
+/* Things people collect, for the collection scene of the hero animation. */
+const Record = (
+  <Svg>
+    <circle cx="24" cy="24" r="19" fill={INK} />
+    <circle cx="24" cy="24" r="14.5" stroke="#4a5162" strokeWidth="1" />
+    <circle cx="24" cy="24" r="10.5" stroke="#4a5162" strokeWidth="1" />
+    <circle cx="24" cy="24" r="6.5" fill="#e8745b" />
+    <circle cx="24" cy="24" r="1.4" fill="#fff" />
+    <path d="M12 15a14 14 0 0 1 7-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" opacity=".25" />
+  </Svg>
+);
+
+const Controller = (
+  <Svg>
+    <path d="M14 15h20c5 0 8 4 9 9l1.5 9c.6 3.5-3.6 5.6-6 3l-4.5-5h-20l-4.5 5c-2.4 2.6-6.6.5-6-3L5 24c1-5 4-9 9-9z" fill="#7c6cf0" />
+    <path d="M13 21v8M9 25h8" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
+    <circle cx="33" cy="22.5" r="2.2" fill="#f2c14e" />
+    <circle cx="37.5" cy="27" r="2.2" fill="#e8745b" />
+    <circle cx="28.5" cy="27" r="2.2" fill="#4fa3a5" />
+  </Svg>
+);
+
+const Bricks = (
+  <Svg>
+    <rect x="17" y="6" width="5" height="4" rx="1" fill="#f2c14e" />
+    <rect x="27" y="6" width="5" height="4" rx="1" fill="#f2c14e" />
+    <rect x="14" y="9" width="21" height="11" rx="2" fill="#f2c14e" />
+    <rect x="14" y="16" width="21" height="4" rx="1.5" fill="#d9a62e" />
+    <rect x="7" y="20" width="6" height="4" rx="1" fill="#e8745b" />
+    <rect x="37" y="20" width="6" height="4" rx="1" fill="#e8745b" />
+    <rect x="5" y="23" width="39" height="17" rx="2.5" fill="#e8745b" />
+    <rect x="5" y="35" width="39" height="5" rx="2" fill="#c4553d" />
+  </Svg>
+);
+
+/* Things packed in a living-room box, for the box scene of the hero animation. */
+const Lamp = (
+  <Svg>
+    <path d="M15 7h18l5 16H10z" fill="#f2c14e" />
+    <path d="M17 13h14" stroke="#fff" strokeWidth="2" strokeLinecap="round" opacity=".55" />
+    <rect x="22.5" y="23" width="3" height="14" fill={INK} />
+    <rect x="14" y="37" width="20" height="5" rx="2.5" fill={INK} />
+  </Svg>
+);
+
+const Frame = (
+  <Svg>
+    <rect x="7" y="9" width="34" height="30" rx="3" fill="#8a6a43" />
+    <rect x="11" y="13" width="26" height="22" rx="1.5" fill="#cfe3f5" />
+    <path d="M11 35l8-9 6 6 4-4 8 7z" fill="#5f9e6e" />
+    <circle cx="30" cy="19" r="3" fill="#f2c14e" />
+  </Svg>
+);
+
+const Blanket = (
+  <Svg>
+    <rect x="6" y="12" width="36" height="24" rx="5" fill="#4fa3a5" />
+    <rect x="6" y="21" width="36" height="6" fill="#3d8688" />
+    <path d="M14 12v24M24 12v24M34 12v24" stroke="#fff" strokeWidth="1.4" opacity=".35" />
+    <path d="M10 36v4M16 36v4M22 36v4M28 36v4M34 36v4M40 36v4" stroke="#3d8688" strokeWidth="1.8" strokeLinecap="round" />
+  </Svg>
+);
+
+const Candle = (
+  <Svg>
+    <path d="M24 4c3 4 4 6.5 4 8.5a4 4 0 0 1-8 0c0-2 1-4.5 4-8.5z" fill="#f2c14e" />
+    <path d="M24 9c1.4 2 2 3.2 2 4.2a2 2 0 0 1-4 0c0-1 .6-2.2 2-4.2z" fill="#e8745b" />
+    <path d="M24 16.5v3.5" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
+    <rect x="15" y="20" width="18" height="23" rx="3" fill="#f3ead8" stroke="#dccfb2" strokeWidth="1.2" />
+    <rect x="15" y="20" width="18" height="5" rx="2.5" fill="#e6d9bd" />
+  </Svg>
+);
+
+const BoardGame = (
+  <Svg>
+    <rect x="4" y="12" width="31" height="25" rx="3" fill="#3f6fb5" />
+    <rect x="8" y="16" width="23" height="17" rx="2" fill="#5b88cc" />
+    <path d="M13 24.5h13" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" opacity=".8" />
+    <g transform="rotate(12 35.5 33.5)">
+      <rect x="28" y="26" width="15" height="15" rx="3.5" fill="#fff" stroke="#d5dae3" strokeWidth="1.2" />
+      <circle cx="31.8" cy="29.8" r="1.4" fill={INK} />
+      <circle cx="35.5" cy="33.5" r="1.4" fill={INK} />
+      <circle cx="39.2" cy="37.2" r="1.4" fill={INK} />
+    </g>
+  </Svg>
+);
+
 /* Feature illustrations: class names hook into the looping animations in layout.css. */
 const ShoppingBag = (
   <Svg>
@@ -205,6 +292,35 @@ const Shelf = (
   </Svg>
 );
 
+/** A packed box with a QR label, scanned by a phone that lists what's inside: boxes. */
+const ScannedBox = (
+  <Svg>
+    <rect x="4" y="21" width="30" height="22" rx="2" fill="#c8a27a" />
+    <rect x="2.5" y="16" width="33" height="7" rx="2" fill="#b48a5e" />
+    <rect x="16" y="16" width="6" height="12" fill="#e2c093" />
+    <rect x="7" y="27" width="11.5" height="11.5" rx="1.4" fill="#fff" />
+    <g fill={INK}>
+      <rect x="8.6" y="28.6" width="3.4" height="3.4" rx=".6" />
+      <rect x="13.5" y="28.6" width="3.4" height="3.4" rx=".6" />
+      <rect x="8.6" y="33.5" width="3.4" height="3.4" rx=".6" />
+      <rect x="13.6" y="33.6" width="1.4" height="1.4" />
+      <rect x="15.5" y="35.5" width="1.4" height="1.4" />
+    </g>
+    <rect className="fa-scanline" x="7" y="27.4" width="11.5" height="1.3" rx=".65" fill="#e8745b" />
+    <path className="fa-beam" d="M30 16.5L18.5 27v11.5L30 29z" fill="#4fa3a5" />
+    <g className="fa-scanner">
+      <rect x="29" y="7" width="16" height="26" rx="3.5" fill={INK} />
+      <rect x="31" y="10" width="12" height="18.5" rx="1.5" fill="#eef1f5" />
+      <rect x="32.5" y="12" width="3" height="3" rx=".8" fill="#e8745b" />
+      <rect x="36.5" y="12.8" width="5" height="1.4" rx=".7" fill="#c9ced8" />
+      <rect x="32.5" y="17" width="3" height="3" rx=".8" fill="#4fa3a5" />
+      <rect x="36.5" y="17.8" width="4" height="1.4" rx=".7" fill="#c9ced8" />
+      <rect x="32.5" y="22" width="3" height="3" rx=".8" fill="#f2c14e" />
+      <rect x="36.5" y="22.8" width="4.5" height="1.4" rx=".7" fill="#c9ced8" />
+    </g>
+  </Svg>
+);
+
 export const FEATURE_ILLUSTRATIONS = {
   store: ShoppingBag,
   lists: StackedLists,
@@ -214,6 +330,7 @@ export const FEATURE_ILLUSTRATIONS = {
   phone: Phone,
   idea: Lightbulb,
   collection: Shelf,
+  boxes: ScannedBox,
 };
 
 export const ILLUSTRATED_ITEMS: IllustratedItem[] = [
@@ -225,4 +342,33 @@ export const ILLUSTRATED_ITEMS: IllustratedItem[] = [
   { name: 'Fiddle-leaf fig', price: '$45', art: Plant },
   { name: 'Hardcover cookbook', price: '$32', art: Book },
   { name: 'Stoneware mug set', price: '$36', art: Mug },
+];
+
+export interface SceneItem {
+  name: string;
+  /** Shown at the end of the row: a price, a rating or a count. */
+  meta: string;
+  art: ReactElement;
+}
+
+export const COLLECTION_ITEMS: SceneItem[] = [
+  { name: 'Rumours on vinyl', meta: '★★★★★', art: Record },
+  { name: 'Retro controller', meta: '★★★★☆', art: Controller },
+  { name: 'Space shuttle set', meta: '★★★★★', art: Bricks },
+  { name: 'Court sneakers', meta: '★★★★☆', art: Sneaker },
+  { name: 'Vintage film camera', meta: '★★★★★', art: Camera },
+  { name: 'Diver watch', meta: '★★★★☆', art: Watch },
+  { name: 'Signed first edition', meta: '★★★★★', art: Book },
+  { name: 'Variegated monstera', meta: '★★★★☆', art: Plant },
+];
+
+export const BOX_ITEMS: SceneItem[] = [
+  { name: 'Table lamp', meta: '×1', art: Lamp },
+  { name: 'Picture frames', meta: '×3', art: Frame },
+  { name: 'Paperbacks', meta: '×12', art: Book },
+  { name: 'Mugs', meta: '×4', art: Mug },
+  { name: 'Throw blankets', meta: '×2', art: Blanket },
+  { name: 'Candles', meta: '×6', art: Candle },
+  { name: 'Board games', meta: '×3', art: BoardGame },
+  { name: 'Headphones', meta: '×1', art: Headphones },
 ];

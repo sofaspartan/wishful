@@ -16,13 +16,14 @@ interface ModalProps {
   subtitle?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  bodyClassName?: string;
   /** Hide the header (for custom layouts like the search palette). */
   bare?: boolean;
 }
 
-export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md', className, bare }: ModalProps) {
+export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md', className, bodyClassName, bare }: ModalProps) {
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -41,8 +42,9 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
     const frame = requestAnimationFrame(() => {
       const root = ref.current;
       if (!root) return;
-      // Without an explicit target, focus the dialog itself: a focused field far up a long form
-      // makes some browsers scroll back to it while the user scrolls down.
+      // Focus the dialog itself, never a text field: a focused field pops the on-screen keyboard and
+      // makes browsers scroll back to it while the user scrolls. Only a search box or a confirm
+      // button should opt in with data-autofocus.
       const target = root.querySelector<HTMLElement>('[data-autofocus]') ?? root;
       target.focus({ preventScroll: true });
     });
@@ -112,7 +114,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
             </button>
           </div>
         )}
-        {bare ? children : <div className="modal-body">{children}</div>}
+        {bare ? children : <div className={['modal-body', bodyClassName].filter(Boolean).join(' ')}>{children}</div>}
         {footer && <div className="modal-footer">{footer}</div>}
       </div>
     </div>,

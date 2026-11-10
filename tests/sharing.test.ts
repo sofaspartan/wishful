@@ -184,7 +184,7 @@ describe('surprise mode', () => {
 
     // Even via the public endpoint while signed in as the owner.
     const pub = await owner.get(`/api/public/lists/${token}`);
-    expect(pub.data.viewer).toEqual({ isOwner: true, claimsHidden: true });
+    expect(pub.data.viewer).toEqual({ isOwner: true, isRecipient: false, claimsHidden: true });
     expect(pub.data.entries[0].status).toBeNull();
     expect(pub.data.entries[0].claim).toBeNull();
     expect(JSON.stringify(pub.data)).not.toContain('Secret Santa');

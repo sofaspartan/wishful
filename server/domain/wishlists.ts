@@ -1,4 +1,4 @@
-import type { AccessRole, PublicUser, WishlistSummary } from '../../shared/types';
+import type { AccessRole, ListPerson, PublicUser, WishlistSummary } from '../../shared/types';
 import { COLLECTION_SETTINGS, DEFAULT_PREFERENCES, ACCENT_COLORS, defaultCoverArt, isCollection } from '../../shared/constants';
 import type { WishlistCreateInput } from '../../shared/schemas';
 import { atomicUpdate, atomicUpdateExisting, db, getMany } from '../storage';
@@ -60,6 +60,36 @@ export async function getUsers(ids: string[]): Promise<Map<string, PublicUser>> 
   for (const id of unique) if (!map.has(id)) map.set(id, deletedUser(id));
   return map;
 }
+
+/** Whether this signed-in user is one of the people a list is made for. */
+export const isListRecipient = (list: WishlistRecord, userId: string | null | undefined): boolean =>
+  Boolean(userId) && (list.recipients ?? []).some((r) => r.userId === userId);
+
+/** Someone who leaves a list made for them is no longer linked to it; it's still for them by name. */
+export function unlinkRecipient(draft: WishlistRecord, userId: string): void {
+  if (draft.recipients) draft.recipients = draft.recipients.map((r) => (r.userId === userId ? { ...r, userId: null } : r));
+}
+
+/** Who each list is made for, with a linked friend's own photo filled in when the list has none. Lists made for their owner map to an empty array. */
+export async function resolveRecipients(lists: WishlistRecord[]): Promise<Map<string, ListPerson[]>> {
+  const linked = lists.flatMap((l) => (l.recipients ?? []).map((r) => r.userId)).filter((id): id is string => Boolean(id));
+  const users = linked.length ? await getUsers(linked) : new Map<string, PublicUser>();
+  const people = new Map<string, ListPerson[]>();
+  for (const l of lists) {
+    people.set(
+      l.id,
+      (l.recipients ?? []).map((r) => ({ name: r.name, avatarUrl: r.avatarUrl ?? (r.userId ? (users.get(r.userId)?.avatarUrl ?? null) : null), userId: r.userId })),
+    );
+  }
+  return people;
+}
+
+export async function resolveListRecipients(list: WishlistRecord): Promise<ListPerson[]> {
+  return (await resolveRecipients([list])).get(list.id) ?? [];
+}
+
+/** The people a list is for, without the account links only its owner and those people may see. */
+export const publicPeople = (people: ListPerson[]) => people.map(({ name, avatarUrl }) => ({ name, avatarUrl }));
 
 async function createShare(wishlistId: string): Promise<string> {
   const token = newToken();
@@ -199,6 +229,8 @@ export async function duplicateWishlist(source: WishlistRecord, owner: UserRecor
   const stamp = nowIso();
   const updated = await mutateWishlist(copy.id, (w) => {
     w.entries = source.entries.map((e) => ({ ...e, id: newId(), createdAt: stamp, updatedAt: stamp }));
+    // Still for the same people, but not shared with them until the owner links it again.
+    if (source.recipients?.length) w.recipients = source.recipients.map((r) => ({ ...r, userId: null }));
   });
   await linkItems(
     updated.entries.map((e) => e.itemId),
@@ -215,6 +247,7 @@ export async function duplicateWishlist(source: WishlistRecord, owner: UserRecor
 
 export async function summarize(lists: WishlistRecord[], viewerId: string): Promise<WishlistSummary[]> {
   const owners = await getUsers(lists.map((l) => l.ownerId));
+  const recipients = await resolveRecipients(lists);
   const previewIds = lists.flatMap((l) => l.entries.slice(0, 6).map((e) => e.itemId));
   const items = await getMany<ItemRecord>(db('items'), [...new Set(previewIds)]);
   const images = new Map(items.map((i) => [i.id, i.imageUrl]));
@@ -239,6 +272,7 @@ export async function summarize(lists: WishlistRecord[], viewerId: string): Prom
     collaboratorCount: l.collaborators.length,
     role: accessRole(l, viewerId) ?? 'viewer',
     owner: owners.get(l.ownerId)!,
+    recipients: recipients.get(l.id) ?? [],
     link: l.link ?? null,
     previewImages: l.entries
       .slice(0, 6)

@@ -720,13 +720,20 @@
 }
 .avatar-stack {
   display: flex;
+  flex-shrink: 0;
 }
 .avatar-stack .avatar {
-  margin-left: -8px;
+  margin-left: calc(var(--size) * -0.32);
   border: 2px solid var(--surface);
 }
 .avatar-stack .avatar:first-child {
   margin-left: 0;
+}
+.avatar-more {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: calc(var(--size) * 0.36);
+  letter-spacing: -0.02em;
 }
 
 /* ── Spinner / skeleton ───────────────────────────────────────────────── */
@@ -843,6 +850,17 @@
 .modal-lg {
   --modal-w: 720px;
 }
+.modal-xl {
+  --modal-w: 1080px;
+}
+/* One scroller per modal: inner scroll areas latch trackpad gestures and make the modal feel stuck. */
+.modal .check-list {
+  max-height: none;
+}
+.modal .segmented {
+  flex-wrap: wrap;
+  overflow: visible;
+}
 .modal-header {
   display: flex;
   align-items: flex-start;
@@ -903,6 +921,152 @@
 @media (max-width: 639px) {
   .modal-footer .btn {
     flex: 1;
+  }
+}
+
+/* ── Tabbed editor with a live preview (EditorLayout) ─────────────────── */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.editor-tabs {
+  position: sticky;
+  top: calc(-1 * var(--s-2));
+  z-index: 3;
+  margin: calc(-1 * var(--s-2)) calc(-1 * var(--s-5)) 0;
+  padding: 0 var(--s-5);
+  background: var(--surface);
+  gap: var(--s-5);
+}
+.editor-tabs svg {
+  flex-shrink: 0;
+}
+@media (max-width: 479px) {
+  .editor-tabs {
+    gap: var(--s-4);
+  }
+  .editor-tabs svg {
+    display: none;
+  }
+}
+.editor .cover-backdrops {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+.editor-tab-alert {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+.editor-panels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.editor-panel[hidden] {
+  display: none;
+}
+.editor-preview {
+  display: none;
+}
+.editor-on-preview-tab .editor-preview {
+  display: flex;
+  justify-content: center;
+}
+.editor-preview-block {
+  display: grid;
+  gap: var(--s-2);
+  width: 100%;
+}
+.editor-preview .editor-preview-card {
+  width: min(100%, 320px);
+}
+/* On small screens the short page preview is enough; the card only shows when there isn't one. */
+.editor-preview:has(.editor-preview-page) .editor-preview-card {
+  display: none;
+}
+.editor-preview-caption {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--muted);
+}
+.wl-card-preview {
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
+}
+@media (min-width: 640px) {
+  .editor-tabs {
+    margin: calc(-1 * var(--s-2)) calc(-1 * var(--s-6)) 0;
+    padding: 0 var(--s-6);
+  }
+}
+/* Below desktop width the tabs stick to the top, so the icon search can't stick there too. */
+@media (max-width: 899px) {
+  .editor .cover-icon-finder {
+    position: static;
+    margin: 0;
+    padding: 0;
+  }
+}
+@media (min-width: 900px) {
+  .modal.editor-modal {
+    height: min(840px, calc(100dvh - 48px));
+  }
+  .modal-body.editor-body {
+    display: flex;
+    padding: 0;
+    overflow: hidden;
+  }
+  .editor-form {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+  .editor {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'tabs preview'
+      'panels preview';
+    gap: 0;
+    border-top: 1px solid var(--border);
+  }
+  .editor-tabs {
+    grid-area: tabs;
+    position: static;
+    margin: 0;
+    padding: 0 var(--s-6);
+  }
+  .editor-panels {
+    grid-area: panels;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--s-5) var(--s-6) var(--s-6);
+  }
+  .editor-preview,
+  .editor-on-preview-tab .editor-preview {
+    grid-area: preview;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--s-5);
+    padding: var(--s-5) var(--s-6);
+    background: var(--surface-2);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .editor-preview .editor-preview-card,
+  .editor-preview:has(.editor-preview-page) .editor-preview-card {
+    display: grid;
+    width: 100%;
   }
 }
 

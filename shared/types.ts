@@ -459,9 +459,28 @@ export interface PendingInvite {
   createdAt: string;
 }
 
+/** Someone a list is made for (a child, a partner), shown in place of the owner. */
+export interface ListRecipient {
+  name: string;
+  /** A photo, mainly for people without an account; a linked friend's own photo is used when this is empty. */
+  avatarUrl: string | null;
+  /** The friend's account the list is shared with. They're also on `collaborators` while linked. */
+  userId: string | null;
+}
+
+/** Who a list is for, as shown to viewers. */
+export interface ListPerson {
+  name: string;
+  avatarUrl: string | null;
+  /** Only for the owner and the people the list is shared with. */
+  userId: string | null;
+}
+
 export interface Wishlist {
   id: string;
   ownerId: string;
+  /** Made for someone else, or for several people together (siblings, a couple, a group trip). Surprise Mode then hides gift activity from them instead of from the owner. */
+  recipients?: ListRecipient[];
   /** Fixed at creation. Collections have no gifting (claims, pledges, Surprise Mode, event dates). */
   kind: ListKind;
   title: string;
@@ -508,6 +527,8 @@ export interface WishlistSummary {
   collaboratorCount: number;
   role: AccessRole;
   owner: PublicUser;
+  /** Empty on lists made for their owner. */
+  recipients: ListPerson[];
   link: ListLink | null;
   /** Up to four item image URLs for card mosaics. */
   previewImages: string[];
@@ -537,6 +558,7 @@ export interface WishlistDetail {
   items: Record<string, Item>;
   role: AccessRole;
   owner: PublicUser;
+  recipients: ListPerson[];
   /** `null` when gift activity is hidden from this viewer (Surprise Mode). */
   claims: OwnerClaimView[] | null;
   pledges: OwnerPledgeView[] | null;
@@ -593,10 +615,13 @@ export interface PublicWishlistView {
     updatedAt: string;
   };
   owner: PublicUser & { bio: string };
+  recipients: Omit<ListPerson, 'userId'>[];
   entries: PublicEntry[];
   viewer: {
-    /** The signed-in viewer owns (or edits) this list. */
+    /** The signed-in viewer owns (or edits) this list, or it's made for them. */
     isOwner: boolean;
+    /** The list is made for the signed-in viewer (alone or with others). */
+    isRecipient: boolean;
     /** Claim state has been withheld from this viewer. */
     claimsHidden: boolean;
   };
@@ -616,6 +641,7 @@ export interface PublicProfileView {
     shareToken: string;
     itemCount: number;
     updatedAt: string;
+    recipients: Omit<ListPerson, 'userId'>[];
   }>;
 }
 
@@ -742,6 +768,9 @@ export interface FriendWishlistCard {
   shareToken: string;
   itemCount: number;
   updatedAt: string;
+  recipients: Omit<ListPerson, 'userId'>[];
+  /** Set on lists someone else made for this friend. */
+  madeBy: PublicUser | null;
 }
 
 export interface FriendProfileView {

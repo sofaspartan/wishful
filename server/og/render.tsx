@@ -23,7 +23,7 @@ import {
 import { COVER_ICON_ART, DEFAULT_COVER_FRAME, suggestCoverArt } from '../../src/components/CoverArt';
 import { ILLUSTRATED_ITEMS } from '../../src/components/ItemIllustrations';
 import { brand, taglineParts } from '../../src/config/brand';
-import { formatDate, initials, possessive } from '../../src/lib/format';
+import { formatDate, initials } from '../../src/lib/format';
 import { qrSvg } from '../../shared/qr';
 
 export const OG_WIDTH = 1200;
@@ -362,8 +362,10 @@ function PhotoFan({ srcs }: { srcs: string[] }) {
 export interface ListCardData {
   title: string;
   kind: ListKind;
-  ownerName: string;
-  ownerAvatar: string | null;
+  /** "Ava & Leo’s" */
+  ownerLabel: string;
+  /** Who the list is for (up to three are drawn), or its owner. */
+  people: Array<{ name: string; avatar: string | null }>;
   coverArt: CoverArt | null;
   coverPhoto: string | null;
   occasion: string;
@@ -410,9 +412,15 @@ export function ListCard(d: ListCardData) {
               border: `2px solid ${dark ? 'rgba(255,255,255,0.24)' : 'rgba(22,22,22,0.07)'}`,
             }}
           >
-            <Avatar name={d.ownerName} src={d.ownerAvatar} size={52} />
+            <div style={{ display: 'flex' }}>
+              {d.people.map((p, i) => (
+                <div key={i} style={{ display: 'flex', marginLeft: i ? -16 : 0 }}>
+                  <Avatar name={p.name} src={p.avatar} size={52} />
+                </div>
+              ))}
+            </div>
             <span style={{ fontSize: 27, fontWeight: 600, color: dark ? '#fff' : INK }}>
-              {plainText(possessive(d.ownerName), 30)} {collection ? 'collection' : 'wishlist'}
+              {plainText(d.ownerLabel, 34)} {collection ? 'collection' : 'wishlist'}
             </span>
           </div>
           <div style={{ display: 'flex', fontFamily: 'Fraunces', fontWeight: 600, fontSize: titleSize(title), lineHeight: 1.04, letterSpacing: -1, color: dark ? '#fff' : INK }}>

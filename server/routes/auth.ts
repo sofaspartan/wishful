@@ -33,7 +33,7 @@ import { hashRecoveryCode, newRecoveryCode, recoveryCodeMatches } from '../servi
 import { notify } from '../services/notifications';
 import { toSelfUser } from '../serialize';
 import { appUrl, newId, newToken, now, nowIso, sha256 } from '../util';
-import { deleteWishlist, getWishlist, listOwnedWishlists, mutateWishlist } from '../domain/wishlists';
+import { deleteWishlist, getWishlist, listOwnedWishlists, mutateWishlist, unlinkRecipient } from '../domain/wishlists';
 import { listOwnedItems } from '../domain/items';
 import { deleteAllFriendships } from '../domain/friends';
 import { BRAND_NAME } from '../brand';
@@ -348,6 +348,7 @@ export async function deleteAccount(user: UserRecord): Promise<void> {
     if (w?.collaborators.some((c) => c.userId === user.id)) {
       await mutateWishlist(wid, (draft) => {
         draft.collaborators = draft.collaborators.filter((c) => c.userId !== user.id);
+        unlinkRecipient(draft, user.id);
       }).catch(() => undefined);
     }
   }

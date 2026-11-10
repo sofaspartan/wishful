@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { List, Search, SearchX } from 'lucide-react';
 import type { CoverArt as CoverArtValue, Item, WishlistSummary } from '../../shared/types';
-import { ITEM_TYPE_LABELS } from '../../shared/constants';
+import { ITEM_TYPE_LABELS, joinNames } from '../../shared/constants';
 import { useItems, useSharedWishlists, useWishlists } from '../lib/queries';
 import { formatPrice } from '../lib/format';
 import { Modal } from './ui/Modal';
@@ -32,7 +32,7 @@ function itemHaystack(i: Item): string {
 }
 
 function listHaystack(w: WishlistSummary): string {
-  return [w.title, w.description, w.occasion, w.owner.displayName].join(' ').toLowerCase();
+  return [w.title, w.description, w.occasion, w.owner.displayName, ...w.recipients.map((r) => r.name)].join(' ').toLowerCase();
 }
 
 function Highlight({ text, query }: { text: string; query: string }) {
@@ -82,7 +82,7 @@ export function SearchPalette({ open, onClose }: { open: boolean; onClose: () =>
           key: `l-${w.id}`,
           kind: 'list',
           title: w.title,
-          subtitle: [w.role !== 'owner' ? `${w.owner.displayName}’s list` : null, `${w.itemCount} item${w.itemCount === 1 ? '' : 's'}`, w.archivedAt ? 'Archived' : null]
+          subtitle: [w.recipients.length ? `For ${joinNames(w.recipients.map((r) => r.name))}` : w.role !== 'owner' ? `${w.owner.displayName}’s list` : null, `${w.itemCount} item${w.itemCount === 1 ? '' : 's'}`, w.archivedAt ? 'Archived' : null]
             .filter(Boolean)
             .join(' · '),
           image: w.coverImage ?? (w.coverArt ? null : w.previewImages[0]) ?? null,

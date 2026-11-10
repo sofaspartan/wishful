@@ -884,7 +884,7 @@ function RecoveryCodeCard({ me }: { me: SelfUser }) {
           {hasCode && <p className="muted">Your current code will stop working.</p>}
           <FormError message={error} />
           <Field label="Enter your password to continue">
-            <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} data-autofocus />
+            <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </Field>
         </form>
       </Modal>
@@ -1017,7 +1017,7 @@ function AccountSection({ me }: { me: SelfUser }) {
           <p className="muted">Everything you've created on this account will be permanently removed.</p>
           <FormError message={deleteError} />
           <Field label="Enter your password to confirm">
-            <input className="input" type="password" autoComplete="current-password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} data-autofocus />
+            <input className="input" type="password" autoComplete="current-password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} />
           </Field>
         </form>
       </Modal>

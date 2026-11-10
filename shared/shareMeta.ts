@@ -33,6 +33,7 @@ export type GetJson = (apiPath: string) => Promise<unknown | null>;
 interface ListView {
   wishlist: { kind: string; title: string; description: string; updatedAt: string; settings: { allowClaims: boolean } };
   owner: { displayName: string };
+  recipients?: Array<{ name: string }>;
   entries: Array<{ item?: { imageUrl?: string | null; updatedAt?: string } }>;
 }
 
@@ -56,6 +57,12 @@ function firstName(name: string): string {
 function possessive(name: string): string {
   const first = firstName(name);
   return first.endsWith('s') ? `${first}’` : `${first}’s`;
+}
+
+/** "Ava & Leo’s", like `possessiveNames` in constants. */
+function possessiveNames(names: string[]): string {
+  const joined = names.length > 1 ? `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}` : (names[0] ?? '');
+  return joined.endsWith('s') ? `${joined}’` : `${joined}’s`;
 }
 
 function clip(text: string, max: number): string {
@@ -96,21 +103,22 @@ export async function pageMeta(pathname: string, origin: string, brand: MetaBran
   if (list) {
     const view = await getJson(`/api/public/lists/${list[1]}`);
     if (!isListView(view)) return { ...base, title: `Shared list · ${brand.name}`, shareTitle: `A list shared on ${brand.name}`, description: 'Open the link to see it.' };
-    const { wishlist: w, owner, entries } = view;
+    const { wishlist: w, entries } = view;
+    const whose = possessiveNames(view.recipients?.length ? view.recipients.map((r) => r.name) : [firstName(view.owner.displayName)]);
     const collection = w.kind === 'collection';
     const n = entries.length;
     const kind = collection ? 'collection' : 'wishlist';
     const fallback = collection
-      ? `${possessive(owner.displayName)} collection of ${n} ${n === 1 ? 'thing' : 'things'} on ${brand.name}.`
-      : `${n} ${n === 1 ? 'item' : 'items'} on ${possessive(owner.displayName)} wishlist.${w.settings.allowClaims ? ' Reserve a gift so nobody doubles up — no account needed.' : ''}`;
+      ? `${whose} collection of ${n} ${n === 1 ? 'thing' : 'things'} on ${brand.name}.`
+      : `${n} ${n === 1 ? 'item' : 'items'} on ${whose} wishlist.${w.settings.allowClaims ? ' Reserve a gift so nobody doubles up — no account needed.' : ''}`;
     const v = version([w.title, w.updatedAt, String(n), ...entries.map((e) => `${e.item?.imageUrl ?? ''}${e.item?.updatedAt ?? ''}`)]);
     return {
       ...base,
       title: `${w.title} · ${brand.name}`,
-      shareTitle: `${w.title} — ${possessive(owner.displayName)} ${kind}`,
+      shareTitle: `${w.title} — ${whose} ${kind}`,
       description: clip(w.description || fallback, 200),
       image: `${origin}/og/list/${list[1]}.png?v=${v}`,
-      imageAlt: `${w.title}, ${possessive(owner.displayName)} ${kind} on ${brand.name}`,
+      imageAlt: `${w.title}, ${whose} ${kind} on ${brand.name}`,
     };
   }
 

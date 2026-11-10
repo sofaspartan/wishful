@@ -88,6 +88,10 @@ export function hostname(url: string | null | undefined): string {
   }
 }
 
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? '';
+}
+
 export function possessive(name: string): string {
   const first = name.split(' ')[0] || name;
   return first.endsWith('s') ? `${first}’` : `${first}’s`;

@@ -7,6 +7,7 @@ import {
   RESERVATION_DAY_OPTIONS,
   VISIBILITY_DESCRIPTIONS,
   VISIBILITY_LABELS,
+  joinNames,
   priorityLayout,
   priorityLayoutSettings,
   type PriorityLayout,
@@ -22,7 +23,7 @@ import { useToast } from './ui/Toast';
 
 // ── Share ───────────────────────────────────────────────────────────────────
 
-export function ShareDialog({ open, onClose, wishlist, ownerName }: { open: boolean; onClose: () => void; wishlist: Wishlist; ownerName: string }) {
+export function ShareDialog({ open, onClose, wishlist, whose }: { open: boolean; onClose: () => void; wishlist: Wishlist; /** "Ava & Leo’s" */ whose: string }) {
   const invalidate = useInvalidate();
   const toast = useToast();
   const confirm = useConfirm();
@@ -30,7 +31,7 @@ export function ShareDialog({ open, onClose, wishlist, ownerName }: { open: bool
   const [busy, setBusy] = useState<string | null>(null);
   const url = wishlist.shareToken ? shareUrl(wishlist.shareToken) : '';
   const collection = wishlist.kind === 'collection';
-  const message = `${ownerName.split(' ')[0]}'s ${collection ? 'collection' : 'wishlist'} “${wishlist.title}” on Wishful`;
+  const message = `${whose} ${collection ? 'collection' : 'wishlist'} “${wishlist.title}” on Wishful`;
 
   const run = async (key: string, fn: () => Promise<unknown>, success?: string) => {
     setBusy(key);
@@ -151,9 +152,13 @@ export function ShareDialog({ open, onClose, wishlist, ownerName }: { open: bool
               <FormNote icon={<Gift size={16} aria-hidden />}>Visitors can browse what you have. What you paid is never shown.</FormNote>
             ) : (
               <FormNote icon={<Gift size={16} aria-hidden />}>
-                {wishlist.surpriseMode
-                  ? 'Surprise Mode is on — you won’t see who reserved or bought what while you’re signed in. Previewing this link signed out shows it.'
-                  : 'Surprise Mode is off — you’ll see who reserved items.'}{' '}
+                {wishlist.recipients?.length
+                  ? wishlist.surpriseMode && wishlist.recipients.some((r) => r.userId)
+                    ? `It’s a surprise for ${joinNames(wishlist.recipients.map((r) => r.name))} — they won’t see who reserved or bought what. You will.`
+                    : 'You’ll see who reserved items.'
+                  : wishlist.surpriseMode
+                    ? 'Surprise Mode is on — you won’t see who reserved or bought what while you’re signed in. Previewing this link signed out shows it.'
+                    : 'Surprise Mode is off — you’ll see who reserved items.'}{' '}
                 Change this in Gift settings.
               </FormNote>
             )}
@@ -245,12 +250,21 @@ export function GiftSettingsDialog({ open, onClose, wishlist }: { open: boolean;
     >
       <div className="stack">
         <div className="card card-pad" style={{ padding: '4px 16px', background: surpriseMode ? 'var(--accent-soft)' : undefined, borderColor: surpriseMode ? 'transparent' : undefined }}>
-          <SwitchRow
-            title="Surprise Mode"
-            description="Hide who reserved or bought what — from you and your editors, whenever you're signed in. Gifts reserved while it's on stay hidden even if you turn it off later. Guests always see what's taken, so don't open your own link signed out."
-            checked={surpriseMode}
-            onChange={setSurpriseMode}
-          />
+          {wishlist.recipients?.length ? (
+            <SwitchRow
+              title={`Keep it a surprise for ${joinNames(wishlist.recipients.map((r) => r.name))}`}
+              description={`Hide who reserved or bought what from ${joinNames(wishlist.recipients.map((r) => r.name))} whenever they're signed in. You and your editors still see everything. Gifts reserved while it's on stay hidden from them even if you turn it off later.${wishlist.recipients.some((r) => r.userId) ? '' : ' This only matters once you share the list with them.'}`}
+              checked={surpriseMode}
+              onChange={setSurpriseMode}
+            />
+          ) : (
+            <SwitchRow
+              title="Surprise Mode"
+              description="Hide who reserved or bought what — from you and your editors, whenever you're signed in. Gifts reserved while it's on stay hidden even if you turn it off later. Guests always see what's taken, so don't open your own link signed out."
+              checked={surpriseMode}
+              onChange={setSurpriseMode}
+            />
+          )}
         </div>
         <div>
           <SwitchRow title="Visitors can reserve items" description="People with the link can claim a gift so nobody doubles up." checked={settings.allowClaims} onChange={(v) => set('allowClaims', v)} />
@@ -345,7 +359,6 @@ export function CollaboratorsDialog({ open, onClose, detail }: { open: boolean; 
                 aria-label="Email or username"
                 aria-invalid={error ? true : undefined}
                 autoCapitalize="none"
-                data-autofocus
               />
               <select className="select" style={{ width: 'auto' }} value={role} onChange={(e) => setRole(e.target.value as 'viewer' | 'editor')} aria-label="Role">
                 <option value="editor">Editor</option>
