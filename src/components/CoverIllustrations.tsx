@@ -333,6 +333,19 @@ const Brick = (
   </Svg>
 );
 
+const Controller = (
+  <Svg>
+    <path d="M14 16h20a9 9 0 0 1 8.7 6.8l2 8.2a5.5 5.5 0 0 1-9.4 5l-3.8-4H16.5l-3.8 4a5.5 5.5 0 0 1-9.4-5l2-8.2A9 9 0 0 1 14 16z" fill="#5b5bd6" />
+    <path d="M9 19.5a7 7 0 0 1 5-2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" opacity=".35" />
+    <path d="M13.5 21.5v7M10 25h7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
+    <circle cx="33" cy="22.6" r="2" fill="#f2c14e" />
+    <circle cx="37.2" cy="26.4" r="2" fill="#e8745b" />
+    <circle cx="28.8" cy="26.4" r="2" fill="#4fa3a5" />
+    <circle cx="33" cy="30.2" r="2" fill="#fdfaf3" />
+    <path className="fa-spark" d={starPath(41.5, 8.5, 3, 1.2)} fill="#f2c14e" />
+  </Svg>
+);
+
 function sparklePath(cx: number, cy: number, r: number): string {
   const k = r * 0.16;
   return `M${cx} ${cy - r}C${cx + k} ${cy - k} ${cx + k} ${cy - k} ${cx + r} ${cy}C${cx + k} ${cy + k} ${cx + k} ${cy + k} ${cx} ${cy + r}C${cx - k} ${cy + k} ${cx - k} ${cy + k} ${cx - r} ${cy}C${cx - k} ${cy - k} ${cx - k} ${cy - k} ${cx} ${cy - r}Z`;
@@ -406,4 +419,5 @@ export const COVER_ILLUSTRATIONS: Record<string, ReactElement> = {
   suitcase: Suitcase,
   record: Record,
   brick: Brick,
+  controller: Controller,
 };

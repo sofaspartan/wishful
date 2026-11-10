@@ -180,6 +180,15 @@
 - [x] Synced items are read-only except notes and ownership details; API returns 409 for the rest
 - [x] Tests (161 tests total)
 
+## Playshelf integration
+- [x] Shared sync engine (`server/integrations/mirror.ts`) used by Brickfolio and Playshelf
+- [x] Settings → Playshelf (allow-listed): connect by username, sync now, change account, disconnect; notice when the server isn't configured
+- [x] Reads public `profiles`, `game_library` and `wishlist` rows from Playshelf's Supabase with its anon key
+- [x] "Video Game Collection" (platform, status, favorites, genres, ratings, reviews, RAWG art and screenshots) and a "Video Game Wishlist" created once it has games, with priorities and notes
+- [x] Games bought on Playshelf move to the collection; removed games disappear; empty or failed downloads change nothing
+- [x] New "Game controller" cover icon
+- [x] Tests (185 tests total)
+
 ## Future
 - [ ] Price tracking & price-drop alerts
 - [ ] Monetary contributions for group gifts

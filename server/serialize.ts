@@ -20,7 +20,7 @@ export function toSelfUser(u: UserRecord): SelfUser {
       notifications: { ...DEFAULT_PREFERENCES.notifications, ...u.preferences?.notifications },
     },
     recoveryCodeCreatedAt: u.recoveryCodeCreatedAt ?? null,
-    integrations: { brickfolio: integrationsAllowed(u.email) },
+    integrations: { brickfolio: integrationsAllowed(u.email), playshelf: integrationsAllowed(u.email) },
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
   };

@@ -136,12 +136,8 @@ export interface ExtensionTokensDoc {
   tokens: ExtensionTokenRecord[];
 }
 
-export interface BrickfolioLinkRecord {
-  /** Origin of the Brickfolio site, e.g. https://example.netlify.app */
-  siteUrl: string;
-  /** "Publish to web" CSV links for the two sheet tabs. */
-  fullSetsCsvUrl: string;
-  wishlistCsvUrl: string;
+/** What every connected site keeps about its syncs. */
+export interface SyncLinkState {
   collectionId: string | null;
   wishlistId: string | null;
   connectedAt: string;
@@ -153,9 +149,24 @@ export interface BrickfolioLinkRecord {
   syncLockUntil: string | null;
 }
 
+export interface BrickfolioLinkRecord extends SyncLinkState {
+  /** Origin of the Brickfolio site, e.g. https://example.netlify.app */
+  siteUrl: string;
+  /** "Publish to web" CSV links for the two sheet tabs. */
+  fullSetsCsvUrl: string;
+  wishlistCsvUrl: string;
+}
+
+export interface PlayshelfLinkRecord extends SyncLinkState {
+  /** Playshelf profile id (stays the same if the username changes). */
+  profileId: string;
+  username: string;
+}
+
 /** A user's connected sites. */
 export interface IntegrationsDoc {
   brickfolio?: BrickfolioLinkRecord;
+  playshelf?: PlayshelfLinkRecord;
 }
 
 /** Just the catalog rows a user's sheet needs, revalidated against the catalog file's ETag. */

@@ -358,6 +358,15 @@ export const brickfolioConnectSchema = z.object({
   wishlistCsvUrl: httpsUrl('Paste the published CSV link for the wishlist tab'),
 });
 
+export const playshelfConnectSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(1, 'Enter your Playshelf username')
+    .max(50, 'That’s longer than a Playshelf username')
+    .refine((v) => !/[*,()\\%"]/.test(v), 'That doesn’t look like a Playshelf username'),
+});
+
 export const notificationsReadSchema = z.object({
   ids: z.array(z.string().max(64)).max(200).optional(),
   all: z.boolean().optional(),

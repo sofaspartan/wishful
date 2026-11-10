@@ -240,7 +240,8 @@ export async function createItems(user: UserRecord, input: ItemBulkCreateInput):
 
 /** Changes that would be undone by the next sync are refused with a pointer to the source. */
 export function syncedItemConflict(item: ItemRecord) {
-  return conflict(`“${item.title}” comes from your Brickfolio sheet. Make this change in the sheet and it’ll show up here on the next sync.`, 'synced_item');
+  const where = item.source?.provider === 'playshelf' ? ['your Playshelf library', 'on Playshelf'] : ['your Brickfolio sheet', 'in the sheet'];
+  return conflict(`“${item.title}” comes from ${where[0]}. Make this change ${where[1]} and it’ll show up here on the next sync.`, 'synced_item');
 }
 
 /** A synced item keeps the fields its source provides; only Wishful-only details can be edited. */
@@ -334,7 +335,12 @@ export async function setMemberships(item: ItemRecord, user: UserRecord, wishlis
 export async function markGotIt(item: ItemRecord, user: UserRecord, input: GotItInput): Promise<{ item: ItemRecord; collectionId: string }> {
   if (item.ownerId !== user.id) throw notFound('Item not found.');
   if (item.source) {
-    throw conflict(`Move “${item.title}” to the full_sets tab of your Brickfolio sheet and it’ll move to your LEGO collection on the next sync.`, 'synced_item');
+    throw conflict(
+      item.source.provider === 'playshelf'
+        ? `Add “${item.title}” to your library on Playshelf and it’ll move to your game collection on the next sync.`
+        : `Move “${item.title}” to the full_sets tab of your Brickfolio sheet and it’ll move to your LEGO collection on the next sync.`,
+      'synced_item',
+    );
   }
   let leaving: { wishlistId: string; entryId: string } | null = null;
   if (input.removeFromWishlistId) {

@@ -151,7 +151,7 @@ describe('brickfolio sync', () => {
 
   it('is invisible to accounts that are not on the allow list', async () => {
     const { agent, user } = await signUp();
-    expect(user.integrations).toEqual({ brickfolio: false });
+    expect(user.integrations).toEqual({ brickfolio: false, playshelf: false });
     expect((await agent.get('/api/integrations/brickfolio')).status).toBe(404);
     expect((await connect(agent)).status).toBe(404);
     expect((await agent.post('/api/integrations/brickfolio/sync')).status).toBe(404);
@@ -159,7 +159,7 @@ describe('brickfolio sync', () => {
 
   it('only accepts https links', async () => {
     const { agent, user } = await owner();
-    expect(user.integrations).toEqual({ brickfolio: true });
+    expect(user.integrations).toEqual({ brickfolio: true, playshelf: true });
     const res = await agent.put('/api/integrations/brickfolio', { siteUrl: 'http://bricks.example', fullSetsCsvUrl: FULL, wishlistCsvUrl: WISH });
     expect(res.status).toBe(400);
   });

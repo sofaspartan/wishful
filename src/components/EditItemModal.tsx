@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import type { Item } from '../../shared/types';
 import { useInvalidate, useWishlists } from '../lib/queries';
+import { syncSourcePlace } from '../lib/syncSource';
 import { del, errorMessage, fieldErrors, patch, put } from '../lib/api';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
@@ -134,8 +135,10 @@ export function EditItemModal({ item, onClose, isOwner, inCollection: openedInCo
             <div className="notice" style={{ marginBottom: 0 }}>
               <RefreshCw size={16} aria-hidden />
               <div>
-                <strong>{item.title}</strong> comes from your Brickfolio sheet. Its name, photos, price, theme, quantity, rating and review update from the sheet, so
-                change those there.
+                <strong>{item.title}</strong> comes from {syncSourcePlace(item.source!.provider)}.{' '}
+                {item.source!.provider === 'playshelf'
+                  ? 'Its name, cover, platform, tags, rating and review update from Playshelf, so change those there.'
+                  : 'Its name, photos, price, theme, quantity, rating and review update from the sheet, so change those there.'}
               </div>
             </div>
             <Field label="Private notes" optional error={errors.notes} hint="Only you (and editors) can see these — never shown on shared links.">
@@ -177,7 +180,7 @@ export function EditItemModal({ item, onClose, isOwner, inCollection: openedInCo
               </span>
               <div className="check-list" role="group" aria-labelledby="memberships-label">
                 {ownLists.map((w) => (
-                  <label key={w.id} className="check" title={synced && w.link ? 'Follows your Brickfolio sheet' : undefined}>
+                  <label key={w.id} className="check" title={synced && w.link ? `Follows ${syncSourcePlace(w.link.provider)}` : undefined}>
                     <input
                       type="checkbox"
                       checked={memberships.includes(w.id)}

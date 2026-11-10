@@ -47,6 +47,7 @@ export const COVER_ICON_ART: Record<CoverIcon, ReactElement> = {
   mug,
   record: C.record,
   brick: C.brick,
+  controller: C.controller,
   idea: F.idea,
   plane: F.share,
 };
@@ -90,6 +91,7 @@ export const COVER_ICON_LABELS: Record<CoverIcon, string> = {
   mug: 'Mug',
   record: 'Vinyl record',
   brick: 'Building brick',
+  controller: 'Game controller',
   idea: 'Lightbulb',
   plane: 'Paper plane',
 };
@@ -99,7 +101,7 @@ export const COVER_ICON_GROUPS: Array<{ label: string; icons: CoverIcon[] }> = [
   { label: 'Winter holidays', icons: ['tree', 'holly', 'snowflake', 'snowman', 'ornament', 'candy-cane'] },
   { label: 'Seasons', icons: ['flower', 'umbrella', 'sun', 'ice-cream', 'watermelon', 'leaf', 'acorn', 'pumpkin', 'heart'] },
   { label: 'Celebrations', icons: ['cake', 'balloon', 'grad-cap', 'ring', 'house', 'suitcase'] },
-  { label: 'Things', icons: ['camera', 'headphones', 'sneaker', 'watch', 'sweater', 'plant', 'book', 'mug', 'record', 'brick', 'idea', 'plane'] },
+  { label: 'Things', icons: ['camera', 'headphones', 'sneaker', 'watch', 'sweater', 'plant', 'book', 'mug', 'record', 'brick', 'controller', 'idea', 'plane'] },
 ];
 
 export const COVER_BACKDROP_LABELS: Record<CoverBackdrop, string> = {

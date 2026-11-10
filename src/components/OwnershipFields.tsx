@@ -72,9 +72,9 @@ interface Props {
   currency: string;
   /** What was paid is only collected where the viewer is allowed to see it. */
   showPricePaid?: boolean;
-  /** Rating and review fields (they're kept in the user's sheet for synced items). */
+  /** Rating and review fields (synced items get them from their source). */
   showReview?: boolean;
-  /** Quantity comes from a synced sheet. */
+  /** Quantity comes from a synced source. */
   lockQuantity?: boolean;
 }
 
@@ -144,7 +144,7 @@ export function OwnershipFields({ draft, onChange, errors = {}, currency, showPr
             ))}
           </select>
         </Field>
-        <Field label="How many" error={errors.quantity} hint={lockQuantity ? 'From your sheet' : undefined}>
+        <Field label="How many" error={errors.quantity} hint={lockQuantity ? 'Kept in sync' : undefined}>
           <input
             className="input"
             type="number"

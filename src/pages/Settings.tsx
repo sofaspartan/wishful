@@ -8,6 +8,7 @@ import {
   Camera,
   ChevronRight,
   ExternalLink,
+  Gamepad2,
   Gift,
   Globe,
   KeyRound,
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react';
 import { VISIBILITIES, type NotificationPreferences, type SelfUser, type SyncResult, type Visibility, type WishlistSettings } from '../../shared/types';
 import { CURRENCIES, RESERVATION_DAY_OPTIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS } from '../../shared/constants';
-import { keys, useBrickfolio, useExtensionConnections, useInvalidate, useMe, type BrickfolioResponse } from '../lib/queries';
+import { keys, useBrickfolio, useExtensionConnections, useInvalidate, useMe, usePlayshelf, type BrickfolioResponse, type PlayshelfResponse } from '../lib/queries';
 import { formatDate, relativeTime } from '../lib/format';
 import { brand } from '../config/brand';
 import { del, errorMessage, fieldErrors, patch, post, put } from '../lib/api';
@@ -45,11 +46,13 @@ const TABS = [
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'extension', label: 'Browser extension', icon: Puzzle },
   { id: 'brickfolio', label: 'Brickfolio', icon: Blocks },
+  { id: 'playshelf', label: 'Playshelf', icon: Gamepad2 },
   { id: 'account', label: 'Account', icon: KeyRound },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
 
-const tabsFor = (me: SelfUser) => TABS.filter((t) => t.id !== 'brickfolio' || me.integrations.brickfolio);
+const tabsFor = (me: SelfUser) =>
+  TABS.filter((t) => (t.id !== 'brickfolio' || me.integrations.brickfolio) && (t.id !== 'playshelf' || me.integrations.playshelf));
 
 function CardTitle({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
   return (
@@ -121,6 +124,7 @@ export default function Settings() {
           {tab === 'notifications' && <NotificationsSection me={me} />}
           {tab === 'extension' && <ExtensionSection />}
           {tab === 'brickfolio' && <BrickfolioSection />}
+          {tab === 'playshelf' && <PlayshelfSection />}
           {tab === 'account' && <AccountSection me={me} />}
         </div>
       </div>
@@ -632,6 +636,186 @@ function BrickfolioSection() {
         }
       >
         <p className="muted">Syncing stops. Your LEGO lists and sets stay as ordinary items you can edit or delete. Your sheet isn’t touched.</p>
+      </Modal>
+    </div>
+  );
+}
+
+function PlayshelfSection() {
+  const qc = useQueryClient();
+  const invalidate = useInvalidate();
+  const toast = useToast();
+  const { data: status, isLoading } = usePlayshelf();
+  const [editing, setEditing] = useState(false);
+  const [username, setUsername] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<'connect' | 'sync' | 'disconnect' | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+
+  useEffect(() => {
+    if (status?.connected) setUsername(status.username);
+  }, [status?.connected, status?.username]);
+
+  const done = (r: PlayshelfResponse, okMessage: string) => {
+    qc.setQueryData(keys.playshelf, r.status);
+    invalidate();
+    if (r.status.lastError) toast.error(r.status.lastError);
+    else toast.success(okMessage);
+  };
+
+  const connect = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy('connect');
+    setErrors({});
+    try {
+      const r = await put<PlayshelfResponse>('/api/integrations/playshelf', { username });
+      setEditing(false);
+      done(r, r.status.lastResult ? `Synced: ${syncSummary(r.status.lastResult)}` : 'Connected');
+    } catch (err) {
+      const f = fieldErrors(err);
+      setErrors(Object.keys(f).length ? f : { form: errorMessage(err) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const syncNow = async () => {
+    setBusy('sync');
+    try {
+      const r = await post<PlayshelfResponse>('/api/integrations/playshelf/sync');
+      done(r, r.status.lastResult ? syncSummary(r.status.lastResult) : 'Synced');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const disconnect = async () => {
+    setBusy('disconnect');
+    try {
+      const r = await del<PlayshelfResponse>('/api/integrations/playshelf');
+      qc.setQueryData(keys.playshelf, r.status);
+      invalidate();
+      setConfirmDisconnect(false);
+      setUsername('');
+      toast.success('Playshelf disconnected. Your games stay, as ordinary items.');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (isLoading || !status) return <p className="muted text-sm">Loading…</p>;
+
+  const usernameForm = (
+    <form className="stack" onSubmit={connect} noValidate>
+      <FormError message={errors.form ?? null} />
+      <Field label="Playshelf username" error={errors.username} hint="Your library needs Library Visibility set to public on your Playshelf profile.">
+        <input className="input" placeholder="Ethan" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" spellCheck={false} />
+      </Field>
+      <div className="row-wrap">
+        <Button type="submit" variant="primary" loading={busy === 'connect'} disabled={!username.trim()}>
+          {status.connected ? 'Save and sync' : 'Connect and sync'}
+        </Button>
+        {status.connected && <Button onClick={() => setEditing(false)}>Cancel</Button>}
+      </div>
+    </form>
+  );
+
+  return (
+    <div className="settings-section">
+      <div className="card card-pad stack">
+        <div>
+          <CardTitle icon={Gamepad2}>Playshelf</CardTitle>
+          <p className="muted text-sm">
+            Playshelf stays the one place you edit your games. {brand.name} mirrors your library into a Video Game Collection, with cover art, platform,
+            play status, genres, your star ratings and reviews, and your Playshelf wishlist into a Video Game Wishlist. Add a game to your library and it
+            moves here too. It syncs every hour and whenever you open one of those lists.
+          </p>
+        </div>
+        {!status.configured ? (
+          <div className="notice notice-warning" role="alert" style={{ marginBottom: 0 }}>
+            <AlertTriangle size={16} aria-hidden />
+            <span>
+              Playshelf isn’t set up on this site yet. Add <code>PLAYSHELF_SUPABASE_URL</code> and <code>PLAYSHELF_SUPABASE_ANON_KEY</code> to the site’s
+              environment variables, then come back here.
+            </span>
+          </div>
+        ) : !status.connected || editing ? (
+          usernameForm
+        ) : (
+          <>
+            {status.lastError && (
+              <div className="notice notice-warning" role="alert" style={{ marginBottom: 0 }}>
+                <AlertTriangle size={16} aria-hidden />
+                <span>{status.lastError}</span>
+              </div>
+            )}
+            <dl className="detail-facts">
+              <dt>Account</dt>
+              <dd>
+                {status.profileUrl ? (
+                  <a href={status.profileUrl} target="_blank" rel="noreferrer">
+                    {status.username} <ExternalLink size={12} aria-hidden />
+                  </a>
+                ) : (
+                  status.username
+                )}
+              </dd>
+              <dt>Last synced</dt>
+              <dd>{status.lastSuccessAt ? relativeTime(status.lastSuccessAt) : 'Not yet'}</dd>
+              {status.lastResult && (
+                <>
+                  <dt>Last change</dt>
+                  <dd>{syncSummary(status.lastResult)}</dd>
+                </>
+              )}
+            </dl>
+            <div className="row-wrap">
+              {status.collectionId && (
+                <Link className="btn btn-sm" to={`/app/lists/${status.collectionId}`}>
+                  Game collection
+                </Link>
+              )}
+              {status.wishlistId && (
+                <Link className="btn btn-sm" to={`/app/lists/${status.wishlistId}`}>
+                  Game wishlist
+                </Link>
+              )}
+            </div>
+            <div className="row-wrap">
+              <Button variant="primary" icon={<RefreshCw size={16} />} onClick={() => void syncNow()} loading={busy === 'sync'}>
+                Sync now
+              </Button>
+              <Button onClick={() => setEditing(true)}>Change account</Button>
+              <Button variant="ghost" onClick={() => setConfirmDisconnect(true)}>
+                Disconnect
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+      <p className="muted text-sm">
+        Synced games can’t be renamed, deleted or moved here; change them on Playshelf. Your own notes, where and when you got a game, what you paid and its
+        condition are kept in {brand.name}.
+      </p>
+      <Modal
+        open={confirmDisconnect}
+        onClose={() => setConfirmDisconnect(false)}
+        title="Disconnect Playshelf?"
+        size="sm"
+        footer={
+          <>
+            <Button onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+            <Button variant="danger" onClick={() => void disconnect()} loading={busy === 'disconnect'}>
+              Disconnect
+            </Button>
+          </>
+        }
+      >
+        <p className="muted">Syncing stops. Your game lists and games stay as ordinary items you can edit or delete. Playshelf isn’t touched.</p>
       </Modal>
     </div>
   );

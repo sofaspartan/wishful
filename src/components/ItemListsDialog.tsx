@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import type { Item } from '../../shared/types';
 import { useInvalidate, useWishlists } from '../lib/queries';
+import { syncSourcePlace } from '../lib/syncSource';
 import { errorMessage, put } from '../lib/api';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
@@ -58,7 +59,7 @@ export function ItemListsDialog({ item, onClose }: { item: Item | null; onClose:
         {visible.length ? (
           <div className="check-list" role="group" aria-label="Lists">
             {visible.map((w) => (
-              <label key={w.id} className="check" title={item.source && w.link ? 'Follows your Brickfolio sheet' : undefined}>
+              <label key={w.id} className="check" title={item.source && w.link ? `Follows ${syncSourcePlace(w.link.provider)}` : undefined}>
                 <input
                   type="checkbox"
                   checked={selected.includes(w.id)}

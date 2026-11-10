@@ -7,9 +7,10 @@ import { parseCsv } from '../../shared/csv';
 import { LIMITS } from '../../shared/constants';
 import { isHttpUrl } from '../../shared/schemas';
 import type { CatalogSet } from '../records';
+import { SyncError, type DesiredItem, type SyncedFields } from './syncTypes';
 
-/** A problem worth showing the user as-is (bad link, unpublished sheet, missing column…). */
-export class SyncError extends Error {}
+export { SyncError };
+export type { SyncedFields };
 
 export interface SheetRow {
   setNum: string;
@@ -192,26 +193,8 @@ export function siteAsset(siteUrl: string, path: string): string | null {
 
 // ── What each synced item should look like ──────────────────────────────────
 
-export interface SyncedFields {
-  title: string;
-  description: string;
-  imageUrl: string | null;
-  gallery: string[];
-  externalUrl: string;
-  retailer: string;
-  brand: string;
-  price: number | null;
-  currency: string;
-  category: string;
-  tags: string[];
-  model: string;
-}
-
-export interface DesiredSet {
-  key: string;
-  fields: SyncedFields;
-  /** Present when the set is on the full_sets tab. */
-  owned: { quantity: number; rating: number | null; review: string } | null;
+export interface DesiredSet extends DesiredItem {
+  /** `owned` is present when the set is on the full_sets tab. */
   inWishlist: boolean;
   inCatalog: boolean;
 }

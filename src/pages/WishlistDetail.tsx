@@ -30,6 +30,7 @@ import {
 import type { Item, OwnerClaimView, OwnerPledgeView, Priority, WishlistDetail as Detail, WishlistEntry } from '../../shared/types';
 import { PRIORITY_LABELS, PRIORITY_LAYOUTS, priorityLayout, priorityLayoutSettings, type PriorityLayout } from '../../shared/constants';
 import { keys, useMe, useStaleSync, useWishlist, useInvalidate } from '../lib/queries';
+import { linkedListNote, syncSourceName } from '../lib/syncSource';
 import { ApiError, del, errorMessage, patch, post, put } from '../lib/api';
 import { mergeSectionOrder } from '../lib/priority';
 import { PrioritySections } from '../components/PrioritySections';
@@ -369,7 +370,7 @@ function WishlistView({ detail }: { detail: Detail }) {
             {collection && <CollectionBadge outline />}
             {w.link && (
               <span className="badge badge-outline">
-                <RefreshCw aria-hidden /> Synced from Brickfolio
+                <RefreshCw aria-hidden /> Synced from {syncSourceName(w.link.provider)}
               </span>
             )}
             {w.surpriseMode && (
@@ -497,11 +498,8 @@ function WishlistView({ detail }: { detail: Detail }) {
       {isOwner && w.link && (
         <div className="notice">
           <RefreshCw size={18} aria-hidden />
-          <div style={{ flex: 1 }}>
-            This list mirrors the <strong>{w.link.tab}</strong> tab of your Brickfolio sheet. Add, remove or {w.link.tab === 'wishlist' ? 'move sets to full_sets' : 'edit sets'} in the
-            sheet; your notes and purchase details stay here.
-          </div>
-          <Link to="/app/settings?tab=brickfolio" className="btn btn-sm">
+          <div style={{ flex: 1 }}>{linkedListNote(w.link)}</div>
+          <Link to={`/app/settings?tab=${w.link.provider}`} className="btn btn-sm">
             Sync settings
           </Link>
         </div>

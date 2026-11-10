@@ -105,7 +105,7 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
 | `friend-index` | userId | `{ ids }` of everyone the user has a friendship record with (listing only) |
 | `images` | imageId | Uploaded image bytes + content type metadata |
 | `extension-tokens` | userId | `{ tokens: [{ id, secretHash, label, createdAt, lastUsedAt }] }` — connected browsers (max 10), secrets stored as SHA-256 only |
-| `integrations` | userId | Brickfolio connection: site + sheet CSV links, the two mirrored list ids, item ids per set key, last sync result and error |
+| `integrations` | userId | `{ brickfolio?, playshelf? }`. Brickfolio: site + sheet CSV links. Playshelf: profile id + username. Each also holds the two mirrored list ids, last sync result and error |
 | `integration-cache` | sha256(site URL) | Brickfolio `sets.csv` catalog (with ETag/Last-Modified), sets found through the site's Brickset proxy, and when unknown sets were last looked up |
 
 **Relationships**
@@ -139,11 +139,24 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
 * Claims and pledges reference an **entry**, never an item, and store whether
   Surprise Mode was on at the time (`surprise: true`), so turning Surprise Mode off
   later never reveals gifts reserved during it.
-* **Synced items** (Brickfolio) carry `source { provider, key, gallery, … }` and live on
-  lists that carry `link { provider }`. The sheet owns them: the API answers
-  `409 synced_item` to edits of sheet fields, deletes, Got it, moves and membership
+* **Synced items** (Brickfolio, Playshelf) carry `source { provider, key, gallery, … }` and live on
+  lists that carry `link { provider, tab }`. The source owns them: the API answers
+  `409 synced_item` to edits of synced fields, deletes, Got it, moves and membership
   changes on linked lists. Private notes and price paid / date / condition / how
-  you got it stay editable and survive syncs.
+  you got it stay editable and survive syncs. Both providers share one engine
+  (`server/integrations/mirror.ts`: locking, staleness, rate limits, add / update /
+  move / remove, membership and priorities); each provider only downloads and maps.
+* **Playshelf** (`server/integrations/playshelf.ts`, `playshelfData.ts`) reads
+  Playshelf's Supabase REST API (`profiles`, `game_library`, `wishlist`) with the
+  project's public anon key, so Playshelf's row-level security decides what's
+  visible: only profiles with Library Visibility on. Games are keyed by RAWG id; the
+  platform becomes the category; status (Playing / Completed / Backlog / Dropped),
+  "Favorite" for pinned games, other platforms and genres become tags; star rating
+  and notes become rating and review; RAWG art is requested resized. The same game
+  on two platforms is one item ×2. Wishlist priority high / medium / low maps to
+  Must have / Really want / Interested and wishlist notes become the gift-giver note.
+  The "Video Game Wishlist" list is only created once the Playshelf wishlist has
+  games in it.
 
 ## 5. Security model
 
@@ -189,7 +202,10 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
   checked against private/reserved IPv4/IPv6 ranges, socket pinned to the validated
   address, redirects re-validated (max 4), 8 s timeout, 1.5 MB cap (3 MB for
   previews). Brickfolio sheet, `sets.csv` and Brickset-proxy fetches go through the
-  same guard, and the connect form only accepts `https://` links.
+  same guard, and the connect form only accepts `https://` links. Playshelf
+  requests only ever go to the configured `PLAYSHELF_SUPABASE_URL` (users choose a
+  username, never an address), through the same guard; the anon key stays on the
+  server and the service-role key is never used.
 * **Integrations** are limited to the accounts in `INTEGRATION_ALLOWED_EMAILS`,
   checked on the server for every integration route and on each scheduled sync;
   everyone else gets 404 and never sees the Settings tab. Syncs are rate-limited
@@ -221,7 +237,10 @@ See `.env.example`. None are exposed to the browser.
 | `DATA_DIR` | No | Folder for the local `fs` driver (default `.data`) |
 | `BRAND_NAME` | No | Product name used in emails (default `Wishful`) |
 | `RATE_LIMIT_DISABLED` | No | `1` disables rate limiting (local testing only) |
-| `INTEGRATION_ALLOWED_EMAILS` | No | Comma-separated account emails allowed to connect Brickfolio. Empty = nobody |
+| `INTEGRATION_ALLOWED_EMAILS` | No | Comma-separated account emails allowed to connect Brickfolio and Playshelf. Empty = nobody |
+| `PLAYSHELF_SUPABASE_URL` | For Playshelf | Playshelf's Supabase project URL (`https://<ref>.supabase.co`) |
+| `PLAYSHELF_SUPABASE_ANON_KEY` | For Playshelf | Playshelf's public anon key (same as its `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |
+| `PLAYSHELF_SITE_URL` | No | Playshelf site address, for profile links in Settings |
 
 Email is optional. Password resets work without it through recovery codes; the
 Forgot password page only offers an emailed link when `RESEND_API_KEY` and
@@ -263,6 +282,21 @@ To reset local data, delete the `.data/` folder.
    To mirror a Brickfolio LEGO sheet, add `INTEGRATION_ALLOWED_EMAILS` with your
    account email, then connect in **Settings → Brickfolio** with the Brickfolio site
    URL and the published CSV links of the `full_sets` and `wishlist` tabs.
+   To mirror a Playshelf game library, also add `PLAYSHELF_SUPABASE_URL` and
+   `PLAYSHELF_SUPABASE_ANON_KEY` (optionally `PLAYSHELF_SITE_URL`), make sure Library
+   Visibility is public on your Playshelf profile, then connect in
+   **Settings → Playshelf** with your Playshelf username.
+   Playshelf's database, as set up in its repo, has no rule letting the anon key read
+   wishlists, so the Playshelf wishlist only comes across once Playshelf's Supabase
+   has this policy (run it in the Supabase SQL editor):
+
+   ```sql
+   create policy "Public wishlists are viewable by everyone" on wishlist
+     for select using (exists (
+       select 1 from profiles
+       where profiles.id = wishlist.user_id and profiles.library_public = true
+     ));
+   ```
 5. (Optional) Verify your sending domain in Resend so emails are delivered.
 
 Every push to the main branch redeploys; pull requests get preview deploys (they
@@ -430,6 +464,10 @@ so preview tags are written into the HTML on the way out:
   Brickfolio Google Sheet into two read-only lists, with the same photo rules as the
   Brickfolio site, ratings and reviews from the sheet, hourly and on-open syncs, and a
   Brickset lookup for sets missing from `sets.csv`.
+* Playshelf (allow-listed accounts): mirrors a public Playshelf game library into a
+  read-only "Video Game Collection" (cover art, platform, play status, genres, star
+  ratings and reviews) and its wishlist into a "Video Game Wishlist", hourly and on
+  open.
 * Spoiler warning: when an owner opens their own share link with Surprise Mode off
   and gifts have been reserved or bought, reservation status is hidden behind a
   warning until they choose to see it.

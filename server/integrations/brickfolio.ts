@@ -7,23 +7,17 @@
  * Safety: nothing is changed unless both tabs download and parse cleanly, and
  * a sync never empties everything because of an empty download.
  */
-import type { BrickfolioStatus, ItemSource, SyncResult } from '../../shared/types';
+import type { BrickfolioStatus } from '../../shared/types';
 import { DEFAULT_PREFERENCES } from '../../shared/constants';
-import { atomicUpdate, atomicUpdateExisting, db } from '../storage';
-import { conflict, notFound, HttpError } from '../http';
-import type { BrickfolioLinkRecord, CatalogCacheRecord, CatalogSet, IntegrationsDoc, ItemRecord, UserRecord, WishlistRecord } from '../records';
+import { db } from '../storage';
+import type { BrickfolioLinkRecord, CatalogCacheRecord, CatalogSet, UserRecord } from '../records';
 import { safeFetchBytes, UnsafeUrlError } from '../services/safeFetch';
-import { updateUserIndex } from '../services/auth';
-import { rateLimit } from '../services/rateLimit';
-import { newId, now, nowIso, sha256 } from '../util';
-import { createWishlist, getWishlist, linkItems, listOwnedWishlists, mutateWishlist, unlinkItems, MAX_ENTRIES_PER_LIST } from '../domain/wishlists';
-import { deleteItem, listOwnedItems, mergeOwnership, newEntry } from '../domain/items';
-import { clearEntryActivity } from '../domain/claims';
-import { integrationsAllowed } from './access';
-import { SyncError, bricksetCatalogSet, buildDesired, parseSheet, pickCatalogSets, type DesiredSet, type DesiredState, type ImageManifest } from './brickfolioData';
+import { now, sha256 } from '../util';
+import { SyncError, bricksetCatalogSet, buildDesired, parseSheet, pickCatalogSets, type DesiredState, type ImageManifest } from './brickfolioData';
+import { applyMirror, disconnectProvider, getLink, requireIntegrationAccess, runSync, saveLink, syncEveryone, type SyncOptions } from './mirror';
 
-const STALE_MS = 15 * 60_000;
-const LOCK_MS = 2 * 60_000;
+export { requireIntegrationAccess };
+
 const FETCH_HEADERS = {
   'user-agent': 'WishfulSync/1.0',
   accept: 'text/csv,application/json;q=0.9,*/*;q=0.5',
@@ -36,13 +30,8 @@ export interface BrickfolioConnectInput {
   wishlistCsvUrl: string;
 }
 
-export function requireIntegrationAccess(user: UserRecord): void {
-  // A 404 keeps the feature invisible to everyone else.
-  if (!integrationsAllowed(user.email)) throw notFound('Not found.');
-}
-
-export async function getBrickfolioLink(userId: string): Promise<BrickfolioLinkRecord | null> {
-  return (await db('integrations').get<IntegrationsDoc>(userId))?.value.brickfolio ?? null;
+export function getBrickfolioLink(userId: string): Promise<BrickfolioLinkRecord | null> {
+  return getLink(userId, 'brickfolio');
 }
 
 export function toStatus(rec: BrickfolioLinkRecord | null): BrickfolioStatus {
@@ -62,118 +51,29 @@ export function toStatus(rec: BrickfolioLinkRecord | null): BrickfolioStatus {
 
 export async function connectBrickfolio(user: UserRecord, input: BrickfolioConnectInput): Promise<{ status: BrickfolioStatus; changed: boolean }> {
   requireIntegrationAccess(user);
-  const siteUrl = new URL(input.siteUrl).origin;
-  await atomicUpdate<IntegrationsDoc>(db('integrations'), user.id, (doc) => {
-    const current = doc?.brickfolio;
-    return {
-      ...(doc ?? {}),
-      brickfolio: {
-        siteUrl,
-        fullSetsCsvUrl: input.fullSetsCsvUrl,
-        wishlistCsvUrl: input.wishlistCsvUrl,
-        collectionId: current?.collectionId ?? null,
-        wishlistId: current?.wishlistId ?? null,
-        connectedAt: current?.connectedAt ?? nowIso(),
-        lastSyncAt: current?.lastSyncAt ?? null,
-        lastSuccessAt: current?.lastSuccessAt ?? null,
-        lastError: null,
-        lastResult: current?.lastResult ?? null,
-        syncLockUntil: current?.syncLockUntil ?? null,
-      },
-    };
+  await saveLink(user.id, 'brickfolio', {
+    siteUrl: new URL(input.siteUrl).origin,
+    fullSetsCsvUrl: input.fullSetsCsvUrl,
+    wishlistCsvUrl: input.wishlistCsvUrl,
   });
   return syncBrickfolio(user);
 }
 
 /** Stop syncing. The lists and sets stay, as ordinary editable items. */
-export async function disconnectBrickfolio(user: UserRecord): Promise<void> {
-  requireIntegrationAccess(user);
-  await atomicUpdate<IntegrationsDoc>(db('integrations'), user.id, (doc) => {
-    const { brickfolio: _b, ...rest } = doc ?? {};
-    return rest;
-  });
-  for (const item of await listOwnedItems(user.id)) {
-    if (item.source?.provider !== 'brickfolio') continue;
-    await atomicUpdateExisting<ItemRecord>(db('items'), item.id, (current) => ({ ...current, source: null }));
-  }
-  for (const list of await listOwnedWishlists(user.id)) {
-    if (list.link?.provider !== 'brickfolio') continue;
-    await mutateWishlist(list.id, (w) => {
-      w.link = null;
-    });
-  }
+export function disconnectBrickfolio(user: UserRecord): Promise<void> {
+  return disconnectProvider(user, 'brickfolio');
 }
 
 /**
  * Pull the sheet and mirror it. With `ifStale`, does nothing when the last
  * sync was recent or another sync is running (used when a linked list opens).
  */
-export async function syncBrickfolio(user: UserRecord, opts: { ifStale?: boolean; skipRateLimit?: boolean } = {}): Promise<{ status: BrickfolioStatus; changed: boolean }> {
-  requireIntegrationAccess(user);
-  const existing = await getBrickfolioLink(user.id);
-  if (!existing) throw notFound('Brickfolio isn’t connected.');
-  if (opts.ifStale && existing.lastSyncAt && now().getTime() - Date.parse(existing.lastSyncAt) < STALE_MS) {
-    return { status: toStatus(existing), changed: false };
-  }
-
-  let rec: BrickfolioLinkRecord;
-  try {
-    rec = await acquireLock(user.id);
-  } catch (err) {
-    if (opts.ifStale && err instanceof HttpError && err.code === 'sync_running') return { status: toStatus(existing), changed: false };
-    throw err;
-  }
-  if (!opts.skipRateLimit) {
-    try {
-      await rateLimit('integrationSync', user.id);
-    } catch (err) {
-      await finish(user.id, {});
-      throw err;
-    }
-  }
-
-  try {
+export async function syncBrickfolio(user: UserRecord, opts: SyncOptions = {}): Promise<{ status: BrickfolioStatus; changed: boolean }> {
+  const { link, changed } = await runSync(user, 'brickfolio', opts, async (rec) => {
     const desired = await download(rec, user.preferences?.currency ?? DEFAULT_PREFERENCES.currency);
-    const outcome = await apply(user, rec, desired);
-    const changed = outcome.result.added + outcome.result.updated + outcome.result.removed + outcome.result.moved > 0;
-    const stamp = nowIso();
-    const saved = await finish(user.id, {
-      collectionId: outcome.collectionId,
-      wishlistId: outcome.wishlistId,
-      lastSyncAt: stamp,
-      lastSuccessAt: stamp,
-      lastError: null,
-      lastResult: outcome.result,
-    });
-    return { status: toStatus(saved), changed };
-  } catch (err) {
-    const message = err instanceof SyncError ? err.message : 'Something went wrong while syncing. Nothing else was changed; try again in a few minutes.';
-    if (!(err instanceof SyncError)) console.error('[brickfolio] sync failed', err);
-    const saved = await finish(user.id, { lastSyncAt: nowIso(), lastError: message });
-    return { status: toStatus(saved), changed: false };
-  }
-}
-
-async function acquireLock(userId: string): Promise<BrickfolioLinkRecord> {
-  const t = now().getTime();
-  const doc = await atomicUpdate<IntegrationsDoc>(db('integrations'), userId, (current) => {
-    const b = current?.brickfolio;
-    if (!current || !b) throw notFound('Brickfolio isn’t connected.');
-    if (b.syncLockUntil && Date.parse(b.syncLockUntil) > t) throw conflict('A sync is already running. Try again in a moment.', 'sync_running');
-    b.syncLockUntil = new Date(t + LOCK_MS).toISOString();
-    return current;
+    return apply(user, rec, desired);
   });
-  return doc.brickfolio!;
-}
-
-async function finish(userId: string, patch: Partial<BrickfolioLinkRecord>): Promise<BrickfolioLinkRecord | null> {
-  const doc = await atomicUpdate<IntegrationsDoc>(db('integrations'), userId, (current) => {
-    // Disconnected while syncing: leave it disconnected.
-    if (!current?.brickfolio) return current ?? {};
-    current.brickfolio = { ...current.brickfolio, ...patch, syncLockUntil: null };
-    return current;
-  });
-  return doc.brickfolio ?? null;
+  return { status: toStatus(link), changed };
 }
 
 // ── Downloading ─────────────────────────────────────────────────────────────
@@ -302,210 +202,31 @@ async function download(rec: BrickfolioLinkRecord, currency: string): Promise<De
 
 // ── Applying ────────────────────────────────────────────────────────────────
 
-type Tab = 'full_sets' | 'wishlist';
+const listArt = (tab: 'full_sets' | 'wishlist') => ({
+  title: tab === 'full_sets' ? 'LEGO Collection' : 'LEGO Wishlist',
+  description: 'Synced from my Brickfolio sheet.',
+  kind: tab === 'full_sets' ? ('collection' as const) : ('wishlist' as const),
+  visibility: 'private' as const,
+  accentColor: '#b8862d',
+  coverArt: { icon: 'brick' as const, backdrop: tab === 'full_sets' ? ('blush' as const) : ('sky' as const) },
+});
 
-async function ensureList(user: UserRecord, id: string | null, tab: Tab): Promise<WishlistRecord> {
-  const current = id ? await getWishlist(id) : null;
-  if (current && current.ownerId === user.id) {
-    if (current.link?.provider === 'brickfolio' && current.link.tab === tab) return current;
-    return mutateWishlist(current.id, (w) => {
-      w.link = { provider: 'brickfolio', tab };
-    });
-  }
-  const created = await createWishlist(user, {
-    title: tab === 'full_sets' ? 'LEGO Collection' : 'LEGO Wishlist',
-    description: 'Synced from my Brickfolio sheet.',
-    kind: tab === 'full_sets' ? 'collection' : 'wishlist',
-    visibility: 'private',
-    accentColor: '#b8862d',
-    coverArt: { icon: 'brick', backdrop: tab === 'full_sets' ? 'blush' : 'sky' },
-  });
-  return mutateWishlist(created.id, (w) => {
-    w.link = { provider: 'brickfolio', tab };
-  });
-}
-
-/** The synced fields of an item, for change detection. */
-function snapshot(item: ItemRecord) {
-  return JSON.stringify([
-    item.title,
-    item.description,
-    item.imageUrl,
-    item.externalUrl,
-    item.retailer,
-    item.brand,
-    item.price,
-    item.currency,
-    item.category,
-    item.tags,
-    item.metadata.model ?? '',
-    item.source?.gallery ?? [],
-    item.owned ? [item.owned.quantity, item.owned.rating ?? null, item.owned.review ?? ''] : null,
-  ]);
-}
-
-function withSynced(current: ItemRecord, d: DesiredSet, stamp: string): ItemRecord {
-  const f = d.fields;
-  const source: ItemSource = { provider: 'brickfolio', key: d.key, gallery: f.gallery, syncedAt: stamp };
-  let owned = current.owned ?? null;
-  if (d.owned) {
-    const base = mergeOwnership(current.owned, {});
-    // A set that just arrived from the wishlist tab was got today.
-    const acquiredOn = current.owned ? base.acquiredOn : current.createdAt === stamp ? null : stamp.slice(0, 10);
-    owned = { ...base, acquiredOn, quantity: d.owned.quantity, rating: d.owned.rating, review: d.owned.review };
-  } else {
-    owned = null;
-  }
-  return {
-    ...current,
-    type: 'product',
-    title: f.title,
-    description: f.description,
-    imageUrl: f.imageUrl,
-    externalUrl: f.externalUrl,
-    retailer: f.retailer,
-    brand: f.brand,
-    price: f.price,
-    currency: f.currency,
-    category: f.category,
-    tags: f.tags,
-    metadata: { ...current.metadata, model: f.model },
-    owned,
-    source,
-  };
-}
-
-function blankItem(user: UserRecord, stamp: string): ItemRecord {
-  return {
-    id: newId(),
-    ownerId: user.id,
-    type: 'product',
-    title: '',
-    description: '',
-    imageUrl: null,
-    externalUrl: null,
-    retailer: '',
-    brand: '',
-    price: null,
-    currency: user.preferences?.currency ?? DEFAULT_PREFERENCES.currency,
-    category: '',
-    tags: [],
-    notes: '',
-    metadata: {},
-    owned: null,
-    wishlistIds: [],
-    createdBy: user.id,
-    createdAt: stamp,
-    updatedAt: stamp,
-  };
-}
-
-async function apply(user: UserRecord, rec: BrickfolioLinkRecord, desired: DesiredState): Promise<{ result: SyncResult; collectionId: string; wishlistId: string }> {
-  const stamp = nowIso();
-  const synced = (await listOwnedItems(user.id)).filter((i) => i.source?.provider === 'brickfolio');
-  const byKey = new Map(synced.map((i) => [i.source!.key, i]));
-  if (desired.sets.size === 0 && synced.length > 0) {
-    throw new SyncError('Both sheet tabs came back empty, so nothing was changed. If you really cleared them, disconnect Brickfolio in Settings instead.');
-  }
-  if (desired.collection.length > MAX_ENTRIES_PER_LIST || desired.wishlist.length > MAX_ENTRIES_PER_LIST) {
-    throw new SyncError(`A list can hold up to ${MAX_ENTRIES_PER_LIST} items, so the sheet is too big to sync.`);
-  }
-
-  const collection = await ensureList(user, rec.collectionId, 'full_sets');
-  const wishlist = await ensureList(user, rec.wishlistId, 'wishlist');
-  const result: SyncResult = { added: 0, updated: 0, removed: 0, moved: 0, notInCatalog: [] };
-
-  // Sets no longer on either tab.
-  for (const [key, item] of byKey) {
-    if (desired.sets.has(key)) continue;
-    await deleteItem(item);
-    byKey.delete(key);
-    result.removed++;
-  }
-
-  // New and changed sets.
-  const idFor = new Map<string, string>();
-  const created: ItemRecord[] = [];
-  for (const d of desired.sets.values()) {
-    if (!d.inCatalog) result.notInCatalog.push(d.key);
-    const current = byKey.get(d.key);
-    if (!current) {
-      const lists = [...(d.owned ? [collection.id] : []), ...(d.inWishlist ? [wishlist.id] : [])];
-      const item = { ...withSynced(blankItem(user, stamp), d, stamp), wishlistIds: lists };
-      created.push(item);
-      idFor.set(d.key, item.id);
-      continue;
-    }
-    idFor.set(d.key, current.id);
-    const next = withSynced(current, d, stamp);
-    if (snapshot(next) === snapshot(current)) continue;
-    if (!current.owned && next.owned && wishlist.entries.some((e) => e.itemId === current.id)) result.moved++;
-    else result.updated++;
-    await atomicUpdateExisting<ItemRecord>(db('items'), current.id, (fresh) => ({ ...withSynced(fresh, d, stamp), updatedAt: stamp }));
-  }
-  await Promise.all(created.map((item) => db('items').set(item.id, item, { onlyIfNew: true })));
-  if (created.length) {
-    await updateUserIndex(user.id, (idx) => {
-      idx.itemIds.unshift(...created.map((i) => i.id));
-    });
-  }
-  result.added = created.length;
-
-  // List membership, mirroring each tab. Entries for unsynced items are left alone.
-  const syncedIds = new Set(idFor.values());
-  const createdIds = new Set(created.map((i) => i.id));
-  for (const [list, keys] of [
-    [collection, desired.collection],
-    [wishlist, desired.wishlist],
-  ] as const) {
-    const want = keys.map((k) => idFor.get(k)!).filter(Boolean);
-    const wantSet = new Set(want);
-    let removedEntries: string[] = [];
-    let leaving: string[] = [];
-    let joining: string[] = [];
-    await mutateWishlist(list.id, (w) => {
-      // May run more than once if the list changed underneath us.
-      removedEntries = [];
-      leaving = [];
-      const present = new Set<string>();
-      w.entries = w.entries.filter((e) => {
-        if (syncedIds.has(e.itemId) && !wantSet.has(e.itemId)) {
-          removedEntries.push(e.id);
-          leaving.push(e.itemId);
-          return false;
-        }
-        present.add(e.itemId);
-        return true;
-      });
-      const fresh = want.filter((id) => !present.has(id));
-      w.entries.unshift(...fresh.map((id) => newEntry(id, user.id)));
-      joining = fresh.filter((id) => !createdIds.has(id));
-    });
-    await clearEntryActivity(list.id, removedEntries);
-    if (leaving.length) await unlinkItems(leaving, list.id);
-    if (joining.length) await linkItems(joining, list.id);
-  }
-
-  return { result, collectionId: collection.id, wishlistId: wishlist.id };
+async function apply(user: UserRecord, rec: BrickfolioLinkRecord, desired: DesiredState) {
+  const { result, listIds } = await applyMirror(
+    user,
+    'brickfolio',
+    desired.sets,
+    [
+      { tab: 'full_sets', id: rec.collectionId, keys: desired.collection, create: listArt('full_sets') },
+      { tab: 'wishlist', id: rec.wishlistId, keys: desired.wishlist, create: listArt('wishlist') },
+    ],
+    'Both sheet tabs came back empty, so nothing was changed. If you really cleared them, disconnect Brickfolio in Settings instead.',
+  );
+  for (const d of desired.sets.values()) if (!d.inCatalog) result.notInCatalog.push(d.key);
+  return { result, collectionId: listIds[0], wishlistId: listIds[1] };
 }
 
 /** Hourly: every connected account that's still allowed. */
-export async function syncAllBrickfolio(): Promise<{ synced: number; failed: number }> {
-  let synced = 0;
-  let failed = 0;
-  for (const userId of await db('integrations').list()) {
-    const doc = (await db('integrations').get<IntegrationsDoc>(userId))?.value;
-    if (!doc?.brickfolio) continue;
-    const user = (await db('users').get<UserRecord>(userId))?.value;
-    if (!user || !integrationsAllowed(user.email)) continue;
-    try {
-      const { status } = await syncBrickfolio(user, { skipRateLimit: true });
-      if (status.lastError) failed++;
-      else synced++;
-    } catch (err) {
-      failed++;
-      console.error('[brickfolio] scheduled sync failed', err);
-    }
-  }
-  return { synced, failed };
+export function syncAllBrickfolio(): Promise<{ synced: number; failed: number }> {
+  return syncEveryone('brickfolio', async (user) => (await syncBrickfolio(user, { skipRateLimit: true })).status);
 }

@@ -67,6 +67,7 @@ export const COVER_ICONS = [
   'mug',
   'record',
   'brick',
+  'controller',
   'idea',
   'plane',
 ] as const;
@@ -182,7 +183,7 @@ export interface SelfUser extends PublicUser {
   /** When the current recovery code was made; null if the account has none yet. */
   recoveryCodeCreatedAt: string | null;
   /** Site integrations this account may connect (enabled per account on the server). */
-  integrations: { brickfolio: boolean };
+  integrations: { brickfolio: boolean; playshelf: boolean };
   createdAt: string;
   updatedAt: string;
 }
@@ -233,8 +234,9 @@ export interface Item {
   updatedAt: string;
 }
 
-export const SYNC_PROVIDERS = ['brickfolio'] as const;
+export const SYNC_PROVIDERS = ['brickfolio', 'playshelf'] as const;
 export type SyncProvider = (typeof SYNC_PROVIDERS)[number];
+export const SYNC_PROVIDER_NAMES: Record<SyncProvider, string> = { brickfolio: 'Brickfolio', playshelf: 'Playshelf' };
 
 export interface ItemSource {
   provider: SyncProvider;
@@ -245,10 +247,10 @@ export interface ItemSource {
   syncedAt: string;
 }
 
-/** A list mirrored from one tab of a synced source. */
+/** A list mirrored from one part of a synced source: a Brickfolio sheet tab, the Playshelf library or wishlist. */
 export interface ListLink {
   provider: SyncProvider;
-  tab: 'full_sets' | 'wishlist';
+  tab: 'full_sets' | 'wishlist' | 'library';
 }
 
 export interface SyncResult {
@@ -267,6 +269,22 @@ export interface BrickfolioStatus {
   siteUrl: string;
   fullSetsCsvUrl: string;
   wishlistCsvUrl: string;
+  collectionId: string | null;
+  wishlistId: string | null;
+  lastSyncAt: string | null;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  lastResult: SyncResult | null;
+}
+
+/** The Playshelf connection as shown in Settings. */
+export interface PlayshelfStatus {
+  /** The server has the Playshelf database address and public key. */
+  configured: boolean;
+  connected: boolean;
+  username: string;
+  /** Link to the Playshelf profile, when the site address is configured. */
+  profileUrl: string | null;
   collectionId: string | null;
   wishlistId: string | null;
   lastSyncAt: string | null;
