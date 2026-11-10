@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useMe } from './lib/queries';
+import { rememberDeviceAccount } from './lib/deviceAccounts';
 import { ErrorBoundary, PageLoader } from './components/ui/misc';
 import { AppLayout } from './components/AppLayout';
 import { RecoveryCodeDialog } from './components/RecoveryCodeDialog';
@@ -43,6 +44,14 @@ function GuestOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RememberDeviceAccount() {
+  const { data: user } = useMe();
+  useEffect(() => {
+    if (user) rememberDeviceAccount(user.id);
+  }, [user]);
+  return null;
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -62,6 +71,7 @@ export function App() {
         Skip to content
       </a>
       <ScrollToTop />
+      <RememberDeviceAccount />
       <RecoveryCodeDialog />
       <Suspense fallback={<PageLoader />}>
         <Routes>

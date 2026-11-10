@@ -60,7 +60,9 @@ export default function Privacy() {
           <p>
             While Surprise Mode is on for a list, our servers never tell its owner what has been reserved or bought, or by whom — and
             reservations made during Surprise Mode stay hidden even if it’s turned off later. This is enforced by the server, not just hidden on
-            screen, and we never send owners notifications that would spoil a gift.
+            screen, and we never send owners notifications that would spoil a gift. Guests do see what’s been taken so they don’t buy the
+            same thing twice, so if you open your own share link while signed out, we hide it on devices you’ve signed in on and warn you
+            first.
           </p>
 
           <h2>Who can see your lists</h2>

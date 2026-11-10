@@ -41,7 +41,9 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
     const frame = requestAnimationFrame(() => {
       const root = ref.current;
       if (!root) return;
-      const target = root.querySelector<HTMLElement>('[data-autofocus]') ?? root.querySelector<HTMLElement>(`.modal-body ${FOCUSABLE}`) ?? root;
+      // Without an explicit target, focus the dialog itself: a focused field far up a long form
+      // makes some browsers scroll back to it while the user scrolls down.
+      const target = root.querySelector<HTMLElement>('[data-autofocus]') ?? root;
       target.focus({ preventScroll: true });
     });
 
@@ -55,7 +57,10 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
         if (!nodes.length) return;
         const first = nodes[0];
         const last = nodes[nodes.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
+        if (document.activeElement === ref.current) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        } else if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last.focus();
         } else if (!e.shiftKey && document.activeElement === last) {

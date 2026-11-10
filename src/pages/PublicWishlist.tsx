@@ -9,6 +9,7 @@ import { ApiError, errorMessage, post } from '../lib/api';
 import { countdownLabel, formatDate, possessive, relativeTime } from '../lib/format';
 import { forgetClaim, getStoredClaim, importManageParam, manageLink, saveClaim, type StoredClaim } from '../lib/claimTokens';
 import { recordVisit } from '../lib/visited';
+import { signedInOnThisDevice } from '../lib/deviceAccounts';
 import { brand } from '../config/brand';
 import { Logo } from '../components/Logo';
 import { ItemCard, ItemCardSkeleton } from '../components/ItemCard';
@@ -210,11 +211,15 @@ function readSpoilersShown(listId: string): boolean {
 
 function PublicListView({ view, token }: { view: PublicWishlistView; token: string }) {
   const { wishlist: w, owner, viewer } = view;
+  const { data: me } = useMe();
   const [spoilersShown, setSpoilersShown] = useState(() => readSpoilersShown(w.id));
+  const hasGiftActivity = view.entries.some((e) => (e.status !== null && e.status !== 'available') || e.pledges.length > 0);
   // Only reachable when the API already shares claims with the owner (Surprise Mode off).
-  const giftActivity =
-    viewer.isOwner && !viewer.claimsHidden && view.entries.some((e) => (e.status !== null && e.status !== 'available') || e.pledges.length > 0);
-  const spoilersHidden = giftActivity && !spoilersShown;
+  const giftActivity = viewer.isOwner && !viewer.claimsHidden && hasGiftActivity;
+  // Guests see gift activity, so an owner who opens their own link signed out would too.
+  const ownerSignedOut = !viewer.isOwner && !me && signedInOnThisDevice(owner.id);
+  const guestSpoilers = ownerSignedOut && hasGiftActivity;
+  const spoilersHidden = (giftActivity || guestSpoilers) && !spoilersShown;
   const entries = useMemo(
     () => (spoilersHidden ? view.entries.map((e) => ({ ...e, status: e.status === null ? null : ('available' as const), claim: null, pledges: [] })) : view.entries),
     [view.entries, spoilersHidden],
@@ -315,7 +320,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
               {collection
                 ? 'What you paid stays private.'
                 : viewer.claimsHidden
-                  ? 'Surprise Mode is on, so reservations are hidden from you here too.'
+                  ? 'Surprise Mode is on, so reservations are hidden from you here too while you’re signed in.'
                   : giftActivity
                     ? 'Surprise Mode is off, so reservation details can show here.'
                     : 'Reservation details are visible to you because Surprise Mode is off.'}
@@ -344,6 +349,37 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {guestSpoilers && (
+        <div className="public-hero" style={{ marginBottom: 'var(--s-4)' }}>
+          <div className="notice notice-warning" role="status" style={{ marginBottom: 0 }}>
+            {spoilersHidden ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+            <div style={{ flex: 1 }}>
+              {spoilersHidden ? (
+                <>
+                  <strong>Is this your list, {firstName}?</strong> You’re signed out, so this page shows what guests see, including what’s been
+                  reserved and bought. We’ve hidden that so you don’t spoil your own surprises. Shopping for {firstName}? Show what’s taken so
+                  you don’t double up.
+                </>
+              ) : (
+                <>
+                  <strong>Showing what’s been reserved and bought.</strong> If this is your list, this could spoil a surprise.
+                </>
+              )}
+            </div>
+            <div className="row-wrap">
+              {spoilersHidden && (
+                <Link to={`/login?next=${encodeURIComponent(`/s/${token}`)}`} className="btn btn-sm">
+                  Sign in
+                </Link>
+              )}
+              <button type="button" className="btn btn-sm" onClick={() => toggleSpoilers(spoilersHidden)}>
+                {spoilersHidden ? 'Show what’s taken' : 'Hide again'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -134,7 +134,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
             onChange={(e) => setTitle(e.target.value)}
             placeholder={collection ? 'Vinyl records' : 'Birthday 2027'}
             maxLength={120}
-            data-autofocus
+            data-autofocus={!wishlist || undefined}
             required
           />
         </Field>

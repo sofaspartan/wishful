@@ -152,7 +152,7 @@ export function ShareDialog({ open, onClose, wishlist, ownerName }: { open: bool
             ) : (
               <FormNote icon={<Gift size={16} aria-hidden />}>
                 {wishlist.surpriseMode
-                  ? 'Surprise Mode is on — you won’t see who reserved or bought what.'
+                  ? 'Surprise Mode is on — you won’t see who reserved or bought what while you’re signed in. Previewing this link signed out shows it.'
                   : 'Surprise Mode is off — you’ll see who reserved items.'}{' '}
                 Change this in Gift settings.
               </FormNote>
@@ -247,7 +247,7 @@ export function GiftSettingsDialog({ open, onClose, wishlist }: { open: boolean;
         <div className="card card-pad" style={{ padding: '4px 16px', background: surpriseMode ? 'var(--accent-soft)' : undefined, borderColor: surpriseMode ? 'transparent' : undefined }}>
           <SwitchRow
             title="Surprise Mode"
-            description="Hide who reserved or bought what — from you and your editors. Gifts reserved while it's on stay hidden even if you turn it off later."
+            description="Hide who reserved or bought what — from you and your editors, whenever you're signed in. Gifts reserved while it's on stay hidden even if you turn it off later. Guests always see what's taken, so don't open your own link signed out."
             checked={surpriseMode}
             onChange={setSurpriseMode}
           />

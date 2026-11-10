@@ -509,6 +509,7 @@ function WishlistView({ detail }: { detail: Detail }) {
           <Gift size={18} aria-hidden />
           <div>
             <strong>Surprise Mode is on.</strong> Reservations and purchases are hidden from {isOwner ? 'you' : 'the owner and editors'} so gifts stay a surprise.
+            {isOwner && ' Guests need to see what’s taken, so opening your share link signed out (or in a private window) will show it.'}
           </div>
         </div>
       )}

@@ -158,6 +158,8 @@
 
 ## Spoiler warning
 - [x] Owner viewing their own public page with Surprise Mode off: reserved and bought status hidden behind a spoiler warning until they choose to show it (remembered for the browser session)
+- [x] Signed-out owner: the device remembers accounts that signed in on it. If one of them opens their own share link while signed out, gift activity is hidden behind an "Is this your list?" banner with Sign in and "Show what's taken" (for someone else shopping on the same device)
+- [x] Surprise Mode notes (list page, gift settings, share dialog, privacy page) explain that guests see what's taken, so opening your own link signed out shows it
 
 ## Ratings & reviews
 - [x] 1–5 stars and a written review on owned items (edit modal, cards, item detail)

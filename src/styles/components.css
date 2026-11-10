@@ -806,6 +806,9 @@
   animation: sheet-in var(--dur-slow) var(--ease);
   padding-bottom: var(--safe-bottom);
 }
+.modal:focus {
+  outline: none;
+}
 .modal::before {
   /* grab handle hint on mobile */
   content: '';
