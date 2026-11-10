@@ -1,5 +1,6 @@
-import type { PublicEntry, PublicProfileView, PublicWishlistView } from '../../shared/types';
+import type { PublicEntry, PublicProfileView, PublicWishlistView, Visibility } from '../../shared/types';
 import { isCollection } from '../../shared/constants';
+import { profileVisibilityOf } from '../../shared/profileVisibility';
 import { db, getMany } from '../storage';
 import { HttpError, notFound } from '../http';
 import type { ItemRecord, ShareRecord, UserRecord, WishlistRecord } from '../records';
@@ -173,20 +174,35 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
   };
 }
 
-/** A user's public profile and their explicitly public lists. Unlisted and private lists never appear. */
-export async function buildPublicProfile(rawUsername: string): Promise<PublicProfileView> {
+/**
+ * A user's profile page. Always returns the person when the username exists.
+ * Which lists appear depends on their profile visibility and the viewer:
+ *  - public: anyone sees public lists
+ *  - friends: friends (and the owner) see friends + public lists; others see none
+ *  - private: nobody sees lists here (friends still use the in-app friend profile)
+ */
+export async function buildPublicProfile(rawUsername: string, viewer: UserRecord | null): Promise<PublicProfileView> {
   const username = rawUsername.toLowerCase();
   const idx = await db('username-index').get<{ userId: string }>(username);
   const user = idx ? (await db('users').get<UserRecord>(idx.value.userId))?.value : null;
-  if (!user || !user.publicProfile) throw notFound('This profile is private or does not exist.');
-  const index = await getUserIndex(user.id);
-  const lists = (await getMany<WishlistRecord>(db('wishlists'), index.wishlistIds)).filter(
-    (w) => w.ownerId === user.id && w.visibility === 'public' && !w.archivedAt && w.shareToken,
-  );
-  const recipients = await resolveRecipients(lists);
-  return {
-    user: { id: user.id, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl, bio: user.bio },
-    wishlists: lists.map((w) => ({
+  if (!user) throw notFound('This profile doesn’t exist.');
+
+  const visibility = profileVisibilityOf(user);
+  const isSelf = Boolean(viewer && viewer.id === user.id);
+  const isFriend = Boolean(viewer && !isSelf && (await areFriends(viewer.id, user.id)));
+  const canSeeLists =
+    isSelf || visibility === 'public' || (visibility === 'friends' && isFriend);
+
+  let wishlists: PublicProfileView['wishlists'] = [];
+  if (canSeeLists) {
+    const index = await getUserIndex(user.id);
+    const allowed = new Set<Visibility>(['public']);
+    if (isSelf || isFriend) allowed.add('friends');
+    const lists = (await getMany<WishlistRecord>(db('wishlists'), index.wishlistIds)).filter(
+      (w) => w.ownerId === user.id && allowed.has(w.visibility) && !w.archivedAt && w.shareToken,
+    );
+    const recipients = await resolveRecipients(lists);
+    wishlists = lists.map((w) => ({
       kind: w.kind ?? 'wishlist',
       title: w.title,
       description: w.description,
@@ -199,6 +215,19 @@ export async function buildPublicProfile(rawUsername: string): Promise<PublicPro
       itemCount: w.entries.length,
       updatedAt: w.updatedAt,
       recipients: publicPeople(recipients.get(w.id) ?? []),
-    })),
+    }));
+  }
+
+  return {
+    user: {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      bio: visibility === 'private' && !isSelf ? '' : user.bio,
+    },
+    profileVisibility: visibility,
+    viewer: { isSelf, isFriend, canSeeLists },
+    wishlists,
   };
 }

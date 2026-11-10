@@ -11,6 +11,7 @@ import {
   resetPasswordSchema,
 } from '../../shared/schemas';
 import { DEFAULT_PREFERENCES } from '../../shared/constants';
+import { profileVisibilityOf } from '../../shared/profileVisibility';
 import { atomicUpdate, atomicUpdateExisting, db, images, isLocalDev } from '../storage';
 import { HttpError, badRequest, json, readJson, unauthorized, type Router } from '../http';
 import type { InviteRecord, ResetRecord, UserRecord } from '../records';
@@ -132,7 +133,7 @@ export function registerAuthRoutes(router: Router) {
       displayName: input.displayName,
       avatarUrl: null,
       bio: '',
-      publicProfile: false,
+      profileVisibility: 'private',
       preferences: DEFAULT_PREFERENCES,
       passwordHash: await hashPassword(input.password),
       sessionsValidAfter: new Date(0).toISOString(),
@@ -295,7 +296,8 @@ export function registerAuthRoutes(router: Router) {
         username: input.username ?? u.username,
         bio: input.bio ?? u.bio,
         avatarUrl: input.avatarUrl !== undefined ? input.avatarUrl : u.avatarUrl,
-        publicProfile: input.publicProfile ?? u.publicProfile,
+        profileVisibility: input.profileVisibility ?? profileVisibilityOf(u),
+        publicProfile: undefined,
         updatedAt: nowIso(),
       };
     });

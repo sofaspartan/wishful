@@ -3,7 +3,7 @@
  * hashes, claim token hashes) and must be mapped through the serializers in
  * `server/serialize.ts` before being returned to any client.
  */
-import type { Box, ClaimStatus, Item, ListKind, PledgeRole, SyncResult, UserPreferences, Wishlist } from '../shared/types';
+import type { Box, ClaimStatus, Item, ListKind, PledgeRole, ProfileVisibility, SyncResult, UserPreferences, Wishlist } from '../shared/types';
 
 export interface UserRecord {
   id: string;
@@ -12,7 +12,10 @@ export interface UserRecord {
   displayName: string;
   avatarUrl: string | null;
   bio: string;
-  publicProfile: boolean;
+  /** Current account visibility. Older accounts may only have legacy `publicProfile`. */
+  profileVisibility?: ProfileVisibility;
+  /** @deprecated Prefer `profileVisibility`. Kept so existing blobs still load. */
+  publicProfile?: boolean;
   preferences: UserPreferences;
   passwordHash: string;
   /** Sessions issued before this instant are invalid (password change / reset). */

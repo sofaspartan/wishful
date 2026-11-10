@@ -61,7 +61,7 @@ describe('share images', () => {
     const { agent, user } = await signUp();
     const site = await og('/og/site.png');
     expect(same((await og(`/og/profile/${user.username}.png`)).bytes, site.bytes)).toBe(true);
-    await agent.patch('/api/account/profile', { publicProfile: true });
+    await agent.patch('/api/account/profile', { profileVisibility: 'public' });
     const card = await og(`/og/profile/${user.username}.png`);
     expect(isPng(card.bytes)).toBe(true);
     expect(same(card.bytes, site.bytes)).toBe(false);

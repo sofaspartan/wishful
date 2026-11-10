@@ -1,4 +1,4 @@
-import { friendRequestSchema, idSchema } from '../../shared/schemas';
+import { friendRequestSchema, idSchema, peopleSearchSchema } from '../../shared/schemas';
 import { db } from '../storage';
 import { json, notFound, readJson, type Router } from '../http';
 import type { UserRecord } from '../records';
@@ -8,7 +8,7 @@ import { sendEmail } from '../services/email';
 import { rateLimit } from '../services/rateLimit';
 import { toSelfUser } from '../serialize';
 import { appUrl } from '../util';
-import { acceptFriendRequest, friendProfile, friendsOverview, removeFriendship, sendFriendRequest } from '../domain/friends';
+import { acceptFriendRequest, friendProfile, friendsOverview, removeFriendship, searchPeople, sendFriendRequest } from '../domain/friends';
 import { BRAND_NAME } from '../brand';
 
 const FRIENDS_LINK = '/app/friends';
@@ -46,6 +46,14 @@ export function registerFriendRoutes(router: Router) {
   router.get('/api/friends', async (ctx) => {
     const user = await requireUser(ctx);
     return json(await friendsOverview(user.id));
+  });
+
+  router.get('/api/friends/search', async (ctx) => {
+    const user = await requireUser(ctx);
+    const url = new URL(ctx.req.url);
+    const parsed = peopleSearchSchema.safeParse({ q: url.searchParams.get('q') ?? '' });
+    if (!parsed.success) return json({ people: [] });
+    return json({ people: await searchPeople(user.id, parsed.data.q) });
   });
 
   router.post('/api/friends/requests', async (ctx) => {

@@ -21,6 +21,7 @@ import {
   ITEM_TYPES,
   LIST_KINDS,
   PRIORITIES,
+  PROFILE_VISIBILITIES,
   VISIBILITIES,
 } from './types';
 import { LIMITS } from './constants';
@@ -94,6 +95,7 @@ const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a hex colour like
 
 export const prioritySchema = z.enum(PRIORITIES);
 export const visibilitySchema = z.enum(VISIBILITIES);
+export const profileVisibilitySchema = z.enum(PROFILE_VISIBILITIES);
 export const itemTypeSchema = z.enum(ITEM_TYPES);
 export const collaboratorRoleSchema = z.enum(COLLABORATOR_ROLES);
 export const listKindSchema = z.enum(LIST_KINDS);
@@ -153,7 +155,11 @@ export const profileUpdateSchema = z.object({
   username: usernameSchema.optional(),
   bio: z.string().trim().max(LIMITS.bio).optional(),
   avatarUrl: optionalImageUrlSchema.optional(),
-  publicProfile: z.boolean().optional(),
+  profileVisibility: profileVisibilitySchema.optional(),
+});
+
+export const peopleSearchSchema = z.object({
+  q: z.string().trim().min(1, 'Type a name or username').max(40),
 });
 
 export const wishlistSettingsSchema = z.object({

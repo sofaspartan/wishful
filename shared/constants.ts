@@ -9,6 +9,7 @@ import type {
   ListKind,
   Priority,
   UserPreferences,
+  ProfileVisibility,
   Visibility,
   WishlistSettings,
 } from './types';
@@ -125,6 +126,21 @@ export const VISIBILITY_DESCRIPTIONS: Record<Visibility, string> = {
   public: 'Shown on your public profile and to your friends.',
 };
 
+export const PROFILE_VISIBILITY_LABELS: Record<ProfileVisibility, string> = {
+  public: 'Public',
+  friends: 'Friends',
+  private: 'Private',
+};
+
+export const PROFILE_VISIBILITY_DESCRIPTIONS: Record<ProfileVisibility, string> = {
+  public: 'Anyone can find you and see your public lists on your profile.',
+  friends: 'People can find you in search. Only friends see the lists you share with them.',
+  private: 'You won’t appear in search. Visitors to your profile won’t see any lists.',
+};
+
+/** Profiles that show up when someone searches for people on Friends. */
+export const isDiscoverableProfile = (v: ProfileVisibility): boolean => v === 'public' || v === 'friends';
+
 /** Accent colours offered for wishlists. Values must be valid `#rrggbb`. */
 export const ACCENT_COLORS = [
   { name: 'Terracotta', value: '#c0583a' },
@@ -190,9 +206,14 @@ export function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
 }
 
+/** First word of a display name — used for bylines and “made by”, not for account identity. */
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? '';
+}
+
 /**
  * Who to show under “For …”. Empty means the list is just the owner's (no line).
- * When `includeOwner` is set, the owner leads the group alongside the other people.
+ * When `includeOwner` is set, the owner leads the group alongside the other people (first name only).
  */
 export function peopleForList(
   recipients: Array<{ name: string; avatarUrl: string | null; userId?: string | null }>,
@@ -202,7 +223,7 @@ export function peopleForList(
   if (!recipients.length) return [];
   const others = recipients.map((r) => ({ name: r.name, avatarUrl: r.avatarUrl, userId: r.userId ?? null }));
   if (!includeOwner) return others;
-  return [{ name: owner.displayName, avatarUrl: owner.avatarUrl, userId: owner.id ?? null }, ...others];
+  return [{ name: firstName(owner.displayName) || owner.displayName, avatarUrl: owner.avatarUrl, userId: owner.id ?? null }, ...others];
 }
 
 /** "Ava’s", "Ava & Leo’s", "Chris’". */

@@ -17,6 +17,10 @@ export type ItemOrder = (typeof ITEM_ORDERS)[number];
 export const VISIBILITIES = ['private', 'friends', 'unlisted', 'public'] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
 
+/** Who can find your profile and see lists on it. Independent of each list’s own visibility. */
+export const PROFILE_VISIBILITIES = ['public', 'friends', 'private'] as const;
+export type ProfileVisibility = (typeof PROFILE_VISIBILITIES)[number];
+
 export const COLLABORATOR_ROLES = ['viewer', 'editor'] as const;
 export type CollaboratorRole = (typeof COLLABORATOR_ROLES)[number];
 export type AccessRole = 'owner' | CollaboratorRole;
@@ -316,7 +320,8 @@ export interface PublicUser {
 export interface SelfUser extends PublicUser {
   email: string;
   bio: string;
-  publicProfile: boolean;
+  /** Who can find this profile and see lists on `/u/:username`. */
+  profileVisibility: ProfileVisibility;
   preferences: UserPreferences;
   /** When the current recovery code was made; null if the account has none yet. */
   recoveryCodeCreatedAt: string | null;
@@ -475,6 +480,8 @@ export interface ListPerson {
   avatarUrl: string | null;
   /** Only for the owner and the people the list is shared with. */
   userId: string | null;
+  /** When linked to an account — used for `/u/:username` profile links. */
+  username?: string | null;
 }
 
 export interface Wishlist {
@@ -618,7 +625,7 @@ export interface PublicWishlistView {
     updatedAt: string;
   };
   owner: PublicUser & { bio: string };
-  recipients: Omit<ListPerson, 'userId'>[];
+  recipients: Array<Omit<ListPerson, 'userId'>>;
   entries: PublicEntry[];
   viewer: {
     /** The signed-in viewer owns (or edits) this list, or it's made for them. */
@@ -632,6 +639,13 @@ export interface PublicWishlistView {
 
 export interface PublicProfileView {
   user: PublicUser & { bio: string };
+  profileVisibility: ProfileVisibility;
+  viewer: {
+    isSelf: boolean;
+    isFriend: boolean;
+    /** Lists are included for this viewer under the profile’s visibility rules. */
+    canSeeLists: boolean;
+  };
   wishlists: Array<{
     kind: ListKind;
     title: string;
@@ -646,6 +660,13 @@ export interface PublicProfileView {
     updatedAt: string;
     recipients: Omit<ListPerson, 'userId'>[];
   }>;
+}
+
+/** A person found via Friends → search (discoverable profiles only). */
+export interface PeopleSearchHit {
+  user: PublicUser;
+  profileVisibility: ProfileVisibility;
+  relationship: 'none' | 'friends' | 'outgoing' | 'incoming';
 }
 
 // ── Storage boxes ───────────────────────────────────────────────────────────

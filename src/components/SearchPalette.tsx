@@ -82,7 +82,7 @@ export function SearchPalette({ open, onClose }: { open: boolean; onClose: () =>
           key: `l-${w.id}`,
           kind: 'list',
           title: w.title,
-          subtitle: [w.recipients.length ? `For ${joinNames(w.recipients.map((r) => r.name))}` : w.role !== 'owner' ? `${w.owner.displayName}’s list` : null, `${w.itemCount} item${w.itemCount === 1 ? '' : 's'}`, w.archivedAt ? 'Archived' : null]
+          subtitle: [w.recipients.length ? `For ${joinNames(w.recipients.map((r) => r.name))}` : w.role !== 'owner' ? `${w.owner.displayName.split(' ')[0]}’s list` : null, `${w.itemCount} item${w.itemCount === 1 ? '' : 's'}`, w.archivedAt ? 'Archived' : null]
             .filter(Boolean)
             .join(' · '),
           image: w.coverImage ?? (w.coverArt ? null : w.previewImages[0]) ?? null,

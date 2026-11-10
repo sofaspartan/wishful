@@ -86,5 +86,8 @@ export function registerPublicRoutes(router: Router) {
     return json({ ok: true });
   });
 
-  router.get('/api/public/users/:username', async (ctx) => json(await buildPublicProfile(ctx.params.username)));
+  router.get('/api/public/users/:username', async (ctx) => {
+    const viewer = await getCurrentUser(ctx);
+    return json(await buildPublicProfile(ctx.params.username, viewer));
+  });
 }

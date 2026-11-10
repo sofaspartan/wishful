@@ -1,5 +1,6 @@
 import type { ItemOwnership, PublicItem, PublicOwnership, PublicUser, SelfUser } from '../shared/types';
 import { DEFAULT_PREFERENCES } from '../shared/constants';
+import { profileVisibilityOf } from '../shared/profileVisibility';
 import type { ItemRecord, UserRecord } from './records';
 import { integrationsAllowed } from './integrations/access';
 
@@ -12,7 +13,7 @@ export function toSelfUser(u: UserRecord): SelfUser {
     ...toPublicUser(u),
     email: u.email,
     bio: u.bio,
-    publicProfile: u.publicProfile,
+    profileVisibility: profileVisibilityOf(u),
     preferences: {
       ...DEFAULT_PREFERENCES,
       ...u.preferences,

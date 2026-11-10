@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Package, Users } from 'lucide-react';
-import type { CoverArt as CoverArtValue, ListPerson, WishlistSummary } from '../../shared/types';
+import { CalendarDays, ExternalLink, Package, Users } from 'lucide-react';
+import type { CoverArt as CoverArtValue, ListPerson, PublicUser, WishlistSummary } from '../../shared/types';
 import { countdownLabel, daysUntil, formatDate, relativeTime } from '../lib/format';
 import { useMe } from '../lib/queries';
 import { CollectionBadge, VisibilityBadge } from './ItemVisuals';
 import { CoverArt } from './CoverArt';
-import { joinNames } from '../../shared/constants';
-import { AvatarStack } from './ui/misc';
+import { firstName, joinNames } from '../../shared/constants';
+import { Avatar, AvatarStack } from './ui/misc';
+import { Popover } from './ui/Popover';
+import { MenuLabel } from './ui/Menu';
 
 export function WishlistCover({
   title,
@@ -47,7 +49,8 @@ export function WishlistCover({
   );
 }
 
-type ListPeople = Array<Pick<ListPerson, 'name' | 'avatarUrl'> & { userId?: string | null }>;
+type ListPeople = Array<Pick<ListPerson, 'name' | 'avatarUrl'> & { userId?: string | null; username?: string | null }>;
+type Maker = Pick<PublicUser, 'displayName' | 'avatarUrl'> & { username?: string | null; id?: string };
 
 /** "For you & Leo", "For Ava, Leo & Mia": `meId` turns the signed-in user into "you". */
 export function forNames(people: ListPeople, meId?: string | null): string {
@@ -55,16 +58,140 @@ export function forNames(people: ListPeople, meId?: string | null): string {
   return joinNames([...people.filter(isMe).map(() => 'you'), ...people.filter((p) => !isMe(p)).map((p) => p.name)]);
 }
 
-/** "For Ava & Leo · by Jo" under the title of a list made for other people. */
-export function ListForLine({ people, meId, by }: { people: ListPeople; meId?: string | null; by?: string | null }) {
+function makerLabel(maker: Maker): string {
+  return firstName(maker.displayName) || maker.displayName;
+}
+
+/** Rows for the people popover: maker first, then everyone the list is for (skipping the maker if they’re already in that group). */
+export function ListPeopleLinks({
+  maker,
+  people,
+  meId,
+  close,
+}: {
+  maker?: Maker | null;
+  people: ListPeople;
+  meId?: string | null;
+  close: () => void;
+}) {
+  const forPeople = people.filter((p) => {
+    if (maker?.id && p.userId && p.userId === maker.id) return false;
+    if (maker?.username && p.username && p.username === maker.username) return false;
+    return true;
+  });
   return (
-    <p className="wl-for text-sm muted">
-      <AvatarStack people={people} size={18} />
-      <span className="truncate">
-        For {forNames(people, meId)}
-        {by && ` · by ${by}`}
+    <>
+      {maker && (
+        <>
+          <MenuLabel>Made by</MenuLabel>
+          <PersonProfileRow name={makerLabel(maker)} avatarUrl={maker.avatarUrl} username={maker.username || null} close={close} />
+        </>
+      )}
+      {forPeople.length > 0 && (
+        <>
+          <MenuLabel>For</MenuLabel>
+          {forPeople.map((p, i) => (
+            <PersonProfileRow
+              key={`${p.userId ?? p.username ?? p.name}-${i}`}
+              name={meId && p.userId === meId ? 'You' : p.name}
+              avatarUrl={p.avatarUrl}
+              username={p.username}
+              close={close}
+            />
+          ))}
+        </>
+      )}
+    </>
+  );
+}
+
+function PersonProfileRow({
+  name,
+  avatarUrl,
+  username,
+  close,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+  username?: string | null;
+  close: () => void;
+}) {
+  const body = (
+    <>
+      <Avatar name={name} src={avatarUrl} size={28} />
+      <span className="list-people-row-text">
+        <strong className="truncate">{name}</strong>
+        {username ? <span className="muted text-xs truncate">@{username}</span> : <span className="muted text-xs">Not on Wishful</span>}
       </span>
-    </p>
+      {username && <ExternalLink size={14} aria-hidden className="list-people-row-go" />}
+    </>
+  );
+  if (!username) {
+    return <div className="list-people-row is-static">{body}</div>;
+  }
+  return (
+    <Link to={`/u/${username}`} className="list-people-row" onClick={close}>
+      {body}
+    </Link>
+  );
+}
+
+/** "For Ava & Leo · by Jo" — click to open profile links for the maker and anyone on the platform. */
+export function ListForLine({
+  people,
+  meId,
+  maker,
+  by,
+  interactive = true,
+  className,
+  avatarSize = 18,
+}: {
+  people: ListPeople;
+  meId?: string | null;
+  /** The person who made the list (shown as “by …” and linked when they have a username). */
+  maker?: Maker | null;
+  /** @deprecated Prefer `maker`. */
+  by?: string | null;
+  /** False for non-interactive previews. */
+  interactive?: boolean;
+  className?: string;
+  avatarSize?: number;
+}) {
+  const resolvedMaker: Maker | null = maker ?? (by ? { displayName: by, username: null, avatarUrl: null } : null);
+  const byline = resolvedMaker ? makerLabel(resolvedMaker) : null;
+  const forText = people.length ? forNames(people, meId) : null;
+  if (!forText && !byline) return null;
+
+  const faces = people.length ? people : resolvedMaker ? [{ name: resolvedMaker.displayName, avatarUrl: resolvedMaker.avatarUrl }] : [];
+  const summary = (
+    <>
+      <AvatarStack people={faces} size={avatarSize} />
+      <span className="truncate">
+        {forText ? (
+          <>
+            For {forText}
+            {byline && ` · by ${byline}`}
+          </>
+        ) : (
+          <>by {byline}</>
+        )}
+      </span>
+    </>
+  );
+
+  if (!interactive) {
+    return <p className={['wl-for text-sm muted', className].filter(Boolean).join(' ')}>{summary}</p>;
+  }
+
+  return (
+    <Popover
+      label="People on this list"
+      buttonClassName={['wl-for wl-for-btn text-sm muted', className].filter(Boolean).join(' ')}
+      buttonContent={summary}
+      className="list-people-menu"
+    >
+      {(close) => <ListPeopleLinks maker={resolvedMaker} people={people} meId={meId} close={close} />}
+    </Popover>
   );
 }
 
@@ -94,7 +221,7 @@ export function ListCardPreview({
       </div>
       <div className="wl-body">
         <h3 className="wl-title truncate">{title}</h3>
-        {recipients.length > 0 && <ListForLine people={recipients} />}
+        {recipients.length > 0 && <ListForLine people={recipients} interactive={false} />}
         {list.description.trim() && <p className="wl-desc clamp-2">{list.description}</p>}
         <div className="wl-meta">
           <span>
@@ -142,9 +269,9 @@ export function WishlistCard({ wishlist: w, menu, dragHandle, showOwner }: Props
       <div className="wl-body">
         <h3 className="wl-title truncate">{w.title}</h3>
         {w.recipients.length > 0 ? (
-          <ListForLine people={w.recipients} meId={me?.id} by={w.role !== 'owner' ? w.owner.displayName : null} />
+          <ListForLine people={w.recipients} meId={me?.id} maker={w.role !== 'owner' ? w.owner : null} />
         ) : (
-          showOwner && <p className="text-sm muted">by {w.owner.displayName}</p>
+          showOwner && <ListForLine people={[]} maker={w.owner} />
         )}
         {w.description && <p className="wl-desc clamp-2">{w.description}</p>}
         <div className="wl-meta">

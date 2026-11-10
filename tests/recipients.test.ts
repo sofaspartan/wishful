@@ -28,7 +28,7 @@ describe('lists made for someone else', () => {
     const entryId = await withItem(mum.agent, list);
 
     const summaries = await mum.agent.get('/api/wishlists');
-    expect(summaries.data.wishlists[0].recipients).toEqual([{ name: 'Ava', avatarUrl: null, userId: null }]);
+    expect(summaries.data.wishlists[0].recipients).toEqual([{ name: 'Ava', avatarUrl: null, userId: null, username: null }]);
 
     const claim = await new Agent('198.51.100.7').post(`/api/public/lists/${list.shareToken}/entries/${entryId}/claim`, { name: 'Grandma' });
     expect(claim.status).toBe(201);
@@ -38,12 +38,12 @@ describe('lists made for someone else', () => {
     expect(detail.data.claims.map((c: any) => c.claimantName)).toEqual(['Grandma']);
 
     const page = await mum.agent.get(`/api/public/lists/${list.shareToken}`);
-    expect(page.data.recipients).toEqual([{ name: 'Ava', avatarUrl: null }]);
+    expect(page.data.recipients).toEqual([{ name: 'Ava', avatarUrl: null, username: null }]);
     expect(page.data.entries[0].status).toBe('reserved');
     expect(page.data.viewer.claimsHidden).toBe(false);
 
     const anon = await new Agent().get(`/api/public/lists/${list.shareToken}`);
-    expect(anon.data.recipients).toEqual([{ name: 'Ava', avatarUrl: null }]);
+    expect(anon.data.recipients).toEqual([{ name: 'Ava', avatarUrl: null, username: null }]);
     expect(JSON.stringify(anon.data.recipients)).not.toContain('userId');
   });
 
@@ -62,6 +62,7 @@ describe('lists made for someone else', () => {
     const shared = await kid.agent.get('/api/shared');
     expect(shared.data.wishlists.map((w: any) => w.title)).toEqual(['Ava turns 6']);
     expect(shared.data.wishlists[0].recipients[0].userId).toBe(kid.user.id);
+    expect(shared.data.wishlists[0].recipients[0].username).toBe('kid');
     const notes = await kid.agent.get('/api/notifications');
     expect(notes.data.notifications[0].message).toContain('made “Ava turns 6” for you');
 
@@ -153,7 +154,7 @@ describe('lists made for someone else', () => {
     expect(profile.data.wishlists).toEqual([
       expect.objectContaining({
         title: 'Ava turns 6',
-        recipients: [{ name: 'Ava', avatarUrl: null }],
+        recipients: [{ name: 'Ava', avatarUrl: null, username: 'kid' }],
         madeBy: expect.objectContaining({ username: 'mum' }),
       }),
     ]);
@@ -177,13 +178,13 @@ describe('lists made for me and someone else', () => {
     expect(list.recipients.map((r: any) => r.name)).toEqual(['Ava', 'Baby Mia']);
 
     const summaries = await mum.agent.get('/api/wishlists');
-    expect(summaries.data.wishlists[0].recipients.map((r: any) => r.name)).toEqual(['Jo Parent', 'Ava', 'Baby Mia']);
+    expect(summaries.data.wishlists[0].recipients.map((r: any) => r.name)).toEqual(['Jo', 'Ava', 'Baby Mia']);
     expect(summaries.data.wishlists[0].recipients[0].userId).toBe(mum.user.id);
 
     const detail = await mum.agent.get(`/api/wishlists/${list.id}`);
     expect(detail.data.wishlist.includeOwner).toBe(true);
     expect(detail.data.wishlist.recipients.map((r: any) => r.name)).toEqual(['Ava', 'Baby Mia']);
-    expect(detail.data.recipients.map((r: any) => r.name)).toEqual(['Jo Parent', 'Ava', 'Baby Mia']);
+    expect(detail.data.recipients.map((r: any) => r.name)).toEqual(['Jo', 'Ava', 'Baby Mia']);
     expect(detail.data.claims).toEqual([]);
 
     const entryId = await withItem(mum.agent, list);
@@ -195,9 +196,9 @@ describe('lists made for me and someone else', () => {
 
     const anon = await new Agent().get(`/api/public/lists/${list.shareToken}`);
     expect(anon.data.recipients).toEqual([
-      { name: 'Jo Parent', avatarUrl: null },
-      { name: 'Ava', avatarUrl: null },
-      { name: 'Baby Mia', avatarUrl: null },
+      { name: 'Jo', avatarUrl: null, username: 'mum' },
+      { name: 'Ava', avatarUrl: null, username: 'kid' },
+      { name: 'Baby Mia', avatarUrl: null, username: null },
     ]);
 
     const mine = await mum.agent.patch(`/api/wishlists/${list.id}`, { recipients: [], includeOwner: false });
@@ -252,9 +253,9 @@ describe('lists made for several people', () => {
 
     const anon = await new Agent().get(`/api/public/lists/${list.shareToken}`);
     expect(anon.data.recipients).toEqual([
-      { name: 'Ava', avatarUrl: null },
-      { name: 'Leo', avatarUrl: null },
-      { name: 'Baby Mia', avatarUrl: null },
+      { name: 'Ava', avatarUrl: null, username: 'kid' },
+      { name: 'Leo', avatarUrl: null, username: 'sib' },
+      { name: 'Baby Mia', avatarUrl: null, username: null },
     ]);
   });
 

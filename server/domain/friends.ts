@@ -1,4 +1,6 @@
-import type { FriendProfileView, FriendsOverview, Visibility } from '../../shared/types';
+import type { FriendProfileView, FriendsOverview, PeopleSearchHit, Visibility } from '../../shared/types';
+import { isDiscoverableProfile } from '../../shared/constants';
+import { profileVisibilityOf } from '../../shared/profileVisibility';
 import { atomicUpdate, db, getMany } from '../storage';
 import { badRequest, conflict, notFound } from '../http';
 import type { FriendIndex, FriendshipRecord, UserRecord } from '../records';
@@ -137,6 +139,53 @@ export async function friendsOverview(userId: string): Promise<FriendsOverview> 
   overview.incoming.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   overview.outgoing.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return overview;
+}
+
+const SEARCH_LIMIT = 12;
+const SEARCH_SCAN = 80;
+
+/**
+ * Find people by username prefix (and a few display-name matches among those).
+ * Private profiles never appear; public and friends profiles do.
+ */
+export async function searchPeople(viewerId: string, rawQuery: string): Promise<PeopleSearchHit[]> {
+  const q = rawQuery.trim().toLowerCase().replace(/^@/, '');
+  if (q.length < 2) return [];
+
+  const keys = (await db('username-index').list(q)).slice(0, SEARCH_SCAN);
+  if (!keys.length) return [];
+
+  const indexHits = await Promise.all(keys.map((username) => db('username-index').get<{ userId: string }>(username)));
+  const userIds = [...new Set(indexHits.map((h) => h?.value.userId).filter((id): id is string => Boolean(id)))];
+  const users = await getMany<UserRecord>(db('users'), userIds);
+  const overview = await friendsOverview(viewerId);
+  const friendIds = new Set(overview.friends.map((f) => f.user.id));
+  const outgoing = new Set(overview.outgoing.map((f) => f.user.id));
+  const incoming = new Set(overview.incoming.map((f) => f.user.id));
+
+  const hits: PeopleSearchHit[] = [];
+  for (const u of users) {
+    if (u.id === viewerId) continue;
+    const visibility = profileVisibilityOf(u);
+    if (!isDiscoverableProfile(visibility)) continue;
+    const usernameHit = u.username.toLowerCase().startsWith(q);
+    const nameHit = u.displayName.toLowerCase().includes(q);
+    if (!usernameHit && !nameHit) continue;
+    hits.push({
+      user: toPublicUser(u),
+      profileVisibility: visibility,
+      relationship: friendIds.has(u.id) ? 'friends' : outgoing.has(u.id) ? 'outgoing' : incoming.has(u.id) ? 'incoming' : 'none',
+    });
+    if (hits.length >= SEARCH_LIMIT) break;
+  }
+
+  hits.sort((a, b) => {
+    const aExact = a.user.username === q ? 0 : a.user.username.startsWith(q) ? 1 : 2;
+    const bExact = b.user.username === q ? 0 : b.user.username.startsWith(q) ? 1 : 2;
+    if (aExact !== bExact) return aExact - bExact;
+    return a.user.displayName.localeCompare(b.user.displayName);
+  });
+  return hits;
 }
 
 /** A friend's profile: the lists they've chosen to show friends, and the ones other people made for them. Non-friends get a 404. */

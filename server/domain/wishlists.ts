@@ -77,15 +77,21 @@ export async function resolveRecipients(lists: WishlistRecord[]): Promise<Map<st
   const users = linked.length || ownerIds.length ? await getUsers([...linked, ...ownerIds]) : new Map<string, PublicUser>();
   const people = new Map<string, ListPerson[]>();
   for (const l of lists) {
-    const others = (l.recipients ?? []).map((r) => ({
-      name: r.name,
-      avatarUrl: r.avatarUrl ?? (r.userId ? (users.get(r.userId)?.avatarUrl ?? null) : null),
-      userId: r.userId,
-    }));
+    const others = (l.recipients ?? []).map((r) => {
+      const linked = r.userId ? users.get(r.userId) : undefined;
+      return {
+        name: r.name,
+        avatarUrl: r.avatarUrl ?? linked?.avatarUrl ?? null,
+        userId: r.userId,
+        username: linked?.username ?? null,
+      };
+    });
     if (l.includeOwner && others.length) {
       const owner = users.get(l.ownerId);
+      const full = owner?.displayName ?? 'Someone';
+      const given = full.trim().split(/\s+/)[0] || full;
       people.set(l.id, [
-        { name: owner?.displayName ?? 'Someone', avatarUrl: owner?.avatarUrl ?? null, userId: l.ownerId },
+        { name: given, avatarUrl: owner?.avatarUrl ?? null, userId: l.ownerId, username: owner?.username ?? null },
         ...others,
       ]);
     } else {
@@ -99,8 +105,9 @@ export async function resolveListRecipients(list: WishlistRecord): Promise<ListP
   return (await resolveRecipients([list])).get(list.id) ?? [];
 }
 
-/** The people a list is for, without the account links only its owner and those people may see. */
-export const publicPeople = (people: ListPerson[]) => people.map(({ name, avatarUrl }) => ({ name, avatarUrl }));
+/** The people a list is for, without account ids — usernames stay so visitors can open public profiles. */
+export const publicPeople = (people: ListPerson[]) =>
+  people.map(({ name, avatarUrl, username }) => ({ name, avatarUrl, username: username ?? null }));
 
 async function createShare(wishlistId: string): Promise<string> {
   const token = newToken();

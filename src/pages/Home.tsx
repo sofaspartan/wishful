@@ -181,7 +181,7 @@ export default function Home() {
                         {w.title}
                       </strong>
                       <span className="muted text-sm">
-                        {w.recipients.length ? `For ${joinNames(w.recipients.map((r) => r.name))} · ` : w.role !== 'owner' ? `${w.owner.displayName} · ` : ''}
+                        {w.recipients.length ? `For ${joinNames(w.recipients.map((r) => r.name))} · ` : w.role !== 'owner' ? `${w.owner.displayName.split(' ')[0]} · ` : ''}
                         {w.occasion || formatDate(w.eventDate)}
                       </span>
                     </span>

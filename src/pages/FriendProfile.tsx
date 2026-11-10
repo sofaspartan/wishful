@@ -84,7 +84,7 @@ export default function FriendProfile() {
                     <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} />
                     <div className="wl-body">
                       <h3 className="wl-title truncate">{w.title}</h3>
-                      {w.recipients.length > 0 && <ListForLine people={w.recipients} by={w.madeBy?.displayName} />}
+                      {w.recipients.length > 0 && <ListForLine people={w.recipients} maker={w.madeBy} />}
                       {w.description && <p className="wl-desc clamp-2">{w.description}</p>}
                       <div className="wl-meta">
                         <VisibilityBadge visibility={w.visibility} outline />

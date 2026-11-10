@@ -47,7 +47,7 @@ import { countdownLabel, firstName, formatDate, relativeTime } from '../lib/form
 import { shareUrl, useLocalPref } from '../lib/prefs';
 import { useAppActions } from '../components/appActions';
 import { ItemCard } from '../components/ItemCard';
-import { forNames } from '../components/WishlistCard';
+import { ListForLine } from '../components/WishlistCard';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { EditItemModal } from '../components/EditItemModal';
 import { ItemListsDialog } from '../components/ItemListsDialog';
@@ -66,7 +66,7 @@ import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { BoxChip, useBoxMap } from '../components/BoxVisuals';
 import { PutInBoxDialog } from '../components/BoxDialogs';
 import { Button } from '../components/ui/Button';
-import { Avatar, AvatarStack, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
+import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
 
 const SORTS = ['custom', 'priority', 'acquired', 'rating', 'price_asc', 'price_desc', 'newest', 'name'] as const;
@@ -413,17 +413,8 @@ function WishlistView({ detail }: { detail: Detail }) {
             </p>
           )}
           <div className="row-wrap text-sm muted" style={{ gap: 'var(--s-4)' }}>
-            {people.length ? (
-              <span className="row" style={{ gap: 6 }}>
-                <AvatarStack people={people} size={22} max={4} /> For {forNames(people, me?.id)}
-                {!isOwner && <span>· by {detail.owner.displayName}</span>}
-              </span>
-            ) : (
-              !isOwner && (
-                <span className="row" style={{ gap: 6 }}>
-                  <Avatar name={detail.owner.displayName} src={detail.owner.avatarUrl} size={22} /> {detail.owner.displayName}
-                </span>
-              )
+            {(people.length > 0 || !isOwner) && (
+              <ListForLine people={people} meId={me?.id} maker={isOwner ? null : detail.owner} avatarSize={22} />
             )}
             {w.eventDate && (
               <span className="row" style={{ gap: 6 }}>

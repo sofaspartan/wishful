@@ -88,9 +88,7 @@ export function hostname(url: string | null | undefined): string {
   }
 }
 
-export function firstName(name: string): string {
-  return name.trim().split(/\s+/)[0] ?? '';
-}
+export { firstName } from '../../shared/constants';
 
 export function possessive(name: string): string {
   const first = name.split(' ')[0] || name;

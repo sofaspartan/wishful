@@ -87,9 +87,9 @@ export function AppLayout() {
       <MenuItem icon={<Settings size={16} />} onSelect={() => navigate('/app/settings')}>
         Profile & settings
       </MenuItem>
-      {user.publicProfile && (
+      {user.profileVisibility !== 'private' && (
         <MenuItem icon={<User size={16} />} onSelect={() => navigate(`/u/${user.username}`)}>
-          View public profile
+          View profile
         </MenuItem>
       )}
       <MenuSeparator />

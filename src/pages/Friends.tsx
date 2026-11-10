@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronRight, Copy, Eye, Inbox, Send, UserRoundPlus, Users, X } from 'lucide-react';
-import type { FriendsOverview } from '../../shared/types';
+import { Check, ChevronRight, Copy, Eye, Inbox, Search, Send, UserRoundPlus, Users, X } from 'lucide-react';
+import type { FriendsOverview, PeopleSearchHit } from '../../shared/types';
+import { PROFILE_VISIBILITY_LABELS } from '../../shared/constants';
 import { keys, useFriends, useMe } from '../lib/queries';
-import { del, errorMessage, fieldErrors, post } from '../lib/api';
+import { del, errorMessage, fieldErrors, get, post } from '../lib/api';
 import { formatDate, relativeTime } from '../lib/format';
 import { Button } from '../components/ui/Button';
 import { Avatar, EmptyState, PageLoader } from '../components/ui/misc';
@@ -25,11 +26,41 @@ export default function Friends() {
   const [sending, setSending] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<PeopleSearchHit[] | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const apply = (overview: FriendsOverview) => {
     qc.setQueryData(keys.friends, overview);
     void qc.invalidateQueries({ queryKey: ['friend'] });
   };
+
+  useEffect(() => {
+    const q = query.trim().replace(/^@/, '');
+    if (q.length < 2) {
+      setResults(null);
+      setSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const t = window.setTimeout(() => {
+      void get<{ people: PeopleSearchHit[] }>(`/api/friends/search?q=${encodeURIComponent(q)}`)
+        .then((res) => {
+          if (!cancelled) setResults(res.people);
+        })
+        .catch(() => {
+          if (!cancelled) setResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [query]);
 
   const send = async (e: FormEvent) => {
     e.preventDefault();
@@ -43,10 +74,34 @@ export default function Friends() {
       else if (res.status === 'already_requested') toast.info(`You've already sent ${handle} a request`);
       else toast.success(`Friend request sent to ${handle}`);
       setUsername('');
+      setQuery('');
+      setResults(null);
     } catch (err) {
       setError(fieldErrors(err).username ?? errorMessage(err));
     } finally {
       setSending(false);
+    }
+  };
+
+  const requestFromSearch = async (hit: PeopleSearchHit) => {
+    setBusy(`search:${hit.user.id}`);
+    try {
+      const res = await post<RequestResult>('/api/friends/requests', { username: hit.user.username });
+      apply(res.overview);
+      if (res.status === 'accepted') toast.success(`You and @${hit.user.username} are now friends`);
+      else if (res.status === 'already_requested') toast.info(`You've already sent @${hit.user.username} a request`);
+      else toast.success(`Friend request sent to @${hit.user.username}`);
+      setResults((prev) =>
+        prev?.map((p) =>
+          p.user.id === hit.user.id
+            ? { ...p, relationship: res.status === 'accepted' ? 'friends' : res.status === 'already_requested' ? 'outgoing' : 'outgoing' }
+            : p,
+        ) ?? null,
+      );
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -78,7 +133,7 @@ export default function Friends() {
       <PageSky
         eyebrow="Friends"
         title="Your people"
-        subtitle="Browse the wishlists your friends share with you, and choose which of yours they can see."
+        subtitle="Find people on Wishful, send a friend request, and browse the lists they share with you."
         art={<SkyArt scene="friends" />}
       >
         <form className="sky-form" onSubmit={send}>
@@ -115,6 +170,82 @@ export default function Friends() {
           </div>
         )}
       </PageSky>
+
+      <section className="section">
+        <div className="section-header">
+          <span className="tile-header-icon" aria-hidden>
+            <Search size={14} />
+          </span>
+          <h2 className="section-title">Find people</h2>
+        </div>
+        <div className="people-search">
+          <div className="input-group">
+            <Search size={16} aria-hidden className="people-search-icon" />
+            <input
+              className="input"
+              placeholder="Search by username"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search for people"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </div>
+          <p className="field-hint">Public and friends profiles show up here. Private accounts won’t appear in search.</p>
+          {searching && <p className="muted text-sm">Searching…</p>}
+          {results && !searching && (
+            results.length ? (
+              <div className="list-items list-items-sky">
+                {results.map((hit) => (
+                  <div className="item-row" key={hit.user.id}>
+                    <Link to={`/u/${hit.user.username}`} className="item-row-avatar-link" aria-label={`Open @${hit.user.username}`}>
+                      <Avatar name={hit.user.displayName} src={hit.user.avatarUrl} size={40} />
+                    </Link>
+                    <div className="item-row-main">
+                      <strong className="truncate">{hit.user.displayName}</strong>
+                      <span className="muted text-xs truncate">
+                        @{hit.user.username} · {PROFILE_VISIBILITY_LABELS[hit.profileVisibility]}
+                      </span>
+                    </div>
+                    <div className="item-row-side">
+                      {hit.relationship === 'friends' ? (
+                        <Link to={`/app/friends/${hit.user.id}`} className="btn btn-sm">
+                          Friends
+                        </Link>
+                      ) : hit.relationship === 'outgoing' ? (
+                        <span className="badge badge-outline">Request sent</span>
+                      ) : hit.relationship === 'incoming' ? (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          icon={<Check size={14} />}
+                          loading={busy === `accept:${hit.user.id}`}
+                          onClick={() => act(`accept:${hit.user.id}`, () => post(`/api/friends/requests/${hit.user.id}/accept`), `You and ${hit.user.displayName} are now friends`)}
+                        >
+                          Accept
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          icon={<UserRoundPlus size={14} />}
+                          loading={busy === `search:${hit.user.id}`}
+                          onClick={() => requestFromSearch(hit)}
+                        >
+                          Add
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted text-sm">No discoverable profiles match “{query.trim()}”.</p>
+            )
+          )}
+        </div>
+      </section>
 
       {isLoading || !data ? (
         <PageLoader />
@@ -197,7 +328,7 @@ export default function Friends() {
               </div>
             ) : (
               <EmptyState art={<SkyArt scene="invite" />} title="No friends yet">
-                Send a request with someone's username above. Once they accept, you'll be able to browse each other's wishlists here.
+                Search above or send a request with someone's username. Once they accept, you'll be able to browse each other's wishlists here.
               </EmptyState>
             )}
           </section>
@@ -245,11 +376,11 @@ export default function Friends() {
               <strong>What friends can see</strong>
               <p>
                 Friends can browse your lists set to <strong>Friends</strong> or <strong>Public</strong>, and reserve gifts on them. Private and Unlisted lists never show up, and
-                Surprise Mode still keeps reservations hidden from you.
+                Surprise Mode still keeps reservations hidden from you. Your profile visibility in Settings controls who can find you in search.
               </p>
             </div>
-            <Link to="/app/lists" className="section-link">
-              Choose list visibility <ChevronRight size={14} />
+            <Link to="/app/settings?tab=profile" className="section-link">
+              Profile visibility <ChevronRight size={14} />
             </Link>
           </aside>
         </>

@@ -67,11 +67,15 @@ describe('public wishlist access', () => {
     await createList(owner, { title: 'Unlisted one', visibility: 'unlisted' });
     await createList(owner, { title: 'Private one', visibility: 'private' });
     const visitor = new Agent();
-    expect((await visitor.get('/api/public/users/pat')).status).toBe(404);
-    await owner.patch('/api/account/profile', { publicProfile: true });
+    const privateProfile = await visitor.get('/api/public/users/pat');
+    expect(privateProfile.status).toBe(200);
+    expect(privateProfile.data.wishlists).toEqual([]);
+    expect(privateProfile.data.viewer.canSeeLists).toBe(false);
+    await owner.patch('/api/account/profile', { profileVisibility: 'public' });
     const profile = await visitor.get('/api/public/users/pat');
     expect(profile.status).toBe(200);
     expect(profile.data.wishlists.map((w: any) => w.title)).toEqual(['Public one']);
+    expect(profile.data.profileVisibility).toBe('public');
     expect(JSON.stringify(profile.data)).not.toContain('@example.com');
   });
 });

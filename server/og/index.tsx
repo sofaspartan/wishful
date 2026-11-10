@@ -91,10 +91,12 @@ async function listCard(token: string, host: string): Promise<ReactElement | nul
 async function profileCard(username: string, host: string): Promise<ReactElement | null> {
   let view;
   try {
-    view = await buildPublicProfile(username);
+    view = await buildPublicProfile(username, null);
   } catch {
     return null;
   }
+  // Crawlers are logged out — only draw a card when a stranger can see lists on the profile.
+  if (!view.viewer.canSeeLists) return null;
   const lists = view.wishlists.slice(0, 3);
   const [avatar, ...covers] = await Promise.all([
     loadImage(view.user.avatarUrl, IMAGE_BUDGET_MS),

@@ -194,3 +194,61 @@ describe('account deletion', () => {
     expect((await mia.agent.get(`/api/friends/${sam.user.id}`)).status).toBe(404);
   });
 });
+
+describe('profile visibility and people search', () => {
+  it('defaults to private: visitable without lists, and hidden from search', async () => {
+    const { mia, sam } = await pair();
+    await createList(mia.agent, { title: 'Public list', visibility: 'public' });
+    const page = await sam.agent.get('/api/public/users/mia');
+    expect(page.status).toBe(200);
+    expect(page.data.profileVisibility).toBe('private');
+    expect(page.data.wishlists).toEqual([]);
+    expect(page.data.viewer.canSeeLists).toBe(false);
+
+    expect((await sam.agent.get('/api/friends/search?q=mia')).data.people).toEqual([]);
+  });
+
+  it('lets friends find friends-visibility profiles and see shared lists there', async () => {
+    const { mia, sam } = await pair();
+    await mia.agent.patch('/api/account/profile', { profileVisibility: 'friends' });
+    await createList(mia.agent, { title: 'Friends list', visibility: 'friends' });
+    await createList(mia.agent, { title: 'Public list', visibility: 'public' });
+
+    const found = await sam.agent.get('/api/friends/search?q=mi');
+    expect(found.data.people.map((p: any) => p.user.username)).toEqual(['mia']);
+    expect(found.data.people[0].relationship).toBe('none');
+
+    const before = await sam.agent.get('/api/public/users/mia');
+    expect(before.data.wishlists).toEqual([]);
+    expect(before.data.viewer.canSeeLists).toBe(false);
+
+    await befriend(sam.agent, mia.agent, 'mia', sam.user.id);
+    const after = await sam.agent.get('/api/public/users/mia');
+    expect(after.data.viewer).toMatchObject({ isFriend: true, canSeeLists: true });
+    expect(after.data.wishlists.map((w: any) => w.title).sort()).toEqual(['Friends list', 'Public list']);
+
+    const searchAgain = await sam.agent.get('/api/friends/search?q=mia');
+    expect(searchAgain.data.people[0].relationship).toBe('friends');
+  });
+
+  it('shows public profiles to anyone and keeps private accounts out of search', async () => {
+    const { mia, sam } = await pair();
+    await mia.agent.patch('/api/account/profile', { profileVisibility: 'public' });
+    await createList(mia.agent, { title: 'Public list', visibility: 'public' });
+    await createList(mia.agent, { title: 'Friends list', visibility: 'friends' });
+
+    const anon = await new Agent().get('/api/public/users/mia');
+    expect(anon.data.wishlists.map((w: any) => w.title)).toEqual(['Public list']);
+    expect(anon.data.viewer.canSeeLists).toBe(true);
+
+    await befriend(sam.agent, mia.agent, 'mia', sam.user.id);
+    const friend = await sam.agent.get('/api/public/users/mia');
+    expect(friend.data.wishlists.map((w: any) => w.title).sort()).toEqual(['Friends list', 'Public list']);
+
+    await mia.agent.patch('/api/account/profile', { profileVisibility: 'private' });
+    expect((await sam.agent.get('/api/friends/search?q=mia')).data.people).toEqual([]);
+    // Exact username friend requests still work when you already know the handle.
+    const eve = await signUp(undefined, { username: 'eve' });
+    expect((await eve.agent.post('/api/friends/requests', { username: 'mia' })).status).toBe(201);
+  });
+});

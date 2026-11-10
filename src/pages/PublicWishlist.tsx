@@ -3,7 +3,9 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, Check, Copy, Eye, EyeOff, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
 import { isDarkCover, type PublicEntry, type PublicWishlistView } from '../../shared/types';
-import { PRIORITY_RANK, joinNames, possessiveNames, priorityLayout } from '../../shared/constants';
+import { PRIORITY_RANK, firstName as givenName, joinNames, possessiveNames, priorityLayout } from '../../shared/constants';
+import { ListPeopleLinks } from '../components/WishlistCard';
+import { Popover } from '../components/ui/Popover';
 import { keys, useMe, usePublicList } from '../lib/queries';
 import { ApiError, errorMessage, post } from '../lib/api';
 import { countdownLabel, formatDate, possessive, relativeTime } from '../lib/format';
@@ -210,7 +212,10 @@ function readSpoilersShown(listId: string): boolean {
 }
 
 /** Who the list is for: the people it was made for, or else its owner. */
-const listPeople = (view: PublicWishlistView) => (view.recipients.length ? view.recipients : [{ name: view.owner.displayName, avatarUrl: view.owner.avatarUrl }]);
+const listPeople = (view: PublicWishlistView) =>
+  view.recipients.length
+    ? view.recipients
+    : [{ name: view.owner.displayName, avatarUrl: view.owner.avatarUrl, username: view.owner.username }];
 
 /** What to call them in a sentence: the names it was made for as written, or the owner's first name. */
 const listNames = (view: PublicWishlistView) => (view.recipients.length ? view.recipients.map((r) => r.name) : [view.owner.displayName.split(' ')[0]]);
@@ -423,11 +428,22 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
               photo={w.coverImage}
             />
             <div className="wl-hero-main">
-              <span className="public-byline">
-                <AvatarStack people={people} size={26} max={4} />
-                {possessiveNames(listNames(view))} {collection ? 'collection' : 'wishlist'}
-                {forOthers && <span className="public-byline-by">· made by {owner.displayName}</span>}
-              </span>
+              <Popover
+                label="People on this list"
+                buttonClassName="public-byline public-byline-btn"
+                buttonContent={
+                  <>
+                    <AvatarStack people={people} size={26} max={4} />
+                    <span className="truncate">
+                      {possessiveNames(listNames(view))} {collection ? 'collection' : 'wishlist'}
+                      {forOthers && <span className="public-byline-by"> · made by {givenName(owner.displayName)}</span>}
+                    </span>
+                  </>
+                }
+                className="list-people-menu"
+              >
+                {(close) => <ListPeopleLinks maker={owner} people={forOthers ? view.recipients : []} meId={me?.id} close={close} />}
+              </Popover>
               <h1 className="wl-hero-title display">{w.title}</h1>
               {w.description && (
                 <p className="muted" style={{ maxWidth: 640, whiteSpace: 'pre-line' }}>

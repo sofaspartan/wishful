@@ -22,8 +22,24 @@ import {
   UserRound,
   type LucideIcon,
 } from 'lucide-react';
-import { VISIBILITIES, type NotificationPreferences, type SelfUser, type SyncResult, type Visibility, type WishlistSettings } from '../../shared/types';
-import { CURRENCIES, RESERVATION_DAY_OPTIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS } from '../../shared/constants';
+import {
+  PROFILE_VISIBILITIES,
+  VISIBILITIES,
+  type NotificationPreferences,
+  type ProfileVisibility,
+  type SelfUser,
+  type SyncResult,
+  type Visibility,
+  type WishlistSettings,
+} from '../../shared/types';
+import {
+  CURRENCIES,
+  PROFILE_VISIBILITY_DESCRIPTIONS,
+  PROFILE_VISIBILITY_LABELS,
+  RESERVATION_DAY_OPTIONS,
+  VISIBILITY_DESCRIPTIONS,
+  VISIBILITY_LABELS,
+} from '../../shared/constants';
 import { keys, useBrickfolio, useExtensionConnections, useInvalidate, useMe, usePlayshelf, type BrickfolioResponse, type PlayshelfResponse } from '../lib/queries';
 import { formatDate, relativeTime } from '../lib/format';
 import { brand } from '../config/brand';
@@ -102,9 +118,9 @@ export default function Settings() {
           <span className="sky-stat">
             <span className="sky-stat-sub">Member since</span> {new Date(me.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
           </span>
-          {me.publicProfile && (
+          {me.profileVisibility !== 'private' && (
             <Link to={`/u/${me.username}`} className="sky-stat">
-              <Globe size={13} aria-hidden /> Public profile
+              <Globe size={13} aria-hidden /> {me.profileVisibility === 'public' ? 'Public profile' : 'Profile'}
             </Link>
           )}
         </div>
@@ -140,7 +156,7 @@ function ProfileSection({ me }: { me: SelfUser }) {
   const [username, setUsername] = useState(me.username);
   const [bio, setBio] = useState(me.bio);
   const [avatarUrl, setAvatarUrl] = useState(me.avatarUrl);
-  const [publicProfile, setPublicProfile] = useState(me.publicProfile);
+  const [profileVisibility, setProfileVisibility] = useState(me.profileVisibility);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -165,7 +181,7 @@ function ProfileSection({ me }: { me: SelfUser }) {
     setErrors({});
     setError(null);
     try {
-      const { user } = await patch<{ user: SelfUser }>('/api/account/profile', { displayName, username, bio, avatarUrl, publicProfile });
+      const { user } = await patch<{ user: SelfUser }>('/api/account/profile', { displayName, username, bio, avatarUrl, profileVisibility });
       saveUser(user);
       toast.success('Profile saved');
     } catch (err) {
@@ -214,25 +230,25 @@ function ProfileSection({ me }: { me: SelfUser }) {
           </Field>
         </div>
       </div>
-      <div className="card card-pad">
-        <SwitchRow
-          title="Public profile"
-          description={
-            <>
-              Show your <em>public</em> wishlists on a profile page anyone can visit. Unlisted and private lists never appear there.
-              {me.publicProfile && (
-                <>
-                  {' '}
-                  <Link to={`/u/${me.username}`} style={{ textDecoration: 'underline' }}>
-                    View profile <ExternalLink size={12} aria-hidden />
-                  </Link>
-                </>
-              )}
-            </>
-          }
-          checked={publicProfile}
-          onChange={setPublicProfile}
-        />
+      <div className="card card-pad stack">
+        <div className="field">
+          <span className="field-label">Who can find your profile</span>
+          <Segmented<ProfileVisibility>
+            label="Profile visibility"
+            full
+            value={profileVisibility}
+            onChange={setProfileVisibility}
+            options={PROFILE_VISIBILITIES.map((v) => ({ value: v, label: PROFILE_VISIBILITY_LABELS[v] }))}
+          />
+          <span className="field-hint">{PROFILE_VISIBILITY_DESCRIPTIONS[profileVisibility]}</span>
+          {profileVisibility !== 'private' && (
+            <span className="field-hint">
+              <Link to={`/u/${me.username}`} style={{ textDecoration: 'underline' }}>
+                View your profile <ExternalLink size={12} aria-hidden />
+              </Link>
+            </span>
+          )}
+        </div>
       </div>
       <div>
         <Button type="submit" variant="primary" loading={busy} disabled={uploading}>
