@@ -10,7 +10,7 @@ import {
   type BoxSize,
   type CoverArt,
 } from '../../shared/types';
-import { BOX_COLORS, BOX_MATERIAL_LABELS, BOX_SIZE_LABELS, SUGGESTED_ROOMS, defaultBoxCoverArt } from '../../shared/constants';
+import { BOX_COLORS, BOX_MATERIAL_ICONS, BOX_MATERIAL_LABELS, BOX_SIZE_LABELS, SUGGESTED_ROOMS, defaultBoxCoverArt } from '../../shared/constants';
 import { boxCreateSchema, zodFieldErrors } from '../../shared/schemas';
 import { useBoxes, useInvalidate } from '../lib/queries';
 import { errorMessage, fieldErrors, patch, post } from '../lib/api';
@@ -20,6 +20,7 @@ import { Field, FormError } from './ui/Field';
 import { Segmented } from './ui/misc';
 import { useToast } from './ui/Toast';
 import { ColorField, CoverArtPicker, CoverHeaderPreview } from './CoverArtPicker';
+import { COVER_ICON_ART } from './CoverArt';
 import { BoxCardPreview } from './BoxVisuals';
 import { EditorLayout, PreviewBlock, firstInvalidTab, hasFieldError } from './ui/EditorLayout';
 
@@ -168,27 +169,38 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
         </Field>
       </div>
 
-      <div className="form-grid cols-2">
-        <Field label="Kind of box">
-          <select className="select" value={material} onChange={(e) => pickMaterial(e.target.value as BoxMaterial)}>
-            {BOX_MATERIALS.map((m) => (
-              <option key={m} value={m}>
-                {BOX_MATERIAL_LABELS[m]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Where it’s kept" optional error={errors.location} hint="Only you see this.">
-          <input
-            className="input"
-            list="box-locations"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Garage, shelf 2"
-            maxLength={80}
-          />
-        </Field>
+      <div className="field">
+        <span className="field-label" id="box-kind-label">
+          Kind of box
+        </span>
+        <div className="cover-icons box-kind-icons" role="radiogroup" aria-labelledby="box-kind-label">
+          {BOX_MATERIALS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={material === m}
+              aria-label={BOX_MATERIAL_LABELS[m]}
+              title={BOX_MATERIAL_LABELS[m]}
+              className="cover-icon-option"
+              onClick={() => pickMaterial(m)}
+            >
+              {COVER_ICON_ART[BOX_MATERIAL_ICONS[m]]}
+            </button>
+          ))}
+        </div>
       </div>
+
+      <Field label="Where it’s kept" optional error={errors.location} hint="Only you see this.">
+        <input
+          className="input"
+          list="box-locations"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Garage, shelf 2"
+          maxLength={80}
+        />
+      </Field>
       <datalist id="box-locations">
         {knownLocations.map((l) => (
           <option key={l} value={l} />

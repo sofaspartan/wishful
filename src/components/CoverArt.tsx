@@ -151,6 +151,7 @@ export const COVER_ICON_LABELS: Record<CoverIcon, string> = {
   'fabric-bin': 'Fabric bin',
   drawers: 'Storage drawers',
   'archive-box': 'Archive box',
+  duffel: 'Duffel bag',
 };
 
 export const COVER_ICON_GROUPS: Array<{ label: string; icons: CoverIcon[] }> = [
@@ -176,7 +177,10 @@ export const COVER_ICON_GROUPS: Array<{ label: string; icons: CoverIcon[] }> = [
   { label: 'Home & kitchen', icons: ['whisk', 'chef-hat', 'mug', 'candle', 'plant', 'watering-can'] },
   { label: 'Fashion & beauty', icons: ['lipstick', 'perfume', 'handbag', 'watch', 'sweater'] },
   { label: 'Tech & games', icons: ['laptop', 'phone', 'tablet', 'headphones', 'controller'] },
-  { label: 'Storage & moving', icons: ['box', 'tote', 'clear-tub', 'crate', 'metal-case', 'fabric-bin', 'drawers', 'archive-box', 'chest', 'suitcase', 'basket', 'house'] },
+  {
+    label: 'Storage & moving',
+    icons: ['box', 'tote', 'clear-tub', 'crate', 'metal-case', 'fabric-bin', 'drawers', 'archive-box', 'chest', 'suitcase', 'duffel', 'backpack', 'handbag', 'basket', 'house'],
+  },
   { label: 'Other', icons: ['idea', 'plane'] },
 ];
 
@@ -307,6 +311,7 @@ const COVER_ICON_KEYWORDS: Partial<Record<CoverIcon, string>> = {
   'fabric-bin': 'storage fabric cloth cube bin canvas',
   drawers: 'storage drawers drawer unit plastic organizer',
   'archive-box': 'storage archive files documents paperwork bankers box',
+  duffel: 'storage travel gym bag luggage weekend',
 };
 
 const normalize = (s: string) =>

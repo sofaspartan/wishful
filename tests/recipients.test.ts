@@ -163,6 +163,56 @@ describe('lists made for someone else', () => {
   });
 });
 
+describe('lists made for me and someone else', () => {
+  it('shows the owner alongside the other people, and still keeps Surprise Mode from linked recipients', async () => {
+    const { mum, kid } = await family();
+    await befriend(mum.agent, kid.agent, 'kid', mum.user.id);
+    const list = await createList(mum.agent, {
+      title: 'Family trip',
+      includeOwner: true,
+      surpriseMode: true,
+      recipients: [{ name: 'Ava', userId: kid.user.id }, { name: 'Baby Mia' }],
+    });
+    expect(list.includeOwner).toBe(true);
+    expect(list.recipients.map((r: any) => r.name)).toEqual(['Ava', 'Baby Mia']);
+
+    const summaries = await mum.agent.get('/api/wishlists');
+    expect(summaries.data.wishlists[0].recipients.map((r: any) => r.name)).toEqual(['Jo Parent', 'Ava', 'Baby Mia']);
+    expect(summaries.data.wishlists[0].recipients[0].userId).toBe(mum.user.id);
+
+    const detail = await mum.agent.get(`/api/wishlists/${list.id}`);
+    expect(detail.data.wishlist.includeOwner).toBe(true);
+    expect(detail.data.wishlist.recipients.map((r: any) => r.name)).toEqual(['Ava', 'Baby Mia']);
+    expect(detail.data.recipients.map((r: any) => r.name)).toEqual(['Jo Parent', 'Ava', 'Baby Mia']);
+    expect(detail.data.claims).toEqual([]);
+
+    const entryId = await withItem(mum.agent, list);
+    expect((await new Agent('198.51.100.7').post(`/api/public/lists/${list.shareToken}/entries/${entryId}/claim`, { name: 'Grandma' })).status).toBe(
+      201,
+    );
+    expect((await mum.agent.get(`/api/wishlists/${list.id}`)).data.claims.map((c: any) => c.claimantName)).toEqual(['Grandma']);
+    expect((await kid.agent.get(`/api/wishlists/${list.id}`)).data.claims).toBeNull();
+
+    const anon = await new Agent().get(`/api/public/lists/${list.shareToken}`);
+    expect(anon.data.recipients).toEqual([
+      { name: 'Jo Parent', avatarUrl: null },
+      { name: 'Ava', avatarUrl: null },
+      { name: 'Baby Mia', avatarUrl: null },
+    ]);
+
+    const mine = await mum.agent.patch(`/api/wishlists/${list.id}`, { recipients: [], includeOwner: false });
+    expect(mine.data.wishlist.includeOwner).toBe(false);
+    expect(mine.data.recipients).toEqual([]);
+  });
+
+  it('ignores includeOwner when there is nobody else on the list', async () => {
+    const { mum } = await family();
+    const list = await createList(mum.agent, { title: 'Just me', includeOwner: true, recipients: [] });
+    expect(list.includeOwner).toBe(false);
+    expect((await mum.agent.get('/api/wishlists')).data.wishlists[0].recipients).toEqual([]);
+  });
+});
+
 describe('lists made for several people', () => {
   async function siblings() {
     const { mum, kid } = await family();

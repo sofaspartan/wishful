@@ -69,6 +69,16 @@ describe('boxes', () => {
     expect((await agent.post('/api/boxes', { name: 'A', lines: [{ text: 'x', quantity: 0 }] })).status).toBe(400);
   });
 
+  it('accepts bags and luggage as kinds of box', async () => {
+    const { agent } = await signUp();
+    const backpack = await createBox(agent, { name: 'School bag', material: 'backpack' });
+    expect(backpack).toMatchObject({ material: 'backpack', coverArt: expect.objectContaining({ icon: 'backpack' }) });
+    const purse = await createBox(agent, { name: 'Everyday bag', material: 'purse' });
+    expect(purse).toMatchObject({ material: 'purse', coverArt: expect.objectContaining({ icon: 'handbag' }) });
+    const duffel = await createBox(agent, { name: 'Gym bag', material: 'duffel' });
+    expect(duffel).toMatchObject({ material: 'duffel', coverArt: expect.objectContaining({ icon: 'duffel' }) });
+  });
+
   it('are private to their owner', async () => {
     const { agent } = await signUp();
     const { agent: other } = await signUp(new Agent('203.0.113.20'));

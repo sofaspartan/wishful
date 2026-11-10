@@ -121,9 +121,11 @@ function WishlistView({ detail }: { detail: Detail }) {
   const isOwner = detail.role === 'owner';
   const canEdit = detail.role !== 'viewer';
   const claimsVisible = detail.claims !== null;
+  // Display people may include the owner when includeOwner; linked recipients are the stored "someone else" people.
   const people = detail.recipients;
-  const isRecipient = people.some((p) => p.userId && p.userId === me?.id);
-  const linkedNames = joinNames(people.filter((p) => p.userId).map((p) => p.name));
+  const others = w.recipients ?? [];
+  const isRecipient = others.some((p) => p.userId && p.userId === me?.id);
+  const linkedNames = joinNames(others.filter((p) => p.userId).map((p) => p.name));
   const collection = w.kind === 'collection';
   const synced = (item: Item) => Boolean(w.link && item.source);
   useStaleSync(isOwner ? w.link : null);

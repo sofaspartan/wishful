@@ -190,6 +190,21 @@ export function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
 }
 
+/**
+ * Who to show under “For …”. Empty means the list is just the owner's (no line).
+ * When `includeOwner` is set, the owner leads the group alongside the other people.
+ */
+export function peopleForList(
+  recipients: Array<{ name: string; avatarUrl: string | null; userId?: string | null }>,
+  includeOwner: boolean | undefined,
+  owner: { displayName: string; avatarUrl: string | null; id?: string },
+): Array<{ name: string; avatarUrl: string | null; userId: string | null }> {
+  if (!recipients.length) return [];
+  const others = recipients.map((r) => ({ name: r.name, avatarUrl: r.avatarUrl, userId: r.userId ?? null }));
+  if (!includeOwner) return others;
+  return [{ name: owner.displayName, avatarUrl: owner.avatarUrl, userId: owner.id ?? null }, ...others];
+}
+
 /** "Ava’s", "Ava & Leo’s", "Chris’". */
 export function possessiveNames(names: string[]): string {
   const joined = joinNames(names);
@@ -212,9 +227,12 @@ export const BOX_MATERIAL_LABELS: Record<BoxMaterial, string> = {
   metal: 'Metal case',
   fabric: 'Fabric bin',
   basket: 'Basket',
-  suitcase: 'Suitcase',
-  drawer: 'Drawer',
   archive: 'Archive box',
+  drawer: 'Drawer',
+  suitcase: 'Suitcase',
+  duffel: 'Duffel bag',
+  backpack: 'Backpack',
+  purse: 'Purse',
   other: 'Other',
 };
 
@@ -243,7 +261,8 @@ export const BOX_COLORS = [
 
 export const SUGGESTED_ROOMS = ['Kitchen', 'Living room', 'Bedroom', 'Bathroom', 'Office', 'Kids’ room', 'Garage', 'Basement', 'Attic', 'Storage'] as const;
 
-const MATERIAL_ICONS: Record<BoxMaterial, CoverIcon> = {
+/** Cover icon drawn for each kind of box. */
+export const BOX_MATERIAL_ICONS: Record<BoxMaterial, CoverIcon> = {
   cardboard: 'box',
   plastic: 'tote',
   clear: 'clear-tub',
@@ -251,13 +270,16 @@ const MATERIAL_ICONS: Record<BoxMaterial, CoverIcon> = {
   metal: 'metal-case',
   fabric: 'fabric-bin',
   basket: 'basket',
-  suitcase: 'suitcase',
-  drawer: 'drawers',
   archive: 'archive-box',
+  drawer: 'drawers',
+  suitcase: 'suitcase',
+  duffel: 'duffel',
+  backpack: 'backpack',
+  purse: 'handbag',
   other: 'box',
 };
 
 /** The cover graphic a new box starts with: a drawing of its material on a soft sky. */
 export function defaultBoxCoverArt(material: BoxMaterial): CoverArt {
-  return { icon: MATERIAL_ICONS[material], backdrop: 'sky', frame: { shape: 'rounded', fill: 'glass', color: '#ffffff' } };
+  return { icon: BOX_MATERIAL_ICONS[material], backdrop: 'sky', frame: { shape: 'rounded', fill: 'glass', color: '#ffffff' } };
 }

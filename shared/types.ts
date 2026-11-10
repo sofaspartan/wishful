@@ -154,6 +154,7 @@ export const COVER_ICONS = [
   'fabric-bin',
   'drawers',
   'archive-box',
+  'duffel',
 ] as const;
 export type CoverIcon = (typeof COVER_ICONS)[number];
 
@@ -481,6 +482,8 @@ export interface Wishlist {
   ownerId: string;
   /** Made for someone else, or for several people together (siblings, a couple, a group trip). Surprise Mode then hides gift activity from them instead of from the owner. */
   recipients?: ListRecipient[];
+  /** When true (and recipients is non-empty), the owner is also someone the list is for — shown alongside the recipients. */
+  includeOwner?: boolean;
   /** Fixed at creation. Collections have no gifting (claims, pledges, Surprise Mode, event dates). */
   kind: ListKind;
   title: string;
@@ -647,7 +650,22 @@ export interface PublicProfileView {
 
 // ── Storage boxes ───────────────────────────────────────────────────────────
 
-export const BOX_MATERIALS = ['cardboard', 'plastic', 'clear', 'wood', 'metal', 'fabric', 'basket', 'suitcase', 'drawer', 'archive', 'other'] as const;
+export const BOX_MATERIALS = [
+  'cardboard',
+  'plastic',
+  'clear',
+  'wood',
+  'metal',
+  'fabric',
+  'basket',
+  'archive',
+  'drawer',
+  'suitcase',
+  'duffel',
+  'backpack',
+  'purse',
+  'other',
+] as const;
 export type BoxMaterial = (typeof BOX_MATERIALS)[number];
 
 export const BOX_SIZES = ['small', 'medium', 'large', 'xl'] as const;

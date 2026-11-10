@@ -4412,6 +4412,13 @@ button.quick-action.tile-blush:hover {
   grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
   gap: 6px;
 }
+.box-kind-icons {
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 8px;
+}
+.box-kind-icons .cover-icon-option {
+  padding: 8px;
+}
 .cover-icon-option {
   aspect-ratio: 1;
   display: grid;

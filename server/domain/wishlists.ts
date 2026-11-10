@@ -70,16 +70,27 @@ export function unlinkRecipient(draft: WishlistRecord, userId: string): void {
   if (draft.recipients) draft.recipients = draft.recipients.map((r) => (r.userId === userId ? { ...r, userId: null } : r));
 }
 
-/** Who each list is made for, with a linked friend's own photo filled in when the list has none. Lists made for their owner map to an empty array. */
+/** Who each list is made for, with a linked friend's own photo filled in when the list has none. Lists made for their owner map to an empty array. When `includeOwner` is set, the owner leads the group. */
 export async function resolveRecipients(lists: WishlistRecord[]): Promise<Map<string, ListPerson[]>> {
   const linked = lists.flatMap((l) => (l.recipients ?? []).map((r) => r.userId)).filter((id): id is string => Boolean(id));
-  const users = linked.length ? await getUsers(linked) : new Map<string, PublicUser>();
+  const ownerIds = lists.filter((l) => l.includeOwner && (l.recipients?.length ?? 0) > 0).map((l) => l.ownerId);
+  const users = linked.length || ownerIds.length ? await getUsers([...linked, ...ownerIds]) : new Map<string, PublicUser>();
   const people = new Map<string, ListPerson[]>();
   for (const l of lists) {
-    people.set(
-      l.id,
-      (l.recipients ?? []).map((r) => ({ name: r.name, avatarUrl: r.avatarUrl ?? (r.userId ? (users.get(r.userId)?.avatarUrl ?? null) : null), userId: r.userId })),
-    );
+    const others = (l.recipients ?? []).map((r) => ({
+      name: r.name,
+      avatarUrl: r.avatarUrl ?? (r.userId ? (users.get(r.userId)?.avatarUrl ?? null) : null),
+      userId: r.userId,
+    }));
+    if (l.includeOwner && others.length) {
+      const owner = users.get(l.ownerId);
+      people.set(l.id, [
+        { name: owner?.displayName ?? 'Someone', avatarUrl: owner?.avatarUrl ?? null, userId: l.ownerId },
+        ...others,
+      ]);
+    } else {
+      people.set(l.id, others);
+    }
   }
   return people;
 }
@@ -230,7 +241,10 @@ export async function duplicateWishlist(source: WishlistRecord, owner: UserRecor
   const updated = await mutateWishlist(copy.id, (w) => {
     w.entries = source.entries.map((e) => ({ ...e, id: newId(), createdAt: stamp, updatedAt: stamp }));
     // Still for the same people, but not shared with them until the owner links it again.
-    if (source.recipients?.length) w.recipients = source.recipients.map((r) => ({ ...r, userId: null }));
+    if (source.recipients?.length) {
+      w.recipients = source.recipients.map((r) => ({ ...r, userId: null }));
+      if (source.includeOwner) w.includeOwner = true;
+    }
   });
   await linkItems(
     updated.entries.map((e) => e.itemId),

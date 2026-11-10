@@ -96,7 +96,7 @@ async function recipientTargets(owner: UserRecord, input: RecipientsInput, curre
     const userId = person.userId;
     if (!userId) continue;
     const field = { [`recipients.${i}.userId`]: 'Choose one of your friends.' };
-    if (userId === owner.id) throw badRequest('This list is already yours — choose “Me” instead.', field);
+    if (userId === owner.id) throw badRequest('You’re already included — choose “Me” or “Me + someone” instead of linking yourself.', field);
     if (!(current && isListRecipient(current, userId)) && !(await areFriends(owner.id, userId))) {
       throw badRequest('You can only share a list with your friends.', field);
     }
@@ -108,21 +108,34 @@ async function recipientTargets(owner: UserRecord, input: RecipientsInput, curre
 }
 
 /** Set who a list is made for (nobody makes it the owner's again), keeping linked friends' access in step: linking shares it with them, unlinking takes it away. */
-async function applyRecipients(w: WishlistRecord, owner: UserRecord, input: RecipientsInput, targets: Map<string, UserRecord>): Promise<WishlistRecord> {
-  if (input === undefined) return w;
+async function applyRecipients(
+  w: WishlistRecord,
+  owner: UserRecord,
+  input: RecipientsInput,
+  targets: Map<string, UserRecord>,
+  includeOwner?: boolean,
+): Promise<WishlistRecord> {
+  if (input === undefined && includeOwner === undefined) return w;
   const previousIds = (w.recipients ?? []).flatMap((r) => (r.userId ? [r.userId] : []));
   let updated = await mutateWishlist(w.id, (d) => {
-    d.recipients = input.map((p) => ({ name: p.name, avatarUrl: p.avatarUrl ?? null, userId: p.userId ?? null }));
+    if (input !== undefined) {
+      d.recipients = input.map((p) => ({ name: p.name, avatarUrl: p.avatarUrl ?? null, userId: p.userId ?? null }));
+    }
+    const others = d.recipients ?? [];
+    if (includeOwner !== undefined) d.includeOwner = Boolean(includeOwner && others.length);
+    else if (input !== undefined && !others.length) d.includeOwner = false;
   });
-  for (const id of previousIds) if (!targets.has(id)) updated = await removeCollaborator(updated, id);
-  for (const person of input) {
-    const target = person.userId ? targets.get(person.userId) : undefined;
-    if (!target) continue;
-    const current = updated.collaborators.find((c) => c.userId === target.id)?.role;
-    const role = person.canEdit === undefined ? (current ?? 'viewer') : person.canEdit ? 'editor' : 'viewer';
-    if (role !== current) {
-      await addCollaborator(updated, target, role, owner);
-      updated = (await getWishlist(w.id)) ?? updated;
+  if (input !== undefined) {
+    for (const id of previousIds) if (!targets.has(id)) updated = await removeCollaborator(updated, id);
+    for (const person of input) {
+      const target = person.userId ? targets.get(person.userId) : undefined;
+      if (!target) continue;
+      const current = updated.collaborators.find((c) => c.userId === target.id)?.role;
+      const role = person.canEdit === undefined ? (current ?? 'viewer') : person.canEdit ? 'editor' : 'viewer';
+      if (role !== current) {
+        await addCollaborator(updated, target, role, owner);
+        updated = (await getWishlist(w.id)) ?? updated;
+      }
     }
   }
   return updated;
@@ -186,7 +199,7 @@ export function registerWishlistRoutes(router: Router) {
     const user = await requireUser(ctx);
     const input = await readJson(ctx.req, wishlistCreateSchema);
     const targets = await recipientTargets(user, input.recipients, null);
-    const w = await applyRecipients(await createWishlist(user, input), user, input.recipients, targets);
+    const w = await applyRecipients(await createWishlist(user, input), user, input.recipients, targets, input.includeOwner);
     return json({ wishlist: toWishlistDto(w, 'owner') }, 201);
   });
 
@@ -231,7 +244,7 @@ export function registerWishlistRoutes(router: Router) {
       if (input.archived !== undefined) w.archivedAt = input.archived ? (w.archivedAt ?? nowIso()) : null;
       applyCollectionRules(w);
     });
-    updated = await applyRecipients(updated, user, input.recipients, targets);
+    updated = await applyRecipients(updated, user, input.recipients, targets, input.includeOwner);
     // A list that becomes shareable needs a link.
     if (updated.visibility !== 'private' && !updated.shareToken) updated = await regenerateShareToken(updated);
     return json(await buildDetail(updated, 'owner', user.id));

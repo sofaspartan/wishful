@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Check, FileText, Palette, Shapes, Users } from 'lucide-react';
 import { VISIBILITIES, type CoverArt, type ListKind, type Visibility, type Wishlist } from '../../shared/types';
-import { ACCENT_COLORS, SUGGESTED_OCCASIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS, possessiveNames } from '../../shared/constants';
+import { ACCENT_COLORS, SUGGESTED_OCCASIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS, peopleForList, possessiveNames } from '../../shared/constants';
 import { wishlistCreateSchema, zodFieldErrors } from '../../shared/schemas';
 import { useFriends, useMe, useInvalidate } from '../lib/queries';
 import { errorMessage, fieldErrors, patch, post } from '../lib/api';
@@ -18,7 +18,7 @@ import { useToast } from './ui/Toast';
 import { RecipientFields, linkedRecipients, newRecipientDraft, type RecipientDraft } from './RecipientFields';
 
 type CoverMode = 'none' | 'graphic' | 'photo';
-type ForWhom = 'me' | 'someone';
+type ForWhom = 'me' | 'someone' | 'both';
 type Tab = 'details' | 'look' | 'icon' | 'sharing';
 
 const TAB_FIELDS: Record<Tab, readonly string[]> = {
@@ -94,7 +94,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
     setEventDate(wishlist?.eventDate ?? '');
     setVisibility(wishlist?.visibility ?? me?.preferences.defaultVisibility ?? 'unlisted');
     setShowReviews(wishlist?.settings.showReviews ?? true);
-    setForWhom(wishlist?.recipients?.length ? 'someone' : 'me');
+    setForWhom(wishlist?.recipients?.length ? (wishlist.includeOwner ? 'both' : 'someone') : 'me');
     setRecipients(recipientDrafts(wishlist));
     setSurprise(wishlist?.recipients?.length ? wishlist.surpriseMode : true);
     setErrors({});
@@ -116,13 +116,14 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
       coverImage: coverMode === 'photo' ? coverImage : null,
       coverArt: coverMode === 'graphic' ? coverArt : null,
     };
-    const forSomeone = forWhom === 'someone';
+    const forOthers = forWhom === 'someone' || forWhom === 'both';
     const who =
-      forSomeone || wishlist?.recipients?.length
+      forOthers || wishlist?.recipients?.length || wishlist?.includeOwner
         ? {
-            recipients: forSomeone ? recipients.map(({ name, avatarUrl, userId, canEdit }) => ({ name, avatarUrl, userId, canEdit })) : [],
+            recipients: forOthers ? recipients.map(({ name, avatarUrl, userId, canEdit }) => ({ name, avatarUrl, userId, canEdit })) : [],
+            includeOwner: forWhom === 'both',
             // Only linked friends can be kept from seeing reservations; otherwise leave Surprise Mode as it is.
-            ...(forSomeone && linkedRecipients(recipients).length && !collection ? { surpriseMode: surprise } : {}),
+            ...(forOthers && linkedRecipients(recipients).length && !collection ? { surpriseMode: surprise } : {}),
           }
         : {};
     const body = collection
@@ -154,11 +155,12 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
 
   const friends = friendsOverview?.friends ?? [];
   const linked = linkedRecipients(recipients);
+  const otherPreview = recipients
+    .filter((p) => p.name.trim())
+    .map((p) => ({ name: p.name.trim(), avatarUrl: p.avatarUrl ?? friends.find((f) => f.user.id === p.userId)?.user.avatarUrl ?? null, userId: p.userId }));
   const previewRecipients =
-    forWhom === 'someone'
-      ? recipients
-          .filter((p) => p.name.trim())
-          .map((p) => ({ name: p.name.trim(), avatarUrl: p.avatarUrl ?? friends.find((f) => f.user.id === p.userId)?.user.avatarUrl ?? null }))
+    forWhom === 'someone' || forWhom === 'both'
+      ? peopleForList(otherPreview, forWhom === 'both', me ?? { displayName: 'You', avatarUrl: null, id: undefined })
       : [];
   const placeholder = collection ? 'Your collection' : 'Your wishlist';
 
@@ -270,20 +272,28 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
           options={[
             { value: 'me', label: 'Me' },
             { value: 'someone', label: 'Someone else' },
+            { value: 'both', label: 'Me + someone' },
           ]}
         />
         {forWhom === 'me' ? (
-          <span className="field-hint">Making a {noun} for your child, partner or someone not on Wishful? Choose Someone else and it’ll show their name instead of yours.</span>
+          <span className="field-hint">
+            Making a {noun} for someone else, or for you and others together? Choose Someone else or Me + someone and add their names.
+          </span>
         ) : (
-          <RecipientFields
-            value={recipients}
-            onChange={setRecipients}
-            friends={friends}
-            surprise={collection ? undefined : { value: surprise, onChange: setSurprise }}
-            noun={noun}
-            errors={errors}
-            onUploadingChange={setUploading}
-          />
+          <>
+            {forWhom === 'both' && (
+              <span className="field-hint">You’ll be included, plus anyone you add below — one person or several.</span>
+            )}
+            <RecipientFields
+              value={recipients}
+              onChange={setRecipients}
+              friends={friends}
+              surprise={collection ? undefined : { value: surprise, onChange: setSurprise }}
+              noun={noun}
+              errors={errors}
+              onUploadingChange={setUploading}
+            />
+          </>
         )}
       </div>
       <div className="field">
@@ -303,7 +313,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
             </label>
           ))}
         </div>
-        {visibility === 'friends' && forWhom === 'someone' && linked.length > 0 && (
+        {visibility === 'friends' && forWhom !== 'me' && linked.length > 0 && (
           <span className="field-hint">
             Your friends and {linked.some((p) => p.name.trim()) ? possessiveNames(linked.map((p) => p.name)) : 'their'} friends can see it.
           </span>

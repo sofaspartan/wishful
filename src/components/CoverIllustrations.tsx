@@ -1756,6 +1756,18 @@ const ArchiveBox = (
   </Svg>
 );
 
+const Duffel = (
+  <Svg>
+    <path d="M14 18c0-3.5 4.5-6 10-6s10 2.5 10 6" stroke="#6b4a2e" strokeWidth="2.6" strokeLinecap="round" />
+    <ellipse cx="24" cy="36" rx="17" ry="6.5" fill="#8a5a30" />
+    <path d="M7 24c0-4 7.5-7 17-7s17 3 17 7v8c0 4-7.5 7-17 7S7 36 7 32z" fill="#c58b52" />
+    <path d="M9 27c3.5 2 9 3 15 3s11.5-1 15-3" stroke="#a06e3c" strokeWidth="1.5" strokeLinecap="round" />
+    <rect x="20.5" y="24.5" width="7" height="4.2" rx="1.2" fill="#f2c14e" />
+    <path d="M11 22.5c2.5-1.2 6-2 13-2s10.5.8 13 2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" opacity=".35" />
+    <ellipse cx="24" cy="20" rx="12" ry="3.2" fill="#a06e3c" />
+  </Svg>
+);
+
 /** Icons drawn elsewhere (feature and item illustrations), filled in by CoverArt. */
 type BorrowedIcon = 'collection' | 'gift' | 'bag' | 'camera' | 'headphones' | 'sneaker' | 'watch' | 'sweater' | 'plant' | 'book' | 'mug' | 'idea' | 'plane';
 
@@ -1872,4 +1884,5 @@ export const COVER_ILLUSTRATIONS: Record<Exclude<CoverIcon, BorrowedIcon>, React
   'fabric-bin': FabricBin,
   drawers: StorageDrawers,
   'archive-box': ArchiveBox,
+  duffel: Duffel,
 };

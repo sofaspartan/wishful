@@ -320,6 +320,8 @@ const wishlistFields = {
       });
     })
     .optional(),
+  /** Also show the owner as someone the list is for (needs at least one other person in `recipients`). */
+  includeOwner: z.boolean().optional(),
 };
 
 export const wishlistCreateSchema = z.object({ ...wishlistFields, kind: listKindSchema.optional() });
