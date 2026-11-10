@@ -1,10 +1,10 @@
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Gift, Library, Package, Puzzle, Sparkles } from 'lucide-react';
 import { useMe } from '../lib/queries';
 import { brand } from '../config/brand';
 import { Cloud, CloudBank, CloudPuff } from '../components/Cloud';
-import { HeroSwirl } from '../components/HeroSwirl';
+import { HeroSwirl, type HeroSceneId } from '../components/HeroSwirl';
 import { ReservedListArt } from '../components/ReservedListArt';
 import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
 import { SiteFooter } from '../components/SiteFooter';
@@ -153,6 +153,7 @@ function FeatureStage({ art, tint, index }: { art: ReactElement; tint: string; i
 
 export default function Landing() {
   const { data: me } = useMe();
+  const [heroScene, setHeroScene] = useState<HeroSceneId>('wishlist');
   return (
     <div>
       <div className="landing-top">
@@ -178,7 +179,7 @@ export default function Landing() {
                 ideas money can’t link to.
               </p>
               <ul className="landing-pair" aria-label={`What you can keep in ${brand.name}`}>
-                <li>
+                <li className={heroScene === 'wishlist' ? 'is-active' : undefined}>
                   <span className="landing-pair-icon" aria-hidden>
                     <Gift size={16} />
                   </span>
@@ -186,7 +187,7 @@ export default function Landing() {
                     <strong>Wishlists</strong> for what you want — share them and friends reserve gifts.
                   </span>
                 </li>
-                <li>
+                <li className={heroScene === 'collection' ? 'is-active' : undefined}>
                   <span className="landing-pair-icon is-have" aria-hidden>
                     <Library size={16} />
                   </span>
@@ -194,7 +195,7 @@ export default function Landing() {
                     <strong>Collections</strong> for what you have — records, sneakers, books, plants.
                   </span>
                 </li>
-                <li>
+                <li className={heroScene === 'box' ? 'is-active' : undefined}>
                   <span className="landing-pair-icon is-box" aria-hidden>
                     <Package size={16} />
                   </span>
@@ -215,7 +216,7 @@ export default function Landing() {
               </div>
               <p className="landing-note text-sm">Free to use. Friends don’t need an account to reserve gifts.</p>
             </div>
-            <HeroSwirl />
+            <HeroSwirl onSceneChange={setHeroScene} />
           </section>
           <CloudBank className="hero-bottom" />
         </div>
