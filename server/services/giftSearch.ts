@@ -14,14 +14,17 @@ import { db } from '../storage';
 import { now, sha256 } from '../util';
 
 /**
- * Product search across store APIs (eBay Browse, Best Buy Products, Etsy Open
- * API). Each store switches on when its keys are set; the hosts are fixed, so
- * these calls don't go through `safeFetch`. Pages are cached per store so
- * category chips and repeat searches don't spend the stores' daily quotas.
+ * Product search across store APIs (Shopify Global Catalog, eBay Browse, Best
+ * Buy Products, Etsy Open API). Shopify's catalog works without keys; the
+ * others switch on when their keys are set. The hosts are fixed, so these
+ * calls don't go through `safeFetch`. Pages are cached per store so category
+ * chips and repeat searches don't spend the stores' quotas.
  */
 
 const TIMEOUT_MS = 6000;
-const CACHE_MS = 6 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+/** Shopify's catalog terms allow caching prices and availability for at most 15 minutes. */
+const CACHE_MS: Record<GiftStore, number> = { shopify: 15 * 60 * 1000, ebay: 6 * HOUR_MS, bestbuy: 6 * HOUR_MS, etsy: 6 * HOUR_MS };
 
 export interface GiftSearchInput {
   q: string;
@@ -39,6 +42,8 @@ interface StoreQuery {
 interface StorePage {
   products: GiftProduct[];
   hasMore: boolean;
+  /** Where the next page starts, for stores that page by cursor instead of number. */
+  cursor?: string | null;
 }
 
 interface CacheRecord extends StorePage {
@@ -49,6 +54,7 @@ const env = (name: string) => process.env[name]?.trim() || '';
 
 export function enabledGiftStores(): GiftStore[] {
   return GIFT_STORES.filter((store) => {
+    if (store === 'shopify') return env('SHOPIFY_CATALOG').toLowerCase() !== 'off';
     if (store === 'ebay') return Boolean(env('EBAY_CLIENT_ID') && env('EBAY_CLIENT_SECRET'));
     if (store === 'bestbuy') return Boolean(env('BESTBUY_API_KEY'));
     return Boolean(env('ETSY_API_KEY') && env('ETSY_SHARED_SECRET'));
@@ -83,6 +89,147 @@ const num = (v: unknown): number | null => {
 const link = (v: unknown): string | null => (typeof v === 'string' && isHttpUrl(v) ? v : null);
 
 const text = (v: unknown): string => (typeof v === 'string' ? decodeEntities(v).replace(/\s+/g, ' ').trim() : '');
+
+// ── Shopify Global Catalog ──────────────────────────────────────────────
+
+const SHOPIFY_CATALOG_URL = 'https://catalog.shopify.com/api/ucp/mcp';
+/** Every catalog call names an agent profile listing the capabilities it uses; this is the one Shopify hosts for its docs. */
+const SHOPIFY_DEFAULT_PROFILE = 'https://shopify.dev/ucp/agent-profiles/examples/2026-08-25/valid-with-capabilities.json';
+
+let shopifyToken: { value: string; expiresAt: number } | null = null;
+
+/** Optional: a free Dev Dashboard catalog key raises the keyless rate limit. Tokens last an hour. */
+async function shopifyAccessToken(): Promise<string | null> {
+  const id = env('SHOPIFY_CATALOG_CLIENT_ID');
+  const secret = env('SHOPIFY_CATALOG_CLIENT_SECRET');
+  if (!id || !secret) return null;
+  if (shopifyToken && shopifyToken.expiresAt > Date.now() + 60_000) return shopifyToken.value;
+  const data = await getJson<{ access_token?: string }>('https://api.shopify.com/auth/access_token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ client_id: id, client_secret: secret, grant_type: 'client_credentials' }),
+  });
+  if (!data.access_token) throw new StoreError('Shopify returned no access token', 500);
+  shopifyToken = { value: data.access_token, expiresAt: Date.now() + 55 * 60_000 };
+  return shopifyToken.value;
+}
+
+interface ShopifyMoney {
+  amount?: number;
+  currency?: string;
+}
+
+interface ShopifyMedia {
+  type?: string;
+  url?: string;
+}
+
+interface ShopifyVariant {
+  url?: string;
+  price?: ShopifyMoney;
+  media?: ShopifyMedia[];
+  seller?: { name?: string };
+  availability?: { available?: boolean };
+}
+
+interface ShopifyProduct {
+  id?: string;
+  title?: string;
+  url?: string;
+  media?: ShopifyMedia[];
+  price_range?: { min?: ShopifyMoney };
+  variants?: ShopifyVariant[];
+  rating?: { value?: number; scale_max?: number; count?: number };
+}
+
+/** Catalog prices are in minor units: cents for USD, whole yen for JPY. */
+function fromMinor(money?: ShopifyMoney): number | null {
+  const amount = num(money?.amount);
+  if (amount === null) return null;
+  let digits = 2;
+  try {
+    digits = new Intl.NumberFormat('en', { style: 'currency', currency: money?.currency ?? 'USD' }).resolvedOptions().maximumFractionDigits ?? 2;
+  } catch {
+    // Unknown currency code: assume cents.
+  }
+  return amount / 10 ** digits;
+}
+
+export function shopifyProducts(items: ShopifyProduct[] = []): GiftProduct[] {
+  return items.flatMap((p) => {
+    const variants = p.variants ?? [];
+    const variant = variants.find((v) => v.availability?.available !== false) ?? variants[0];
+    // Shopify asks that its attribution parameters stay on these links.
+    const url = link(variant?.url) ?? link(p.url);
+    const title = text(p.title);
+    if (!p.id || !url || !title) return [];
+    const image = [...(p.media ?? []), ...(variant?.media ?? [])].find((m) => (m.type ?? 'image') === 'image' && link(m.url));
+    const money = variant?.price ?? p.price_range?.min;
+    const ratingValue = num(p.rating?.value);
+    const scale = num(p.rating?.scale_max) || 5;
+    return [
+      {
+        id: `shopify:${p.id}`,
+        store: 'shopify' as const,
+        title,
+        url,
+        imageUrl: link(image?.url),
+        price: fromMinor(money),
+        currency: money?.currency ?? null,
+        seller: variant?.seller?.name ? text(variant.seller.name) || null : null,
+        rating: ratingValue === null ? null : Math.round((ratingValue / scale) * 50) / 10,
+        reviewCount: num(p.rating?.count),
+      },
+    ];
+  });
+}
+
+async function searchShopify(query: StoreQuery): Promise<StorePage> {
+  const { q, maxPrice, page } = query;
+  // The catalog pages by cursor, so page N starts where the (cached) page N-1 ended.
+  let cursor: string | null = null;
+  if (page > 1) {
+    cursor = (await storePage('shopify', { ...query, page: page - 1 })).cursor ?? null;
+    if (!cursor) return { products: [], hasMore: false };
+  }
+  const token = await shopifyAccessToken();
+  let data: {
+    result?: { isError?: boolean; structuredContent?: { products?: ShopifyProduct[]; pagination?: { has_next_page?: boolean; cursor?: string } } };
+    error?: { message?: string };
+  };
+  try {
+    data = await getJson(SHOPIFY_CATALOG_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 1,
+        params: {
+          name: 'search_catalog',
+          arguments: {
+            meta: { 'ucp-agent': { profile: env('SHOPIFY_UCP_PROFILE_URL') || SHOPIFY_DEFAULT_PROFILE } },
+            catalog: {
+              query: q,
+              filters: { ships_to: { country: 'US' }, available: true, ...(maxPrice ? { price: { max: maxPrice * 100 } } : {}) },
+              context: { address_country: 'US', currency: 'USD', language: 'en' },
+              pagination: { limit: GIFT_PAGE_SIZE, ...(cursor ? { cursor } : {}) },
+            },
+          },
+        },
+      }),
+    });
+  } catch (err) {
+    if (err instanceof StoreError && err.status === 401) shopifyToken = null;
+    throw err;
+  }
+  if (data.error || data.result?.isError) throw new StoreError(`Shopify catalog error: ${data.error?.message ?? 'tool error'}`, 502);
+  const result = data.result?.structuredContent;
+  const next = result?.pagination?.has_next_page ? (result.pagination.cursor ?? null) : null;
+  // Some overseas shops that ship to the US still price in their own currency, which the dollar price filter can't compare.
+  const products = shopifyProducts(result?.products).filter((p) => p.currency === null || p.currency === 'USD');
+  return { products, hasMore: Boolean(next), cursor: next };
+}
 
 // ── eBay ────────────────────────────────────────────────────────────────
 
@@ -275,6 +422,7 @@ async function searchEtsy({ q, maxPrice, page }: StoreQuery): Promise<StorePage>
 // ── Search ──────────────────────────────────────────────────────────────
 
 const SEARCHERS: Record<GiftStore, (query: StoreQuery) => Promise<StorePage>> = {
+  shopify: searchShopify,
   ebay: searchEbay,
   bestbuy: searchBestBuy,
   etsy: searchEtsy,
@@ -283,9 +431,9 @@ const SEARCHERS: Record<GiftStore, (query: StoreQuery) => Promise<StorePage>> = 
 async function storePage(store: GiftStore, query: StoreQuery): Promise<StorePage> {
   const key = sha256(`${store}|${query.q}|${query.maxPrice ?? ''}|${query.page}`);
   const cached = (await db('gift-cache').get<CacheRecord>(key))?.value;
-  if (cached && new Date(cached.expiresAt).getTime() > now().getTime()) return { products: cached.products, hasMore: cached.hasMore };
+  if (cached && new Date(cached.expiresAt).getTime() > now().getTime()) return { products: cached.products, hasMore: cached.hasMore, cursor: cached.cursor };
   const page = await SEARCHERS[store](query);
-  const record: CacheRecord = { ...page, expiresAt: new Date(now().getTime() + CACHE_MS).toISOString() };
+  const record: CacheRecord = { ...page, expiresAt: new Date(now().getTime() + CACHE_MS[store]).toISOString() };
   await db('gift-cache')
     .set(key, record)
     .catch((err) => console.warn('[gifts] cache write failed', err));

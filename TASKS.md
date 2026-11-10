@@ -207,6 +207,7 @@
 - [x] "+" on a product opens Add item on the details step, already filled in (name, photo, price, link, store, brand)
 - [x] "Search Amazon" link (optional Associates tag) instead of Amazon's API, which needs 10 sales a month
 - [x] Tests for reading each store's results, the request formats, caching, store failures and the endpoint's checks (208 tests total)
+- [x] Shopify Global Catalog as a keyless store (optional Dev Dashboard key for higher limits): products from Shopify shops, shown under the shop's own name, paged by cursor, cached 15 minutes because its terms cap price caching there, attribution kept on links; `SHOPIFY_CATALOG=off` turns it off (210 tests total)
 
 ## Future
 - [ ] Price tracking & price-drop alerts

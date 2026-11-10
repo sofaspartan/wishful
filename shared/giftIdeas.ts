@@ -1,9 +1,10 @@
 import type { CoverIcon } from './types';
 
-export const GIFT_STORES = ['ebay', 'bestbuy', 'etsy'] as const;
+export const GIFT_STORES = ['shopify', 'ebay', 'bestbuy', 'etsy'] as const;
 export type GiftStore = (typeof GIFT_STORES)[number];
 
 export const GIFT_STORE_LABELS: Record<GiftStore, string> = {
+  shopify: 'Shopify',
   ebay: 'eBay',
   bestbuy: 'Best Buy',
   etsy: 'Etsy',
@@ -18,7 +19,7 @@ export interface GiftProduct {
   imageUrl: string | null;
   price: number | null;
   currency: string | null;
-  /** Shop or seller name, when the store has one (eBay sellers, Etsy shops, brands). */
+  /** Shop or seller name, when the store has one (Shopify shops, eBay sellers, brands). */
   seller: string | null;
   rating: number | null;
   reviewCount: number | null;

@@ -85,7 +85,7 @@ export default function GiftIdeas() {
         imageUrl: p.imageUrl,
         price: p.price,
         currency: p.currency,
-        retailer: GIFT_STORE_LABELS[p.store],
+        retailer: shopName(p),
         brand: p.store === 'bestbuy' ? (p.seller ?? undefined) : undefined,
       },
     });
@@ -184,7 +184,7 @@ export default function GiftIdeas() {
           </EmptyState>
         ) : first && stores.length === 0 ? (
           <EmptyState art={<SkyArt scene="gifts" />} title="Store search isn't switched on yet" action={amazonLink}>
-            Once this site is connected to eBay, Best Buy or Etsy, their products show up here. Until then, look on Amazon and paste the link into Add item.
+            Once this site is connected to Shopify, eBay, Best Buy or Etsy, their products show up here. Until then, look on Amazon and paste the link into Add item.
           </EmptyState>
         ) : products.length === 0 ? (
           <EmptyState art={<SkyArt scene="search" />} title={missing.length ? "The stores didn't answer" : 'No gifts found'} action={amazonLink}>
@@ -224,8 +224,11 @@ export default function GiftIdeas() {
   );
 }
 
+/** Shopify results come from many independent shops, so the shop is the store people know. */
+const shopName = (p: GiftProduct) => (p.store === 'shopify' && p.seller ? p.seller : GIFT_STORE_LABELS[p.store]);
+
 function GiftCard({ product: p, onAdd }: { product: GiftProduct; onAdd: () => void }) {
-  const storeName = GIFT_STORE_LABELS[p.store];
+  const storeName = shopName(p);
   return (
     <article className="item-card gift-card">
       <a className="item-card-hit" href={p.url} target="_blank" rel="noopener noreferrer" aria-label={`${p.title} on ${storeName}`} />
@@ -238,7 +241,7 @@ function GiftCard({ product: p, onAdd }: { product: GiftProduct; onAdd: () => vo
       <div className="item-body">
         <span className="item-source truncate">
           {storeName}
-          {p.seller ? ` · ${p.seller}` : ''}
+          {p.seller && p.seller !== storeName ? ` · ${p.seller}` : ''}
         </span>
         <h3 className="item-title clamp-2">{p.title}</h3>
         <div className="item-foot">

@@ -219,10 +219,12 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
   the user owns, nothing more. Issued only to a signed-in session after an explicit
   approval page; revoked from Settings, from the extension, by a password change
   (`sessionsValidAfter`) or by account deletion. Mutations still need the CSRF header.
-* **Gift search** (`server/services/giftSearch.ts`) only calls the fixed eBay, Best Buy
-  and Etsy API hosts; users send search words, never addresses. Store keys stay on the
-  server, links and photos that aren't http(s) are dropped before they reach the page,
-  and each store's pages are cached for 6 hours in the `gift-cache` store.
+* **Gift search** (`server/services/giftSearch.ts`) only calls the fixed Shopify
+  catalog, eBay, Best Buy and Etsy API hosts; users send search words, never addresses.
+  Store keys stay on the server, links and photos that aren't http(s) are dropped before
+  they reach the page, and each store's pages are cached in the `gift-cache` store
+  (6 hours; 15 minutes for Shopify, whose catalog terms cap price caching there).
+  Shopify links keep their attribution parameters, as its terms require.
 * **Rate limiting** on login, register, forgot-password, claims, metadata fetches,
   uploads, invites, friend requests, extension connects, extension saves and gift searches.
 * **Headers**: CSP, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy
@@ -245,6 +247,9 @@ See `.env.example`. None are exposed to the browser.
 | `PLAYSHELF_SUPABASE_URL` | For Playshelf | Playshelf's Supabase project URL (`https://<ref>.supabase.co`) |
 | `PLAYSHELF_SUPABASE_ANON_KEY` | For Playshelf | Playshelf's public anon key (same as its `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |
 | `PLAYSHELF_SITE_URL` | No | Playshelf site address, for profile links in Settings |
+| `SHOPIFY_CATALOG_CLIENT_ID`, `SHOPIFY_CATALOG_CLIENT_SECRET` | No | Shopify Dev Dashboard catalog key; raises the keyless Shopify search rate limit |
+| `SHOPIFY_CATALOG` | No | `off` stops gift search from using Shopify's catalog |
+| `SHOPIFY_UCP_PROFILE_URL` | No | Your own UCP agent profile URL for Shopify catalog calls |
 | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` | For eBay gift search | Production keyset from developer.ebay.com (App ID and Cert ID) |
 | `EBAY_CAMPAIGN_ID` | No | eBay Partner Network campaign ID, so eBay links earn commission |
 | `BESTBUY_API_KEY` | For Best Buy gift search | Free key from developer.bestbuy.com |

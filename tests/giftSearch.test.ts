@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { bestBuyCriteria, ebayProducts, etsyProducts, interleave } from '../server/services/giftSearch';
+import { bestBuyCriteria, ebayProducts, etsyProducts, interleave, shopifyProducts } from '../server/services/giftSearch';
 import { amazonSearchUrl } from '../shared/giftIdeas';
 import { Agent, freshStore, signUp } from './helpers';
 
 const KEYS = {
+  SHOPIFY_CATALOG: '',
+  SHOPIFY_CATALOG_CLIENT_ID: 'shop-id',
+  SHOPIFY_CATALOG_CLIENT_SECRET: 'shop-secret',
   EBAY_CLIENT_ID: 'ebay-id',
   EBAY_CLIENT_SECRET: 'ebay-secret',
   BESTBUY_API_KEY: 'bby-key',
@@ -52,10 +55,41 @@ const ETSY_ACTIVE = {
 
 const ETSY_BATCH = { results: [{ listing_id: 901, images: [{ url_570xN: 'https://i.etsystatic.com/901/il_570xN.jpg' }] }] };
 
-function storeApis(overrides: Partial<Record<'ebay' | 'bestbuy' | 'etsy', () => Response>> = {}) {
+const SHOPIFY_PRODUCT = {
+  id: 'gid://shopify/p/abc123',
+  title: 'LEGO Icons Autumn Cottage Garden 11372',
+  media: [{ type: 'image', url: 'https://cdn.shopify.com/s/files/cottage.jpg' }],
+  price_range: { min: { amount: 11999, currency: 'USD' } },
+  variants: [
+    { url: 'https://shop.example/products/old?variant=1', price: { amount: 12999, currency: 'USD' }, availability: { available: false } },
+    {
+      url: 'https://shop.example/products/cottage?variant=2&_gsid=g1&utm_source=shopify&utm_medium=catalog',
+      price: { amount: 11999, currency: 'USD' },
+      seller: { name: 'Barnes &amp; Noble' },
+      availability: { available: true },
+    },
+  ],
+  rating: { value: 9, scale_max: 10, count: 42 },
+};
+
+const shopifySearch = (cursor: string | null, products: unknown[] = [SHOPIFY_PRODUCT]) => ({
+  jsonrpc: '2.0',
+  id: 1,
+  result: { structuredContent: { products, pagination: cursor ? { has_next_page: true, cursor } : { has_next_page: false } } },
+});
+
+function storeApis(overrides: Partial<Record<'shopify' | 'ebay' | 'bestbuy' | 'etsy', () => Response>> = {}) {
   const json = (data: unknown) => new Response(JSON.stringify(data), { status: 200, headers: { 'content-type': 'application/json' } });
   return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(input));
+    if (url.hostname === 'api.shopify.com') return json({ access_token: 'shop-token' });
+    if (url.hostname === 'catalog.shopify.com') {
+      if (overrides.shopify) return overrides.shopify();
+      const cursor = JSON.parse(String(init?.body)).params.arguments.catalog.pagination.cursor;
+      if (cursor) return json(shopifySearch(null, [{ ...SHOPIFY_PRODUCT, id: 'gid://shopify/p/page2' }]));
+      const euro = { ...SHOPIFY_PRODUCT, id: 'gid://shopify/p/eur', variants: [{ url: 'https://shop.example.be/p', price: { amount: 5299, currency: 'EUR' } }] };
+      return json(shopifySearch('next-1', [SHOPIFY_PRODUCT, euro]));
+    }
     if (url.hostname === 'api.ebay.com' && url.pathname.endsWith('/oauth2/token')) return json({ access_token: 'token-1', expires_in: 7200 });
     if (url.hostname === 'api.ebay.com') return overrides.ebay?.() ?? json(EBAY_SEARCH);
     if (url.hostname === 'api.bestbuy.com') return overrides.bestbuy?.() ?? json(BESTBUY_SEARCH);
@@ -87,6 +121,25 @@ describe('reading store results', () => {
     expect(etsy).toMatchObject({ title: 'Custom LEGO & Minifigure Display Frame', price: 28.5, currency: 'USD', imageUrl: 'https://i.etsystatic.com/901/il_570xN.jpg' });
   });
 
+  it('reads Shopify catalog products: an in-stock variant, prices in cents, ratings out of 5, links left intact', () => {
+    const [p, ...rest] = shopifyProducts([SHOPIFY_PRODUCT, { id: 'gid://shopify/p/bad', title: 'Sneaky', variants: [{ url: 'javascript:alert(1)' }] }]);
+    expect(rest).toHaveLength(0);
+    expect(p).toEqual({
+      id: 'shopify:gid://shopify/p/abc123',
+      store: 'shopify',
+      title: 'LEGO Icons Autumn Cottage Garden 11372',
+      url: 'https://shop.example/products/cottage?variant=2&_gsid=g1&utm_source=shopify&utm_medium=catalog',
+      imageUrl: 'https://cdn.shopify.com/s/files/cottage.jpg',
+      price: 119.99,
+      currency: 'USD',
+      seller: 'Barnes & Noble',
+      rating: 4.5,
+      reviewCount: 42,
+    });
+    const [yen] = shopifyProducts([{ ...SHOPIFY_PRODUCT, variants: [{ url: 'https://shop.example/p', price: { amount: 1500, currency: 'JPY' } }] }]);
+    expect(yen.price).toBe(1500);
+  });
+
   it('builds Best Buy searches from plain words only', () => {
     expect(bestBuyCriteria('LEGO star wars', 50)).toBe('search=lego&search=star&search=wars&onlineAvailability=true&salePrice%3C=50');
     expect(bestBuyCriteria('lego)&(apiKey=x|')).toBe('search=lego&search=apikey&search=x&onlineAvailability=true');
@@ -112,15 +165,52 @@ describe('the gift search endpoint', () => {
     expect((await agent.get('/api/gifts/search?q=lego&page=9')).status).toBe(400);
   });
 
-  it('works without any store keys, offering only the Amazon link', async () => {
+  it('searches Shopify without any keys, and only links to Amazon when Shopify is off', async () => {
     const fetchMock = storeApis();
     vi.stubGlobal('fetch', fetchMock);
     for (const name of Object.keys(KEYS)) vi.stubEnv(name, '');
     const { agent } = await signUp();
     const res = await agent.get('/api/gifts/search?q=LEGO');
     expect(res.status).toBe(200);
-    expect(res.data).toMatchObject({ stores: [], products: [], hasMore: false, amazonUrl: 'https://www.amazon.com/s?k=LEGO' });
+    expect(res.data).toMatchObject({ stores: ['shopify'], hasMore: true, amazonUrl: 'https://www.amazon.com/s?k=LEGO' });
+    expect(res.data.products.map((p: { id: string }) => p.id)).toEqual(['shopify:gid://shopify/p/abc123']);
+    const [[input, init]] = fetchMock.mock.calls;
+    expect(String(input)).toBe('https://catalog.shopify.com/api/ucp/mcp');
+    expect(new Headers(init?.headers).get('authorization')).toBeNull();
+    const body = JSON.parse(String(init?.body));
+    expect(body.params.arguments.meta['ucp-agent'].profile).toMatch(/^https:\/\/shopify\.dev\//);
+    expect(body.params.arguments.catalog.filters.price).toBeUndefined();
+
+    vi.stubEnv('SHOPIFY_CATALOG', 'off');
+    fetchMock.mockClear();
+    const off = await agent.get('/api/gifts/search?q=LEGO');
+    expect(off.data).toMatchObject({ stores: [], products: [], hasMore: false });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('pages through Shopify with the cursor from the previous page', async () => {
+    const fetchMock = storeApis();
+    vi.stubGlobal('fetch', fetchMock);
+    for (const name of Object.keys(KEYS)) vi.stubEnv(name, '');
+    const { agent } = await signUp();
+    const cursors = () => fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).params.arguments.catalog.pagination.cursor ?? null);
+
+    await agent.get('/api/gifts/search?q=lego');
+    const page2 = await agent.get('/api/gifts/search?q=lego&page=2');
+    expect(page2.data.products.map((p: { id: string }) => p.id)).toEqual(['shopify:gid://shopify/p/page2']);
+    expect(page2.data.hasMore).toBe(false);
+    expect(cursors()).toEqual([null, 'next-1']);
+
+    // Page 3 has no cursor to start from, so Shopify isn't asked again.
+    fetchMock.mockClear();
+    const page3 = await agent.get('/api/gifts/search?q=lego&page=3');
+    expect(page3.data.products).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Without page 1 cached, page 2 fetches it first to find the cursor.
+    fetchMock.mockClear();
+    await agent.get('/api/gifts/search?q=lego%20sets&page=2');
+    expect(cursors()).toEqual([null, 'next-1']);
   });
 
   it('searches every store with its keys, mixes the results and caches each store', async () => {
@@ -132,11 +222,14 @@ describe('the gift search endpoint', () => {
     const res = await agent.get('/api/gifts/search?q=LEGO%20%20Gifts&maxPrice=100');
     expect(res.status).toBe(200);
     expect(res.data.query).toBe('lego gifts');
-    expect(res.data.stores).toEqual(['ebay', 'bestbuy', 'etsy']);
-    expect(res.data.products.map((p: { id: string }) => p.id)).toEqual(['ebay:v1|111|0', 'bestbuy:6501234', 'etsy:901']);
+    expect(res.data.stores).toEqual(['shopify', 'ebay', 'bestbuy', 'etsy']);
+    expect(res.data.products.map((p: { id: string }) => p.id)).toEqual(['shopify:gid://shopify/p/abc123', 'ebay:v1|111|0', 'bestbuy:6501234', 'etsy:901']);
     expect(res.data.hasMore).toBe(true);
 
-    const calls = fetchMock.mock.calls.map(([input, init]) => ({ url: new URL(String(input)), headers: new Headers(init?.headers) }));
+    const calls = fetchMock.mock.calls.map(([input, init]) => ({ url: new URL(String(input)), headers: new Headers(init?.headers), body: init?.body }));
+    const shopify = calls.find((c) => c.url.hostname === 'catalog.shopify.com')!;
+    expect(shopify.headers.get('authorization')).toBe('Bearer shop-token');
+    expect(JSON.parse(String(shopify.body)).params.arguments.catalog.filters.price).toEqual({ max: 10000 });
     const ebay = calls.find((c) => c.url.pathname.endsWith('/item_summary/search'))!;
     expect(ebay.headers.get('authorization')).toBe('Bearer token-1');
     expect(ebay.url.searchParams.get('filter')).toContain('price:[..100]');
@@ -148,12 +241,16 @@ describe('the gift search endpoint', () => {
 
     fetchMock.mockClear();
     const again = await agent.get('/api/gifts/search?q=lego%20gifts&maxPrice=100');
-    expect(again.data.products).toHaveLength(3);
+    expect(again.data.products).toHaveLength(4);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("still answers when one store fails, and doesn't cache the failure", async () => {
-    const fetchMock = storeApis({ bestbuy: () => new Response('{"error":"over quota"}', { status: 403 }) });
+    const fetchMock = storeApis({
+      bestbuy: () => new Response('{"error":"over quota"}', { status: 403 }),
+      // JSON-RPC errors can arrive with a 200.
+      shopify: () => new Response('{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"busy"}}', { status: 200 }),
+    });
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     for (const [name, value] of Object.entries(KEYS)) vi.stubEnv(name, value);
@@ -162,6 +259,7 @@ describe('the gift search endpoint', () => {
     const res = await agent.get('/api/gifts/search?q=lego');
     expect(res.status).toBe(200);
     expect(res.data.results).toEqual([
+      { store: 'shopify', ok: false, count: 0 },
       { store: 'ebay', ok: true, count: 1 },
       { store: 'bestbuy', ok: false, count: 0 },
       { store: 'etsy', ok: true, count: 1 },
@@ -170,7 +268,8 @@ describe('the gift search endpoint', () => {
 
     fetchMock.mockClear();
     await agent.get('/api/gifts/search?q=lego');
-    expect(fetchMock.mock.calls.map(([input]) => new URL(String(input)).hostname)).toEqual(['api.bestbuy.com']);
+    const hosts = fetchMock.mock.calls.map(([input]) => new URL(String(input)).hostname).filter((h) => h !== 'api.shopify.com');
+    expect(hosts.sort()).toEqual(['api.bestbuy.com', 'catalog.shopify.com']);
   });
 
   it('searches just one store when asked', async () => {
