@@ -95,7 +95,13 @@ export const itemTypeSchema = z.enum(ITEM_TYPES);
 export const collaboratorRoleSchema = z.enum(COLLABORATOR_ROLES);
 export const listKindSchema = z.enum(LIST_KINDS);
 export const coverFrameSchema = z.object({ shape: z.enum(COVER_FRAME_SHAPES), fill: z.enum(COVER_FRAME_FILLS), color: colorSchema }).strict();
-export const coverArtSchema = z.object({ icon: z.enum(COVER_ICONS), backdrop: z.enum(COVER_BACKDROPS), frame: coverFrameSchema.optional() }).strict();
+export const coverArtSchema = z
+  .object({ icon: z.enum(COVER_ICONS), backdrop: z.enum(COVER_BACKDROPS), colors: z.array(colorSchema).min(1).max(2).optional(), frame: coverFrameSchema.optional() })
+  .strict()
+  .refine((a) => (a.backdrop === 'solid' ? a.colors?.length === 1 : a.backdrop === 'gradient' ? a.colors?.length === 2 : !a.colors), {
+    message: 'Pick a colour for this background',
+    path: ['colors'],
+  });
 
 // ── Auth ────────────────────────────────────────────────────────────────────
 

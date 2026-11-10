@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactElement } from 'react';
-import type { CoverArt as CoverArtValue, CoverBackdrop, CoverFrame, CoverIcon, ListKind } from '../../shared/types';
+import { coverPaint, isDarkCover, type CoverArt as CoverArtValue, type CoverBackdrop, type CoverFrame, type CoverIcon, type ListKind } from '../../shared/types';
 import { CloudBank } from './Cloud';
 import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from './ItemIllustrations';
 import { COVER_ILLUSTRATIONS as C } from './CoverIllustrations';
@@ -350,9 +350,39 @@ export const COVER_BACKDROP_LABELS: Record<CoverBackdrop, string> = {
   spooky: 'Spooky night',
   harvest: 'Harvest',
   hanukkah: 'Festival of lights',
+  solid: 'Color',
+  gradient: 'Gradient',
 };
 
-/** Picker order: cloudy pastels, then the four seasons, then the special ones, then holidays through the year. */
+export const COVER_SOLID_COLORS: Array<{ color: string; label: string }> = [
+  { color: '#d6e4fb', label: 'Sky' },
+  { color: '#fbd5cb', label: 'Blush' },
+  { color: '#d4ecd9', label: 'Mint' },
+  { color: '#e3defc', label: 'Lilac' },
+  { color: '#fff4dc', label: 'Cream' },
+  { color: '#f9d976', label: 'Sunshine' },
+  { color: '#e8745b', label: 'Coral' },
+  { color: '#4fa3a5', label: 'Teal' },
+  { color: '#3f6fb5', label: 'Blue' },
+  { color: '#7c6cf0', label: 'Violet' },
+  { color: '#1f2f5c', label: 'Navy' },
+  { color: '#2f3440', label: 'Charcoal' },
+];
+
+export const COVER_GRADIENTS: Array<{ colors: [string, string]; label: string }> = [
+  { colors: ['#fbd5cb', '#d6e4fb'], label: 'Cotton candy' },
+  { colors: ['#fbd5cb', '#f9d976'], label: 'Peach' },
+  { colors: ['#d4ecd9', '#a8d8f0'], label: 'Seafoam' },
+  { colors: ['#e3defc', '#f7c4d2'], label: 'Lavender' },
+  { colors: ['#f9d976', '#e8745b'], label: 'Citrus' },
+  { colors: ['#f6a07a', '#7c6cf0'], label: 'Sunset' },
+  { colors: ['#a8d8f0', '#3f6fb5'], label: 'Ocean' },
+  { colors: ['#4fa3a5', '#1f5c47'], label: 'Forest' },
+  { colors: ['#7c6cf0', '#1f2f5c'], label: 'Twilight' },
+  { colors: ['#2f3440', '#1f2f5c'], label: 'Midnight' },
+];
+
+/** Scene picker order: cloudy pastels, then the four seasons, then the special ones, then holidays through the year. */
 export const COVER_BACKDROP_ORDER: CoverBackdrop[] = [
   'sky',
   'blush',
@@ -769,7 +799,7 @@ function Decor({ backdrop }: { backdrop: CoverBackdrop }) {
   );
 }
 
-/** A list cover drawn as an illustration on a backdrop. `sm` drops the decoration for tiny thumbnails. */
+/** A list cover drawn as an illustration on a backdrop, or on the owner's own colour or gradient. `sm` drops the decoration for tiny thumbnails. */
 export function CoverArt({
   art,
   size = 'md',
@@ -781,10 +811,16 @@ export function CoverArt({
   showIcon?: boolean;
   className?: string;
 }) {
-  const showBank = size === 'md' && art.backdrop !== 'confetti';
+  const paint = coverPaint(art);
+  const scene = size === 'md' && !paint;
+  const showBank = scene && art.backdrop !== 'confetti';
   return (
-    <div className={['cover-art', `cover-bg-${art.backdrop}`, `cover-art-${size}`, className].filter(Boolean).join(' ')} aria-hidden>
-      {size === 'md' && <Decor backdrop={art.backdrop} />}
+    <div
+      className={['cover-art', `cover-bg-${art.backdrop}`, `cover-art-${size}`, paint && isDarkCover(art) && 'is-dark', className].filter(Boolean).join(' ')}
+      style={paint ? { background: paint } : undefined}
+      aria-hidden
+    >
+      {scene && <Decor backdrop={art.backdrop} />}
       {showBank && <CloudBank className="cover-bank" />}
       {showIcon &&
         (size === 'md' ? (

@@ -1,4 +1,4 @@
-import type { ExtensionSession } from '../../../shared/types';
+import { coverPaint, type ExtensionSession } from '../../../shared/types';
 import { defaultCoverArt } from '../../../shared/constants';
 import { COVER_ICON_ART } from '../../../src/components/CoverArt';
 import { siteAsset } from '../api';
@@ -12,5 +12,10 @@ export function ListThumb({ list }: { list: ExtensionSession['lists'][number] })
     );
   }
   const art = list.coverArt ?? defaultCoverArt(list.kind);
-  return <span className={`thumb cover-bg-${art.backdrop}`}>{COVER_ICON_ART[art.icon]}</span>;
+  const paint = coverPaint(art);
+  return (
+    <span className={`thumb cover-bg-${art.backdrop}`} style={paint ? { background: paint } : undefined}>
+      {COVER_ICON_ART[art.icon]}
+    </span>
+  );
 }

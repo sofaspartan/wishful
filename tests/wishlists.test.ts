@@ -103,6 +103,25 @@ describe('wishlists', () => {
     expect((await bad({ ...frame, color: 'red; background:url(x)' })).status).toBe(400);
     expect((await bad({ ...frame, extra: true })).status).toBe(400);
   });
+
+  it('stores a plain colour or gradient background and rejects unsafe or mismatched colours', async () => {
+    const { agent } = await signUp();
+    const list = await createList(agent, { title: 'Colours', visibility: 'unlisted' });
+    const solid = await agent.patch(`/api/wishlists/${list.id}`, { coverArt: { icon: 'gift', backdrop: 'solid', colors: ['#3f6fb5'] } });
+    expect(solid.data.wishlist.coverArt).toEqual({ icon: 'gift', backdrop: 'solid', colors: ['#3f6fb5'] });
+    const gradient = await agent.patch(`/api/wishlists/${list.id}`, { coverArt: { icon: 'gift', backdrop: 'gradient', colors: ['#fbd5cb', '#7c6cf0'] } });
+    expect(gradient.data.wishlist.coverArt.colors).toEqual(['#fbd5cb', '#7c6cf0']);
+    const pub = await agent.get(`/api/public/lists/${list.shareToken}`);
+    expect(pub.data.wishlist.coverArt).toEqual({ icon: 'gift', backdrop: 'gradient', colors: ['#fbd5cb', '#7c6cf0'] });
+
+    const bad = (coverArt: unknown) => agent.patch(`/api/wishlists/${list.id}`, { coverArt });
+    expect((await bad({ icon: 'gift', backdrop: 'solid' })).status).toBe(400);
+    expect((await bad({ icon: 'gift', backdrop: 'solid', colors: ['#fff', '#000'] })).status).toBe(400);
+    expect((await bad({ icon: 'gift', backdrop: 'gradient', colors: ['#fbd5cb'] })).status).toBe(400);
+    expect((await bad({ icon: 'gift', backdrop: 'solid', colors: ['red; background:url(x)'] })).status).toBe(400);
+    expect((await bad({ icon: 'gift', backdrop: 'sky', colors: ['#3f6fb5'] })).status).toBe(400);
+    expect((await bad({ icon: 'gift', backdrop: 'gradient', colors: ['#111111', '#222222', '#333333'] })).status).toBe(400);
+  });
 });
 
 describe('bulk add', () => {

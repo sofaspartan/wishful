@@ -166,12 +166,55 @@ export const COVER_BACKDROPS = [
   'shamrock',
   'hanukkah',
   'harvest',
+  'solid',
+  'gradient',
 ] as const;
 export type CoverBackdrop = (typeof COVER_BACKDROPS)[number];
+
+/** Backdrops painted in the list owner's own colours (`CoverArt.colors`) instead of an illustrated scene. */
+export const PLAIN_COVER_BACKDROPS = ['solid', 'gradient'] as const;
+export type PlainCoverBackdrop = (typeof PLAIN_COVER_BACKDROPS)[number];
+export const isPlainBackdrop = (b: CoverBackdrop | null | undefined): b is PlainCoverBackdrop => b === 'solid' || b === 'gradient';
 
 /** Backdrops dark enough to need light text and a glow behind floating icons. */
 export const DARK_COVER_BACKDROPS: readonly CoverBackdrop[] = ['night', 'snow', 'spooky', 'hanukkah'];
 export const isDarkBackdrop = (b: CoverBackdrop | null | undefined): boolean => Boolean(b && DARK_COVER_BACKDROPS.includes(b));
+
+export const DEFAULT_SOLID_COLOR = '#d6e4fb';
+export const DEFAULT_GRADIENT: [string, string] = ['#fbd5cb', '#d6e4fb'];
+
+/** The colours a plain cover is painted with, falling back to the defaults. */
+export function coverColors(art: Pick<CoverArt, 'backdrop' | 'colors'>): [string, string] {
+  if (art.backdrop === 'solid') {
+    const c = art.colors?.[0] ?? DEFAULT_SOLID_COLOR;
+    return [c, c];
+  }
+  return [art.colors?.[0] ?? DEFAULT_GRADIENT[0], art.colors?.[1] ?? DEFAULT_GRADIENT[1]];
+}
+
+/** CSS background for a plain cover, or null for illustrated scenes. */
+export function coverPaint(art: Pick<CoverArt, 'backdrop' | 'colors'>): string | null {
+  if (!isPlainBackdrop(art.backdrop)) return null;
+  const [a, b] = coverColors(art);
+  return art.backdrop === 'solid' ? a : `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
+}
+
+/** WCAG relative luminance of a #rrggbb colour, 0 (black) to 1 (white). */
+function luminance(hex: string): number {
+  const channel = (i: number) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+}
+
+/** Whether text on this cover should be white: dark scenes, or plain colours past the point where white reads better than ink. */
+export function isDarkCover(art: Pick<CoverArt, 'backdrop' | 'colors'> | null | undefined): boolean {
+  if (!art) return false;
+  if (!isPlainBackdrop(art.backdrop)) return isDarkBackdrop(art.backdrop);
+  const [a, b] = coverColors(art);
+  return (luminance(a) + luminance(b)) / 2 < 0.2;
+}
 
 export const COVER_FRAME_SHAPES = ['none', 'rounded', 'circle', 'cloud'] as const;
 export type CoverFrameShape = (typeof COVER_FRAME_SHAPES)[number];
@@ -189,6 +232,8 @@ export interface CoverFrame {
 export interface CoverArt {
   icon: CoverIcon;
   backdrop: CoverBackdrop;
+  /** #rrggbb; one for `solid`, two (start and end) for `gradient`, absent for scenes. */
+  colors?: string[];
   /** Missing on older lists: a frosted white rounded tile. */
   frame?: CoverFrame;
 }

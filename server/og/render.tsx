@@ -10,7 +10,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { CalendarDays, Gift, Library } from 'lucide-react';
-import { isDarkBackdrop, type CoverArt, type CoverBackdrop, type ListKind } from '../../shared/types';
+import {
+  coverColors,
+  isDarkBackdrop,
+  isDarkCover,
+  isPlainBackdrop,
+  type CoverArt,
+  type CoverBackdrop,
+  type ListKind,
+  type PlainCoverBackdrop,
+} from '../../shared/types';
 import { COVER_ICON_ART, DEFAULT_COVER_FRAME, suggestCoverArt } from '../../src/components/CoverArt';
 import { ILLUSTRATED_ITEMS } from '../../src/components/ItemIllustrations';
 import { brand, taglineParts } from '../../src/config/brand';
@@ -66,8 +75,8 @@ function mix(a: string, b: string, p: number): string {
   return `#${[0, 1, 2].map((i) => Math.round(ch(a, i) * p + ch(b, i) * (1 - p)).toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** The light-theme cover backdrops from layout.css. */
-const BACKDROPS: Record<CoverBackdrop, [string, string]> = {
+/** The light-theme cover scenes from layout.css. */
+const BACKDROPS: Record<Exclude<CoverBackdrop, PlainCoverBackdrop>, [string, string]> = {
   sky: [mix(ACCENT, '#ffffff', 0.24), mix(ACCENT, '#ffffff', 0.09)],
   blush: [mix('#e8745b', '#ffffff', 0.28), mix('#e8745b', '#ffffff', 0.1)],
   mint: [mix('#5f9e6e', '#ffffff', 0.28), mix('#5f9e6e', '#ffffff', 0.1)],
@@ -85,6 +94,16 @@ const BACKDROPS: Record<CoverBackdrop, [string, string]> = {
   harvest: ['#efad68', '#fde3bf'],
   hanukkah: ['#1b3a87', '#4479cf'],
 };
+
+/** Background for a cover (or the default sky): its scene's gradient, or the owner's own colour or gradient. */
+function coverBackground(art: CoverArt | null): string {
+  if (art && isPlainBackdrop(art.backdrop)) {
+    const [a, b] = coverColors(art);
+    return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
+  }
+  const [top, bottom] = (art && !isPlainBackdrop(art.backdrop) && BACKDROPS[art.backdrop]) || BACKDROPS.sky;
+  return `linear-gradient(180deg, ${top} 0%, ${bottom} 100%)`;
+}
 
 const svgUri = (markup: string) => `data:image/svg+xml;base64,${Buffer.from(markup).toString('base64')}`;
 
@@ -357,9 +376,9 @@ export interface ListCardData {
 export function ListCard(d: ListCardData) {
   const collection = d.kind === 'collection';
   const art = d.coverArt ?? suggestCoverArt(d.occasion, d.kind);
-  const backdrop = d.coverPhoto ? 'sky' : art.backdrop;
-  const dark = isDarkBackdrop(backdrop);
-  const [top, bottom] = BACKDROPS[backdrop] ?? BACKDROPS.sky;
+  const cover = d.coverPhoto ? null : art;
+  const backdrop = cover?.backdrop ?? 'sky';
+  const dark = isDarkCover(cover);
   const title = plainText(d.title, 64) || (collection ? 'A collection' : 'A wishlist');
   const chipInk = dark ? '#ffffff' : INK_2;
   const date = d.eventDate ? formatDate(d.eventDate, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -368,7 +387,7 @@ export function ListCard(d: ListCardData) {
   const footer = collection ? `Browse the collection on ${brand.name}` : d.canReserve ? 'Reserve a gift so nobody doubles up' : `See the list on ${brand.name}`;
 
   return (
-    <Card background={`linear-gradient(180deg, ${top} 0%, ${bottom} 100%)`} backdrop={backdrop}>
+    <Card background={coverBackground(cover)} backdrop={isPlainBackdrop(backdrop) ? null : backdrop}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Logo dark={dark} />
         <Pill dark={dark} icon={lucideSrc(collection ? Library : Gift, chipInk)}>
@@ -439,7 +458,6 @@ export interface ProfileCardData {
 
 function MiniList({ list, style }: { list: ProfileCardData['lists'][number]; style: CSSProperties }) {
   const art = list.coverArt ?? suggestCoverArt(list.occasion, list.kind);
-  const [top, bottom] = BACKDROPS[art.backdrop] ?? BACKDROPS.sky;
   return (
     <div
       style={{
@@ -455,7 +473,7 @@ function MiniList({ list, style }: { list: ProfileCardData['lists'][number]; sty
         ...style,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 170, borderRadius: 20, background: `linear-gradient(180deg, ${top}, ${bottom})` }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 170, borderRadius: 20, background: coverBackground(art) }}>
         {list.coverPhoto ? (
           <img src={list.coverPhoto} width={216} height={170} style={{ objectFit: 'cover', borderRadius: 20 }} />
         ) : (
