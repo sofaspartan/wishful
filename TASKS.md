@@ -102,6 +102,9 @@
 - [x] `coverArt { icon, backdrop }` on lists as an alternative to a cover photo, validated against fixed enums
 - [x] 39 illustrated icons (generic wishlist & collection icons — gift, checklist, sparkles, star, bag, records-and-books, treasure chest — plus winter holidays, seasons, celebrations, everyday things) and 12 backdrops (four cloudy pastels, sunset, spring blossoms, summer beach, autumn leaves, winter snow, starry night, confetti, hearts)
 - [x] Background picker shows labeled mini previews of each backdrop
+- [x] Holiday and everyday icon sets, 117 icons in all: Halloween, St. Patrick's, Valentine's, Thanksgiving, Hanukkah, Easter, New Year's & Fourth of July, Diwali / Eid / Lunar New Year, Mother's & Father's Day, baby, toys, school, hobbies, sports, pets, home, beauty and tech
+- [x] Four holiday backdrops: shamrocks, spooky night (moon and flapping bats), harvest (wheat and leaves) and festival of lights (gold stars). All have night-theme versions and appear in share images
+- [x] Icon search in the picker matches names, sections and extra keywords. It ignores case, apostrophes, plurals and filler words, and matches as you type. Category chips filter to one section, and the search bar stays pinned while the grid scrolls
 - [x] None / Graphic / Photo switch in the list form with a live preview; the starting graphic is suggested from the occasion until you pick your own
 - [x] New lists start with a graphic: wishlists get a gift on blue sky, collections get records-and-books on blush, both in a frosted white rounded tile (also applied server-side for lists created from shortcuts)
 - [x] Shown on list cards, the list header, the public page, profiles, dashboard rows, the sidebar and search results

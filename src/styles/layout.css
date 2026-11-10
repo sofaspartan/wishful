@@ -3462,7 +3462,7 @@ button.quick-action.tile-blush:hover {
 .wl-card:hover .cover-art-avatar {
   transform: scale(1.06) rotate(-3deg);
 }
-.cover-bg-night .cover-art-avatar.frame-none .cover-avatar-art {
+.cover-art:is(.cover-bg-night, .cover-bg-spooky, .cover-bg-hanukkah) .cover-art-avatar.frame-none .cover-avatar-art {
   filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.28)) drop-shadow(0 8px 12px rgba(0, 0, 0, 0.25));
 }
 .cover-bg-snow .cover-art-avatar.frame-none .cover-avatar-art {
@@ -3537,6 +3537,18 @@ button.quick-action.tile-blush:hover {
 .cover-bg-hearts {
   background: linear-gradient(180deg, #f9c6d2 0%, #fdeef2 100%);
 }
+.cover-bg-shamrock {
+  background: linear-gradient(180deg, #c6e8c4 0%, #effae6 100%);
+}
+.cover-bg-spooky {
+  background: linear-gradient(180deg, #2a1c4d 0%, #573a82 100%);
+}
+.cover-bg-harvest {
+  background: linear-gradient(180deg, #efad68 0%, #fde3bf 100%);
+}
+.cover-bg-hanukkah {
+  background: linear-gradient(180deg, #1b3a87 0%, #4479cf 100%);
+}
 
 .cover-cloud {
   fill: var(--cloud-fill);
@@ -3609,6 +3621,42 @@ button.quick-action.tile-blush:hover {
 .cover-bg-hearts .cover-bank .cloud-bank-back {
   fill: #f4b0c0;
 }
+.cover-bg-shamrock .cover-bank .cloud-bank-back {
+  fill: #93cf95;
+}
+.cover-bg-shamrock .cover-bank .cloud-bank-front {
+  fill: #e0f3d4;
+}
+.cover-coin {
+  background: #f2c14e;
+  box-shadow: inset 0 0 0 0.35cqh #d9a12c;
+}
+.cover-bg-spooky .cover-bank .cloud-bank-back {
+  fill: rgba(255, 255, 255, 0.14);
+}
+.cover-bg-spooky .cover-bank .cloud-bank-front {
+  fill: #e8def6;
+}
+.cover-bat {
+  fill: #1a1030;
+  transform-origin: center;
+  animation: cover-flap 0.7s ease-in-out infinite alternate;
+}
+.cover-bg-harvest .cover-bank .cloud-bank-back {
+  fill: #d98d45;
+}
+.cover-bg-harvest .cover-bank .cloud-bank-front {
+  fill: #f8dbb0;
+}
+.cover-bg-hanukkah .cover-bank .cloud-bank-back {
+  fill: rgba(255, 255, 255, 0.3);
+}
+.cover-bg-hanukkah .cover-bank .cloud-bank-front {
+  fill: #e6edfb;
+}
+.cover-glow {
+  animation: fa-glow 3s ease-in-out infinite;
+}
 .cover-gull {
   fill: none;
   stroke: #fff;
@@ -3656,13 +3704,20 @@ button.quick-action.tile-blush:hover {
     transform: rotate(360deg);
   }
 }
+@keyframes cover-flap {
+  to {
+    transform: scaleY(0.6);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .cover-cloud-a,
   .cover-cloud-b,
   .cover-flakes,
   .cover-rise,
   .cover-summer-rays,
-  .cover-star {
+  .cover-star,
+  .cover-bat,
+  .cover-glow {
     animation: none;
   }
 }
@@ -3849,6 +3904,52 @@ button.quick-action.tile-blush:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
   box-shadow: 0 0 0 1px var(--accent);
+}
+/* The search box and category chips stay put while the icon grid scrolls under them. */
+.cover-icon-finder {
+  position: sticky;
+  top: calc(-1 * var(--s-2));
+  z-index: 2;
+  margin: calc(-1 * var(--s-2)) 0;
+  padding: var(--s-2) 0;
+  background: var(--surface);
+}
+.cover-icon-search .input {
+  padding-right: 38px;
+}
+.cover-icon-search .input::-webkit-search-cancel-button {
+  display: none;
+}
+.cover-icon-search-clear {
+  position: absolute;
+  right: 4px;
+  color: var(--muted);
+}
+.cover-icon-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 calc(-1 * var(--s-2));
+  padding: 2px var(--s-2);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--s-2), #000 calc(100% - var(--s-5)), transparent);
+}
+.cover-icon-chips::-webkit-scrollbar {
+  display: none;
+}
+.cover-icon-chips .chip {
+  flex-shrink: 0;
+  height: 30px;
+  font-size: var(--text-xs);
+}
+.cover-icon-empty {
+  margin: 0;
+  padding: var(--s-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  text-align: center;
 }
 
 /* ── Bulk add ── */
@@ -4187,10 +4288,10 @@ button.quick-action.tile-blush:hover {
 }
 /* Cover backdrops at night: the pastel ones mix into the night sky through --tint-base; the
    painted ones get a dusk veil over their decorations, under the icon. */
-:root[data-theme='dark'] .cover-bg-night .cover-bank .cloud-bank-front {
+:root[data-theme='dark'] :is(.cover-bg-night, .cover-bg-spooky, .cover-bg-hanukkah) .cover-bank .cloud-bank-front {
   fill: var(--cloud-fill);
 }
-:root[data-theme='dark'] .cover-art:is(.cover-bg-sunset, .cover-bg-confetti, .cover-bg-spring, .cover-bg-summer, .cover-bg-autumn, .cover-bg-hearts)::after {
+:root[data-theme='dark'] .cover-art:is(.cover-bg-sunset, .cover-bg-confetti, .cover-bg-spring, .cover-bg-summer, .cover-bg-autumn, .cover-bg-hearts, .cover-bg-shamrock, .cover-bg-harvest)::after {
   content: '';
   position: absolute;
   inset: 0;

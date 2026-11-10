@@ -27,7 +27,7 @@ import {
   Undo2,
   Users,
 } from 'lucide-react';
-import type { Item, OwnerClaimView, OwnerPledgeView, Priority, WishlistDetail as Detail, WishlistEntry } from '../../shared/types';
+import { isDarkBackdrop, type Item, type OwnerClaimView, type OwnerPledgeView, type Priority, type WishlistDetail as Detail, type WishlistEntry } from '../../shared/types';
 import { PRIORITY_LABELS, PRIORITY_LAYOUTS, priorityLayout, priorityLayoutSettings, type PriorityLayout } from '../../shared/constants';
 import { keys, useMe, useStaleSync, useWishlist, useInvalidate } from '../lib/queries';
 import { linkedListNote, syncSourceName } from '../lib/syncSource';
@@ -345,7 +345,7 @@ function WishlistView({ detail }: { detail: Detail }) {
       </Link>
 
       <header
-        className={['wl-hero', !w.coverImage && (w.coverArt?.backdrop === 'night' || w.coverArt?.backdrop === 'snow') && 'wl-hero-dark'].filter(Boolean).join(' ')}
+        className={['wl-hero', !w.coverImage && isDarkBackdrop(w.coverArt?.backdrop) && 'wl-hero-dark'].filter(Boolean).join(' ')}
         style={{ ['--wl-accent' as string]: w.accentColor }}
       >
         <div className="wl-hero-bg" aria-hidden>

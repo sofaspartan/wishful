@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import { Circle, Cloud, Sparkles, Square } from 'lucide-react';
-import type { CoverArt as CoverArtValue, CoverFrame, CoverFrameFill, CoverFrameShape } from '../../shared/types';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Circle, Cloud, Search, Sparkles, Square, X } from 'lucide-react';
+import { isDarkBackdrop, type CoverArt as CoverArtValue, type CoverFrame, type CoverFrameFill, type CoverFrameShape, type CoverIcon } from '../../shared/types';
 import {
   COVER_BACKDROP_LABELS,
   COVER_BACKDROP_ORDER,
@@ -11,6 +11,7 @@ import {
   CoverArt,
   CoverAvatar,
   DEFAULT_COVER_FRAME,
+  searchCoverIcons,
 } from './CoverArt';
 import { Segmented } from './ui/misc';
 
@@ -29,7 +30,31 @@ const FILLS: Array<{ value: CoverFrameFill; label: string }> = [
 export function CoverArtPicker({ value, onChange, title }: { value: CoverArtValue; onChange: (v: CoverArtValue) => void; title?: string }) {
   const frame = value.frame ?? DEFAULT_COVER_FRAME;
   const setFrame = (patch: Partial<CoverFrame>) => onChange({ ...value, frame: { ...frame, ...patch } });
-  const dark = value.backdrop === 'night' || value.backdrop === 'snow';
+  const dark = isDarkBackdrop(value.backdrop);
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
+  const q = query.trim();
+  const results = useMemo(() => (q ? searchCoverIcons(q) : null), [q]);
+  const shownGroups = category ? COVER_ICON_GROUPS.filter((g) => g.label === category) : COVER_ICON_GROUPS;
+
+  const iconGrid = (icons: readonly CoverIcon[], label: string) => (
+    <div className="cover-icons" role="radiogroup" aria-label={label}>
+      {icons.map((icon) => (
+        <button
+          key={icon}
+          type="button"
+          role="radio"
+          aria-checked={value.icon === icon}
+          aria-label={COVER_ICON_LABELS[icon]}
+          title={COVER_ICON_LABELS[icon]}
+          className="cover-icon-option"
+          onClick={() => onChange({ ...value, icon })}
+        >
+          {COVER_ICON_ART[icon]}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="cover-picker">
@@ -93,27 +118,65 @@ export function CoverArtPicker({ value, onChange, title }: { value: CoverArtValu
           )}
         </div>
 
-        {COVER_ICON_GROUPS.map((g) => (
-          <div key={g.label} className="cover-picker-group">
-            <span className="cover-picker-label">{g.label}</span>
-            <div className="cover-icons" role="radiogroup" aria-label={g.label}>
-              {g.icons.map((icon) => (
-                <button
-                  key={icon}
-                  type="button"
-                  role="radio"
-                  aria-checked={value.icon === icon}
-                  aria-label={COVER_ICON_LABELS[icon]}
-                  title={COVER_ICON_LABELS[icon]}
-                  className="cover-icon-option"
-                  onClick={() => onChange({ ...value, icon })}
-                >
-                  {COVER_ICON_ART[icon]}
+        <div className="cover-picker-group cover-icon-finder">
+          <label className="cover-picker-label" htmlFor="cover-icon-search">
+            Icon
+          </label>
+          <div className="input-group cover-icon-search">
+            <Search size={16} aria-hidden />
+            <input
+              id="cover-icon-search"
+              className="input"
+              type="search"
+              autoComplete="off"
+              placeholder="Search icons, like “halloween”, “dog” or “baby”"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.preventDefault();
+                if (e.key === 'Escape' && query) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setQuery('');
+                }
+              }}
+            />
+            {query && (
+              <button type="button" className="btn btn-ghost btn-icon btn-sm cover-icon-search-clear" aria-label="Clear search" onClick={() => setQuery('')}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          {!results && (
+            <div className="cover-icon-chips" role="group" aria-label="Icon categories">
+              {[null, ...COVER_ICON_GROUPS.map((g) => g.label)].map((label) => (
+                <button key={label ?? 'all'} type="button" className="chip" aria-pressed={category === label} onClick={() => setCategory(label)}>
+                  {label ?? 'All'}
                 </button>
               ))}
             </div>
+          )}
+        </div>
+
+        {results ? (
+          <div className="cover-picker-group">
+            <span className="cover-picker-label" role="status">
+              {results.length ? `${results.length} ${results.length === 1 ? 'match' : 'matches'}` : 'No matches'}
+            </span>
+            {results.length ? (
+              iconGrid(results, 'Matching icons')
+            ) : (
+              <p className="cover-icon-empty">Nothing matches “{q}”. Try a holiday, an occasion or a hobby.</p>
+            )}
           </div>
-        ))}
+        ) : (
+          shownGroups.map((g) => (
+            <div key={g.label} className="cover-picker-group">
+              <span className="cover-picker-label">{g.label}</span>
+              {iconGrid(g.icons, g.label)}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

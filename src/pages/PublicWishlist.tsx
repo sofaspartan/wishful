@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, Check, Copy, Eye, EyeOff, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
-import type { PublicEntry, PublicWishlistView } from '../../shared/types';
+import { isDarkBackdrop, type PublicEntry, type PublicWishlistView } from '../../shared/types';
 import { PRIORITY_RANK, priorityLayout } from '../../shared/constants';
 import { keys, useMe, usePublicList } from '../lib/queries';
 import { ApiError, errorMessage, post } from '../lib/api';
@@ -349,7 +349,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
 
       <section className="public-hero">
         <header
-          className={['wl-hero', 'public-wl-hero', !w.coverImage && (w.coverArt?.backdrop === 'night' || w.coverArt?.backdrop === 'snow') && 'wl-hero-dark']
+          className={['wl-hero', 'public-wl-hero', !w.coverImage && isDarkBackdrop(w.coverArt?.backdrop) && 'wl-hero-dark']
             .filter(Boolean)
             .join(' ')}
         >

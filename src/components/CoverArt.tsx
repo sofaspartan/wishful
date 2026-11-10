@@ -9,32 +9,8 @@ const [camera, sweater, headphones, sneaker, watch, plant, book, mug] = ILLUSTRA
 const F = FEATURE_ILLUSTRATIONS;
 
 export const COVER_ICON_ART: Record<CoverIcon, ReactElement> = {
-  wishlist: C.wishlist,
+  ...C,
   collection: F.collection,
-  sparkles: C.sparkles,
-  chest: C.chest,
-  tree: C.tree,
-  snowflake: C.snowflake,
-  holly: C.holly,
-  snowman: C.snowman,
-  ornament: C.ornament,
-  'candy-cane': C['candy-cane'],
-  pumpkin: C.pumpkin,
-  leaf: C.leaf,
-  sun: C.sun,
-  flower: C.flower,
-  umbrella: C.umbrella,
-  'ice-cream': C['ice-cream'],
-  watermelon: C.watermelon,
-  acorn: C.acorn,
-  heart: C.heart,
-  cake: C.cake,
-  balloon: C.balloon,
-  'grad-cap': C['grad-cap'],
-  ring: C.ring,
-  house: C.house,
-  star: C.star,
-  suitcase: C.suitcase,
   gift: F.surprise,
   bag: F.store,
   camera,
@@ -45,9 +21,6 @@ export const COVER_ICON_ART: Record<CoverIcon, ReactElement> = {
   plant,
   book,
   mug,
-  record: C.record,
-  brick: C.brick,
-  controller: C.controller,
   idea: F.idea,
   plane: F.share,
 };
@@ -92,17 +65,273 @@ export const COVER_ICON_LABELS: Record<CoverIcon, string> = {
   record: 'Vinyl record',
   brick: 'Building brick',
   controller: 'Game controller',
+  'jack-o-lantern': 'Jack-o’-lantern',
+  ghost: 'Ghost',
+  'witch-hat': 'Witch hat',
+  bat: 'Bat',
+  'candy-corn': 'Candy corn',
+  shamrock: 'Shamrock',
+  'pot-of-gold': 'Pot of gold',
+  'leprechaun-hat': 'Leprechaun hat',
+  rainbow: 'Rainbow',
+  'love-letter': 'Love letter',
+  chocolates: 'Box of chocolates',
+  rose: 'Rose',
+  turkey: 'Turkey',
+  pie: 'Pumpkin pie',
+  cornucopia: 'Cornucopia',
+  menorah: 'Menorah',
+  dreidel: 'Dreidel',
+  'star-of-david': 'Star of David',
+  blocks: 'Number blocks',
+  robot: 'Wind-up robot',
+  teddy: 'Teddy bear',
+  duck: 'Rubber duck',
+  train: 'Toy train',
+  'rocking-horse': 'Rocking horse',
+  dinosaur: 'Toy dinosaur',
+  rocket: 'Toy rocket',
+  'easter-egg': 'Easter egg',
+  bunny: 'Bunny',
+  chick: 'Chick',
+  basket: 'Easter basket',
+  fireworks: 'Fireworks',
+  'party-hat': 'Party hat',
+  champagne: 'Champagne toast',
+  flag: 'American flag',
+  diya: 'Diya lamp',
+  'paper-lantern': 'Red lantern',
+  'red-envelope': 'Red envelope',
+  crescent: 'Crescent moon and star',
+  fanous: 'Ramadan lantern',
+  bouquet: 'Bouquet',
+  necktie: 'Necktie',
+  grill: 'Barbecue grill',
+  'baby-bottle': 'Baby bottle',
+  rattle: 'Rattle',
+  stroller: 'Stroller',
+  onesie: 'Onesie',
+  backpack: 'Backpack',
+  pencil: 'Pencil',
+  apple: 'Apple',
+  crayons: 'Crayons',
+  palette: 'Paint palette',
+  guitar: 'Guitar',
+  yarn: 'Yarn and needles',
+  tent: 'Tent',
+  'fishing-rod': 'Fishing rod',
+  'soccer-ball': 'Soccer ball',
+  basketball: 'Basketball',
+  baseball: 'Baseball',
+  paw: 'Paw print',
+  bone: 'Dog bone',
+  fishbowl: 'Fishbowl',
+  'toy-mouse': 'Cat toy',
+  whisk: 'Whisk',
+  'chef-hat': 'Chef hat',
+  'watering-can': 'Watering can',
+  candle: 'Candle',
+  lipstick: 'Lipstick',
+  perfume: 'Perfume',
+  handbag: 'Handbag',
+  laptop: 'Laptop',
+  phone: 'Phone',
+  tablet: 'Tablet',
+  kite: 'Kite',
+  doll: 'Doll',
+  'toy-car': 'Toy car',
+  puzzle: 'Puzzle',
   idea: 'Lightbulb',
   plane: 'Paper plane',
 };
 
 export const COVER_ICON_GROUPS: Array<{ label: string; icons: CoverIcon[] }> = [
   { label: 'Wishlists & collections', icons: ['gift', 'wishlist', 'sparkles', 'star', 'bag', 'collection', 'chest'] },
-  { label: 'Winter holidays', icons: ['tree', 'holly', 'snowflake', 'snowman', 'ornament', 'candy-cane'] },
-  { label: 'Seasons', icons: ['flower', 'umbrella', 'sun', 'ice-cream', 'watermelon', 'leaf', 'acorn', 'pumpkin', 'heart'] },
-  { label: 'Celebrations', icons: ['cake', 'balloon', 'grad-cap', 'ring', 'house', 'suitcase'] },
-  { label: 'Things', icons: ['camera', 'headphones', 'sneaker', 'watch', 'sweater', 'plant', 'book', 'mug', 'record', 'brick', 'controller', 'idea', 'plane'] },
+  { label: 'Celebrations', icons: ['cake', 'balloon', 'party-hat', 'grad-cap', 'ring', 'house', 'suitcase'] },
+  { label: 'Christmas & winter', icons: ['tree', 'holly', 'snowflake', 'snowman', 'ornament', 'candy-cane'] },
+  { label: 'Hanukkah', icons: ['menorah', 'dreidel', 'star-of-david'] },
+  { label: 'New Year’s & Fourth of July', icons: ['fireworks', 'champagne', 'party-hat', 'flag'] },
+  { label: 'Valentine’s Day', icons: ['heart', 'love-letter', 'chocolates', 'rose'] },
+  { label: 'St. Patrick’s Day', icons: ['shamrock', 'pot-of-gold', 'leprechaun-hat', 'rainbow'] },
+  { label: 'Easter', icons: ['easter-egg', 'bunny', 'chick', 'basket'] },
+  { label: 'Mother’s & Father’s Day', icons: ['bouquet', 'necktie', 'grill'] },
+  { label: 'Halloween', icons: ['jack-o-lantern', 'ghost', 'witch-hat', 'bat', 'candy-corn'] },
+  { label: 'Thanksgiving', icons: ['turkey', 'pie', 'cornucopia'] },
+  { label: 'Diwali, Eid & Lunar New Year', icons: ['diya', 'crescent', 'fanous', 'paper-lantern', 'red-envelope'] },
+  { label: 'Seasons', icons: ['flower', 'umbrella', 'sun', 'ice-cream', 'watermelon', 'leaf', 'acorn', 'pumpkin'] },
+  { label: 'Baby', icons: ['baby-bottle', 'rattle', 'stroller', 'onesie'] },
+  { label: 'Toys', icons: ['blocks', 'teddy', 'robot', 'duck', 'train', 'rocking-horse', 'dinosaur', 'rocket', 'kite', 'doll', 'toy-car', 'puzzle', 'brick'] },
+  { label: 'Back to school', icons: ['backpack', 'pencil', 'apple', 'crayons', 'book'] },
+  { label: 'Hobbies', icons: ['palette', 'guitar', 'yarn', 'tent', 'fishing-rod', 'record', 'camera'] },
+  { label: 'Sports', icons: ['soccer-ball', 'basketball', 'baseball', 'sneaker'] },
+  { label: 'Pets', icons: ['paw', 'bone', 'fishbowl', 'toy-mouse'] },
+  { label: 'Home & kitchen', icons: ['whisk', 'chef-hat', 'mug', 'candle', 'plant', 'watering-can'] },
+  { label: 'Fashion & beauty', icons: ['lipstick', 'perfume', 'handbag', 'watch', 'sweater'] },
+  { label: 'Tech & games', icons: ['laptop', 'phone', 'tablet', 'headphones', 'controller'] },
+  { label: 'Other', icons: ['idea', 'plane'] },
 ];
+
+/** Extra words people might search for, beyond each icon's label and section. */
+const COVER_ICON_KEYWORDS: Partial<Record<CoverIcon, string>> = {
+  wishlist: 'list checklist',
+  collection: 'records books shelf library',
+  sparkles: 'magic shiny',
+  chest: 'treasure',
+  tree: 'christmas xmas holiday pine',
+  snowflake: 'snow cold winter',
+  holly: 'christmas berries',
+  snowman: 'snow winter frosty',
+  ornament: 'christmas bauble decoration',
+  'candy-cane': 'christmas sweets peppermint',
+  pumpkin: 'fall autumn october',
+  leaf: 'fall autumn maple',
+  sun: 'summer sunny beach',
+  flower: 'spring garden daisy',
+  umbrella: 'rain spring weather',
+  'ice-cream': 'summer dessert cone',
+  watermelon: 'summer fruit picnic',
+  acorn: 'fall autumn squirrel',
+  heart: 'love romance',
+  cake: 'birthday party dessert',
+  balloon: 'birthday party baby shower gender reveal',
+  'grad-cap': 'graduation school college',
+  ring: 'wedding engagement anniversary bridal registry jewelry',
+  house: 'housewarming new home move',
+  star: 'favorite wish',
+  suitcase: 'travel trip vacation luggage',
+  gift: 'present birthday christmas',
+  bag: 'shopping store',
+  camera: 'photography photo',
+  headphones: 'music audio',
+  sneaker: 'shoes running gym fitness',
+  watch: 'jewelry accessories',
+  sweater: 'clothes clothing',
+  plant: 'garden houseplant',
+  book: 'reading books library',
+  mug: 'coffee tea',
+  record: 'music vinyl',
+  brick: 'lego building',
+  controller: 'video games gaming console',
+  'jack-o-lantern': 'pumpkin spooky october',
+  ghost: 'spooky boo',
+  'witch-hat': 'witch costume spooky',
+  bat: 'spooky night vampire',
+  'candy-corn': 'candy sweets trick treat',
+  shamrock: 'clover luck irish',
+  'pot-of-gold': 'gold coins luck irish',
+  'leprechaun-hat': 'irish hat',
+  rainbow: 'pride colorful weather',
+  'love-letter': 'love note mail',
+  chocolates: 'candy sweets love',
+  rose: 'flower love romance',
+  turkey: 'dinner feast',
+  pie: 'dessert baking',
+  cornucopia: 'harvest feast fall',
+  menorah: 'chanukah candles jewish festival lights',
+  dreidel: 'chanukah jewish game',
+  'star-of-david': 'chanukah jewish',
+  blocks: 'kids baby numbers abc',
+  robot: 'kids wind up toy',
+  teddy: 'kids baby plush stuffed animal',
+  duck: 'kids baby bath',
+  train: 'kids toy',
+  'rocking-horse': 'kids baby toy',
+  dinosaur: 'kids dino toy',
+  rocket: 'kids space toy',
+  'easter-egg': 'spring egg hunt',
+  bunny: 'easter rabbit spring',
+  chick: 'easter spring baby bird',
+  basket: 'easter eggs spring',
+  fireworks: 'new year nye fourth 4th july independence celebration',
+  'party-hat': 'birthday new year celebration',
+  champagne: 'new year nye wedding cheers celebration drinks',
+  flag: 'fourth 4th july independence usa america patriotic memorial',
+  diya: 'diwali lamp festival lights',
+  'paper-lantern': 'lunar new year chinese new year',
+  'red-envelope': 'lunar new year chinese new year hongbao money',
+  crescent: 'eid ramadan moon',
+  fanous: 'eid ramadan lantern',
+  bouquet: 'mothers day mom mum mama grandma nana flowers',
+  necktie: 'fathers day tie dad papa grandpa',
+  grill: 'fathers day barbecue bbq summer cookout dad grandpa',
+  'baby-bottle': 'baby shower newborn',
+  rattle: 'baby shower newborn',
+  stroller: 'baby shower newborn pram',
+  onesie: 'baby shower newborn clothes',
+  backpack: 'school bag',
+  pencil: 'school writing',
+  apple: 'school teacher fruit',
+  crayons: 'school art kids drawing',
+  palette: 'art painting artist crafts',
+  guitar: 'music instrument',
+  yarn: 'knitting crochet crafts',
+  tent: 'camping outdoors hiking',
+  'fishing-rod': 'fishing outdoors',
+  'soccer-ball': 'football sports',
+  basketball: 'sports',
+  baseball: 'sports',
+  paw: 'pets dog cat puppy kitten kitty',
+  bone: 'pets dog puppy',
+  fishbowl: 'pets fish goldfish',
+  'toy-mouse': 'pets cat kitten kitty',
+  whisk: 'kitchen baking cooking',
+  'chef-hat': 'kitchen cooking chef',
+  'watering-can': 'garden gardening plants',
+  candle: 'home decor cozy',
+  lipstick: 'makeup beauty cosmetics',
+  perfume: 'fragrance beauty skincare',
+  handbag: 'purse fashion accessories',
+  laptop: 'computer tech',
+  phone: 'smartphone mobile tech',
+  tablet: 'ipad tech',
+  kite: 'kids outdoors toy',
+  doll: 'kids toy',
+  'toy-car': 'kids car toy',
+  puzzle: 'games jigsaw',
+  idea: 'ideas lightbulb',
+  plane: 'travel trip flight',
+};
+
+const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/['’]/g, '')
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .map((w) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w));
+
+const SEARCH_INDEX: Array<{ icon: CoverIcon; label: string[]; words: string[] }> = (() => {
+  const seen = new Set<CoverIcon>();
+  const index: Array<{ icon: CoverIcon; label: string[]; words: string[] }> = [];
+  for (const g of COVER_ICON_GROUPS) {
+    for (const icon of g.icons) {
+      if (seen.has(icon)) continue;
+      seen.add(icon);
+      const sections = COVER_ICON_GROUPS.filter((x) => x.icons.includes(icon)).map((x) => x.label);
+      const label = normalize(COVER_ICON_LABELS[icon]);
+      index.push({ icon, label, words: [...label, ...normalize(`${icon} ${sections.join(' ')} ${COVER_ICON_KEYWORDS[icon] ?? ''}`)] });
+    }
+  }
+  return index;
+})();
+
+const FILLER_WORDS = new Set(['a', 'an', 'and', 'day', 'for', 'my', 'of', 'our', 'the', 'to']);
+
+/** Icons matching every word of `query` (by word prefix), best label matches first. */
+export function searchCoverIcons(query: string): CoverIcon[] {
+  const words = normalize(query);
+  const meaningful = words.filter((w) => !FILLER_WORDS.has(w));
+  const terms = meaningful.length ? meaningful : words;
+  if (!terms.length) return [];
+  const score = (e: (typeof SEARCH_INDEX)[number]) =>
+    terms.every((t) => e.label.some((w) => w.startsWith(t))) ? 0 : terms.every((t) => e.words.some((w) => w.startsWith(t))) ? 1 : -1;
+  return SEARCH_INDEX.map((e) => ({ e, s: score(e) }))
+    .filter((r) => r.s >= 0)
+    .sort((a, b) => a.s - b.s)
+    .map((r) => r.e.icon);
+}
 
 export const COVER_BACKDROP_LABELS: Record<CoverBackdrop, string> = {
   sky: 'Blue sky',
@@ -117,9 +346,13 @@ export const COVER_BACKDROP_LABELS: Record<CoverBackdrop, string> = {
   night: 'Starry night',
   confetti: 'Confetti',
   hearts: 'Hearts',
+  shamrock: 'Shamrocks',
+  spooky: 'Spooky night',
+  harvest: 'Harvest',
+  hanukkah: 'Festival of lights',
 };
 
-/** Picker order: cloudy pastels, then the four seasons, then the special ones. */
+/** Picker order: cloudy pastels, then the four seasons, then the special ones, then holidays through the year. */
 export const COVER_BACKDROP_ORDER: CoverBackdrop[] = [
   'sky',
   'blush',
@@ -133,6 +366,10 @@ export const COVER_BACKDROP_ORDER: CoverBackdrop[] = [
   'night',
   'confetti',
   'hearts',
+  'shamrock',
+  'spooky',
+  'harvest',
+  'hanukkah',
 ];
 
 const CLOUDY: CoverBackdrop[] = ['sky', 'blush', 'mint', 'lilac', 'sunset'];
@@ -193,16 +430,31 @@ export function CoverAvatar({ icon, frame, photo, className }: { icon: CoverIcon
 export function suggestCoverArt(occasion: string, kind: ListKind): CoverArtValue {
   const o = occasion.toLowerCase();
   const art = (icon: CoverIcon, backdrop: CoverBackdrop): CoverArtValue => ({ icon, backdrop, frame: DEFAULT_COVER_FRAME });
-  if (/christmas|xmas|holiday|hanukkah|winter/.test(o)) return art('tree', 'night');
+  if (/hanukkah|chanukah|hanukah/.test(o)) return art('menorah', 'hanukkah');
+  if (/christmas|xmas|holiday|winter/.test(o)) return art('tree', 'night');
+  if (/lunar|chinese new/.test(o)) return art('paper-lantern', 'blush');
+  if (/new year|\bnye\b/.test(o)) return art('fireworks', 'night');
+  if (/diwali|deepavali/.test(o)) return art('diya', 'night');
+  if (/\beid\b|ramadan/.test(o)) return art('crescent', 'night');
   if (/birthday|bday/.test(o)) return art('cake', 'confetti');
   if (/wedding|engage|anniversary/.test(o)) return art('ring', 'blush');
   if (/valentine/.test(o)) return art('heart', 'hearts');
+  if (/patrick/.test(o)) return art('shamrock', 'shamrock');
+  if (/easter/.test(o)) return art('easter-egg', 'spring');
+  if (/mother/.test(o)) return art('bouquet', 'spring');
+  if (/father/.test(o)) return art('necktie', 'sky');
+  if (/july|independence/.test(o)) return art('flag', 'summer');
   if (/graduat/.test(o)) return art('grad-cap', 'sky');
+  if (/school/.test(o)) return art('backpack', 'sky');
   if (/house|home|move/.test(o)) return art('house', 'mint');
-  if (/halloween|autumn|fall|thanksgiving/.test(o)) return art('pumpkin', 'autumn');
-  if (/spring|easter|mother/.test(o)) return art('flower', 'spring');
+  if (/halloween/.test(o)) return art('jack-o-lantern', 'spooky');
+  if (/thanksgiving/.test(o)) return art('turkey', 'harvest');
+  if (/autumn|fall/.test(o)) return art('pumpkin', 'autumn');
+  if (/spring/.test(o)) return art('flower', 'spring');
   if (/summer|beach|pool/.test(o)) return art('ice-cream', 'summer');
-  if (/baby|shower/.test(o)) return art('balloon', 'lilac');
+  if (/baby|shower/.test(o)) return art('teddy', 'lilac');
+  if (/toy|kid/.test(o)) return art('blocks', 'confetti');
+  if (/\bpets?\b|dog|cat|puppy|kitten/.test(o)) return art('paw', 'mint');
   if (/travel|trip|vacation/.test(o)) return art('suitcase', 'sky');
   return defaultCoverArt(kind);
 }
@@ -258,6 +510,51 @@ const LEAVES: Array<[number, number, number, number, string]> = [
   [54, 120, 9, 110, '#f2c14e'],
   [236, 112, 9, -80, '#e8745b'],
 ];
+const CLOVERS: Array<[number, number, number, number, string]> = [
+  [30, 40, 12, -20, '#4f9e68'],
+  [84, 84, 9, 30, '#76b584'],
+  [128, 20, 7, -50, '#3f8a5a'],
+  [214, 24, 8, 15, '#76b584'],
+  [256, 50, 11, -10, '#4f9e68'],
+  [298, 94, 9, 60, '#3f8a5a'],
+  [56, 120, 8, 100, '#76b584'],
+  [238, 114, 8, -70, '#4f9e68'],
+];
+const COINS: Array<[number, number, number]> = [
+  [62, 30, 2.6],
+  [172, 18, 2.2],
+  [286, 46, 2.4],
+  [110, 104, 2],
+];
+/** [x, y, width (decor units), rotation] */
+const BATS: Array<[number, number, number, number]> = [
+  [64, 40, 22, -8],
+  [118, 76, 14, 10],
+  [204, 32, 17, -14],
+];
+const SIX_STARS: Array<[number, number, number, string]> = [
+  [40, 36, 11, '0s'],
+  [110, 82, 7, '-1.1s'],
+  [196, 22, 8, '-2s'],
+  [282, 56, 10, '-0.6s'],
+  [250, 120, 6.5, '-1.6s'],
+];
+const WHEAT: Array<[number, number, number, number]> = [
+  [34, 44, 14, -24],
+  [128, 22, 9, 30],
+  [256, 46, 12, 18],
+  [60, 118, 9, -50],
+];
+const HARVEST_LEAVES: Array<[number, number, number, number, string]> = [
+  [86, 80, 10, 40, '#c4553d'],
+  [212, 24, 9, -20, '#e98a3a'],
+  [300, 96, 11, 70, '#a5582a'],
+  [236, 114, 8, -80, '#f2a541'],
+];
+const SIX_STAR_PATH = 'M10 1L17.8 14.5H2.2zM10 19L2.2 5.5h15.6z';
+const LEAF_PATH = 'M10 1c7 5 9 12 7 17-1.5 3-4 4.5-7 5-3-.5-5.5-2-7-5C1 13 3 6 10 1z';
+const CLOVER_LEAF = 'M0 0C-2-1.4-6-3.4-6-6.6a3 3 0 0 1 6-1 3 3 0 0 1 6 1C6-3.4 2-1.4 0 0z';
+
 const BLOSSOMS: Array<[number, number, number, string]> = [
   [32, 40, 11, '#f19bb0'],
   [86, 84, 8, '#fff'],
@@ -325,6 +622,74 @@ function Decor({ backdrop }: { backdrop: CoverBackdrop }) {
           <CloudPiece x={30} y={86} w={44} className="cover-cloud-a" />
           <CloudPiece x={290} y={70} w={34} className="cover-cloud-b" />
         </>
+      )}
+      {backdrop === 'spooky' && (
+        <>
+          <svg className="cover-piece" style={at(262, 66, { width: u(30) })} viewBox="0 0 40 40" focusable="false">
+            <circle cx="20" cy="20" r="19" fill="#f8d57e" />
+            <circle cx="13" cy="15" r="3.4" fill="#eebf5c" />
+            <circle cx="25" cy="25" r="4.6" fill="#eebf5c" />
+            <circle cx="26" cy="11" r="2" fill="#eebf5c" />
+          </svg>
+          {STARS.slice(0, 7).map(([x, y, r], i) => (
+            <span key={i} className="cover-piece cover-dot cover-star" style={at(x, y, { width: dot(r), animationDelay: `${-i * 0.7}s` })} />
+          ))}
+          <div className="cover-rise">
+            {BATS.map(([x, y, w, rot], i) => (
+              <svg key={i} className="cover-piece cover-bat" style={at(x, y, { width: u(w), rotate: `${rot}deg`, animationDelay: `${-i * 0.3}s` })} viewBox="3 15 42 17" focusable="false">
+                <path d="M24 18c-2 0-3.5 1-4 2.5l-1.5-4-1 4.2C14 18 9 17 4 19c3 2 4 5 3.5 8 2-1.5 4.5-1.5 6 .5 1.5-1.8 4-2 5.5-.5 1.5 2.5 3 4 5 4s3.5-1.5 5-4c1.5-1.5 4-1.3 5.5.5 1.5-2 4-2 6-.5-.5-3 .5-6 3.5-8-5-2-10-1-13.5 1.7l-1-4.2-1.5 4C27.5 19 26 18 24 18z" />
+              </svg>
+            ))}
+          </div>
+        </>
+      )}
+      {backdrop === 'shamrock' && (
+        <div className="cover-flakes">
+          {CLOVERS.map(([x, y, w, rot, fill], i) => (
+            <svg key={i} className="cover-piece" style={at(x, y, { width: u(w), rotate: `${rot}deg` })} viewBox="-10 -10 20 20" focusable="false">
+              {[0, -115, 115].map((a) => (
+                <path key={a} d={CLOVER_LEAF} transform={`rotate(${a})`} fill={fill} />
+              ))}
+            </svg>
+          ))}
+          {COINS.map(([x, y, r], i) => (
+            <span key={i} className="cover-piece cover-dot cover-coin" style={at(x, y, { width: dot(r) })} />
+          ))}
+        </div>
+      )}
+      {backdrop === 'hanukkah' && (
+        <>
+          {STARS.map(([x, y, r], i) => (
+            <span key={i} className="cover-piece cover-dot cover-star" style={at(x, y, { width: dot(r * 0.8), animationDelay: `${-i * 0.7}s` })} />
+          ))}
+          {SIX_STARS.map(([x, y, w, delay], i) => (
+            <svg key={i} className="cover-piece cover-glow" style={at(x, y, { width: u(w), animationDelay: delay })} viewBox="0 0 20 20" focusable="false">
+              <path d={SIX_STAR_PATH} fill="none" stroke="#f6d77a" strokeWidth="1.8" strokeLinejoin="round" />
+            </svg>
+          ))}
+        </>
+      )}
+      {backdrop === 'harvest' && (
+        <div className="cover-flakes">
+          {WHEAT.map(([x, y, w, rot], i) => (
+            <svg key={i} className="cover-piece" style={at(x, y, { width: u(w), rotate: `${rot}deg` })} viewBox="0 0 20 40" focusable="false">
+              <path d="M10 39V8" stroke="#b97a3c" strokeWidth="1.6" strokeLinecap="round" />
+              {[10, 16, 22, 28].map((cy) => (
+                <g key={cy} fill="#e3a656">
+                  <ellipse cx="6.5" cy={cy} rx="2.4" ry="4" transform={`rotate(-30 6.5 ${cy})`} />
+                  <ellipse cx="13.5" cy={cy} rx="2.4" ry="4" transform={`rotate(30 13.5 ${cy})`} />
+                </g>
+              ))}
+              <ellipse cx="10" cy="5" rx="2.4" ry="4" fill="#e3a656" />
+            </svg>
+          ))}
+          {HARVEST_LEAVES.map(([x, y, w, rot, fill], i) => (
+            <svg key={i} className="cover-piece" style={at(x, y, { width: u(w), rotate: `${rot}deg` })} viewBox="0 0 20 24" focusable="false">
+              <path d={LEAF_PATH} fill={fill} />
+              <path d="M10 5v18" stroke="rgba(0,0,0,.16)" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+          ))}
+        </div>
       )}
       {backdrop === 'night' && (
         <>

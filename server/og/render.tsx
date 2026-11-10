@@ -10,7 +10,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { CalendarDays, Gift, Library } from 'lucide-react';
-import type { CoverArt, CoverBackdrop, ListKind } from '../../shared/types';
+import { isDarkBackdrop, type CoverArt, type CoverBackdrop, type ListKind } from '../../shared/types';
 import { COVER_ICON_ART, DEFAULT_COVER_FRAME, suggestCoverArt } from '../../src/components/CoverArt';
 import { ILLUSTRATED_ITEMS } from '../../src/components/ItemIllustrations';
 import { brand, taglineParts } from '../../src/config/brand';
@@ -80,8 +80,11 @@ const BACKDROPS: Record<CoverBackdrop, [string, string]> = {
   night: ['#1d2b5a', '#344a8c'],
   confetti: ['#fff4dc', '#fdebe6'],
   hearts: ['#f9c6d2', '#fdeef2'],
+  shamrock: ['#c6e8c4', '#effae6'],
+  spooky: ['#2a1c4d', '#573a82'],
+  harvest: ['#efad68', '#fde3bf'],
+  hanukkah: ['#1b3a87', '#4479cf'],
 };
-const DARK_BACKDROPS = new Set<CoverBackdrop>(['night', 'snow']);
 
 const svgUri = (markup: string) => `data:image/svg+xml;base64,${Buffer.from(markup).toString('base64')}`;
 
@@ -115,9 +118,12 @@ function seeded(seed: number) {
 
 /** Clouds along the bottom plus the backdrop's own sprinkles, drawn as one full-card SVG. */
 function decorSrc(backdrop: CoverBackdrop): string {
-  const dark = DARK_BACKDROPS.has(backdrop);
+  const dark = isDarkBackdrop(backdrop);
   const rand = seeded(backdrop.length * 97 + backdrop.charCodeAt(0));
   const parts: string[] = [];
+  if (backdrop === 'spooky') {
+    parts.push('<circle cx="1112" cy="252" r="56" fill="#f8d57e" opacity=".9"/><circle cx="1092" cy="236" r="10" fill="#eebf5c"/><circle cx="1128" cy="270" r="14" fill="#eebf5c"/>');
+  }
   if (dark) {
     for (let i = 0; i < 26; i++) {
       parts.push(`<circle cx="${(rand() * OG_WIDTH).toFixed(0)}" cy="${(rand() * 470).toFixed(0)}" r="${(1.5 + rand() * 2.2).toFixed(1)}" fill="#fff" opacity="${(0.45 + rand() * 0.5).toFixed(2)}"/>`);
@@ -140,6 +146,25 @@ function decorSrc(backdrop: CoverBackdrop): string {
       const y = rand() * 480;
       const s = 0.7 + rand() * 0.8;
       parts.push(`<path transform="translate(${x.toFixed(0)} ${y.toFixed(0)}) scale(${s.toFixed(2)})" d="M0 6C-4-2-14 1-12 8c1 5 8 9 12 12 4-3 11-7 12-12 2-7-8-10-12-2Z" fill="#e86a92" opacity=".35"/>`);
+    }
+  }
+  if (backdrop === 'shamrock') {
+    const leaf = 'M0 0C-4-2.8-12-6.8-12-13.2a6 6 0 0 1 12-2 6 6 0 0 1 12 2C12-6.8 4-2.8 0 0z';
+    for (let i = 0; i < 14; i++) {
+      const at = `translate(${(rand() * OG_WIDTH).toFixed(0)} ${(rand() * 480).toFixed(0)}) rotate(${(rand() * 360).toFixed(0)}) scale(${(0.7 + rand() * 0.7).toFixed(2)})`;
+      parts.push(`<g transform="${at}" fill="#4f9e68" opacity=".32">${[0, -115, 115].map((a) => `<path d="${leaf}" transform="rotate(${a})"/>`).join('')}</g>`);
+    }
+  }
+  if (backdrop === 'harvest') {
+    const colors = ['#c4553d', '#e98a3a', '#a5582a', '#f2a541'];
+    for (let i = 0; i < 14; i++) {
+      const at = `translate(${(rand() * OG_WIDTH).toFixed(0)} ${(rand() * 480).toFixed(0)}) rotate(${(rand() * 360).toFixed(0)}) scale(${(1 + rand()).toFixed(2)})`;
+      parts.push(`<path transform="${at}" d="M0-11c7 5 9 12 7 17-1.5 3-4 4.5-7 5-3-.5-5.5-2-7-5-2-5 0-12 7-17z" fill="${colors[i % colors.length]}" opacity=".4"/>`);
+    }
+  }
+  if (backdrop === 'hanukkah') {
+    for (const [x, y, s] of [[540, 64, 1.4], [1120, 300, 1.2], [700, 540, 1], [440, 470, 0.9]]) {
+      parts.push(`<path transform="translate(${x} ${y}) scale(${s})" d="M0-12L10.4 6H-10.4zM0 12L-10.4-6h20.8z" fill="none" stroke="#f6d77a" stroke-width="2.4" stroke-linejoin="round" opacity=".85"/>`);
     }
   }
   if (backdrop !== 'confetti') {
@@ -333,7 +358,7 @@ export function ListCard(d: ListCardData) {
   const collection = d.kind === 'collection';
   const art = d.coverArt ?? suggestCoverArt(d.occasion, d.kind);
   const backdrop = d.coverPhoto ? 'sky' : art.backdrop;
-  const dark = DARK_BACKDROPS.has(backdrop);
+  const dark = isDarkBackdrop(backdrop);
   const [top, bottom] = BACKDROPS[backdrop] ?? BACKDROPS.sky;
   const title = plainText(d.title, 64) || (collection ? 'A collection' : 'A wishlist');
   const chipInk = dark ? '#ffffff' : INK_2;
