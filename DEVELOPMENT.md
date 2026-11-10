@@ -281,6 +281,7 @@ extension/
   popup.html         Popup page (React, reuses src/styles/tokens.css and the cover art)
   src/popup/         Popup UI
   src/scrape.ts      snapshotPage() — injected into the tab with chrome.scripting; must stay self-contained
+  src/listScrape.ts  scanList() — reads a whole wishlist/registry page (same rule), plus popup-side cleanup
   src/connect.ts     Content script for /extension/connect only (receives the token)
   src/api.ts         fetch wrapper (Bearer token + CSRF header)
   src/storage.ts     chrome.storage.local: token, pending connect state, last-used lists
@@ -308,7 +309,22 @@ the `state` matches; if the page gets no confirmation within 6 s it revokes the 
 | `DELETE /connections/:id` | Session | Disconnect a browser |
 | `GET /session` | Token | Name, currency and owned lists (id, title, kind, cover) |
 | `POST /items` | Token | Create an item on owned lists, or only in Saved Items |
+| `POST /items/bulk` | Token | Up to 25 items at once (whole-list import), one priority per batch; 120 requests/hour |
+| `POST /lists` | Token | Create a wishlist or collection to import into |
 | `POST /disconnect` | Token | Revoke the calling token |
+
+**Whole-list import**: on a wishlist, registry or any page with several products, the
+popup offers "Whole list". `scanList()` uses a dedicated reader for Amazon lists
+(name, ASIN link, photo, price, priority, comment and "wants N"; follows the list's
+own "show more" pages to the end) and a generic reader elsewhere: JSON-LD item lists,
+then product links grouped into cards with photo, price (skipping crossed-out ones)
+and name, outside headers, footers, carousels and "recommended" blocks. The deep scan
+scrolls, presses real "Load more" buttons (never links) and follows up to 10
+same-origin `rel=next` pages, within 25 s and 500 items. The user unticks anything
+they don't want, picks a new list (named after the site's list) and/or existing ones,
+and the popup posts batches of 25. Lists behind a login work because the extension
+reads the page the user already has open; bot checks (Walmart sometimes) are never
+bypassed.
 
 **Building and loading**
 
@@ -403,7 +419,13 @@ so preview tags are written into the HTML on the way out:
   show or hide them on shared pages (hidden ones are stripped by the API).
 * CSV import: "Add several → Import a CSV file" reads up to 500 rows, guesses which
   column is which (editable), previews the result and creates the items in batches
-  of 25 on the chosen lists.
+  of 25 on the chosen lists. Exports from Goodreads, The StoryGraph, Discogs
+  (collection and wantlist), Letterboxd, IMDb, BoardGameGeek and Amazon order history
+  are recognised by their headers (`src/lib/csvPresets.ts`): columns are matched for
+  the user, rows can be narrowed (Goodreads shelf, BGG owned/wishlist…) before the
+  500-row limit, books get Open Library covers by ISBN, and "Match the columns myself"
+  falls back to the normal mapping.
+* Whole-list import from the browser extension (see section 9).
 * Brickfolio (allow-listed accounts): mirrors a LEGO collection and wishlist from the
   Brickfolio Google Sheet into two read-only lists, with the same photo rules as the
   Brickfolio site, ratings and reviews from the sheet, hourly and on-open syncs, and a

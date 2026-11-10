@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { buildImport, guessMapping, importBatches, parseCondition, parseDate, parseMoney, parsePriority, parseRating, readCsv } from '../src/lib/csvImport';
+import { buildImport, guessMapping, importBatches, parseCondition, parseDate, parseMoney, parsePriority, parseRating, readCsv, limitRows } from '../src/lib/csvImport';
 import { createList, freshStore, signUp } from './helpers';
 
 describe('csv import', () => {
@@ -71,7 +71,7 @@ describe('csv import', () => {
 
   it('caps a file at 500 rows and batches by priority', () => {
     const lines = ['name,priority', ...Array.from({ length: 520 }, (_, i) => `Thing ${i},${i % 2 ? 'high' : ''}`)];
-    const file = readCsv(lines.join('\n'));
+    const file = limitRows(readCsv(lines.join('\n')));
     expect(file.rows).toHaveLength(500);
     expect(file.extraRows).toBe(20);
     const batches = importBatches(buildImport(file, guessMapping(file.headers), { intoCollection: false }).rows, 'interested');

@@ -239,6 +239,21 @@ export const extensionItemSchema = itemCreateSchema.pick({
   wishlistIds: true,
 });
 
+/** A whole wishlist read from another store's page by the extension, sent in batches. */
+export const extensionBulkSchema = z.object({
+  items: z
+    .array(extensionItemSchema.omit({ wishlistIds: true }))
+    .min(1, 'Add at least one item')
+    .max(LIMITS.bulkItems, `Add up to ${LIMITS.bulkItems} items at a time`),
+  wishlistIds: z.array(idSchema).max(50).optional(),
+  priority: prioritySchema.nullable().optional(),
+});
+
+export const extensionListSchema = z.object({
+  title: z.string().trim().min(1, 'Give it a name').max(LIMITS.wishlistTitle),
+  kind: listKindSchema,
+});
+
 export const itemBulkCreateSchema = z.object({
   items: z
     .array(z.object(itemFields))

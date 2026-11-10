@@ -69,6 +69,50 @@ describe('browser extension', () => {
     expect(touched.data.connections[0].lastUsedAt).not.toBeNull();
   });
 
+  it('imports a whole list in batches, onto a list it creates', async () => {
+    const { agent } = await signUp();
+    const ext = extension(await connect(agent));
+
+    const created = await ext.post('/api/extension/lists', { title: 'Amazon: Birthday ideas', kind: 'wishlist' });
+    expect(created.status).toBe(201);
+    const list = created.data.list;
+    expect(list).toMatchObject({ title: 'Amazon: Birthday ideas', kind: 'wishlist' });
+    expect((await ext.get('/api/extension/session')).data.lists.map((l: any) => l.id)).toContain(list.id);
+
+    const batch = await ext.post('/api/extension/items/bulk', {
+      items: [
+        { title: 'Kindle', externalUrl: 'https://www.amazon.com/dp/B0CFPJYX7P', price: 109.99, currency: 'USD', retailer: 'Amazon' },
+        { title: 'Mystery gift', notes: 'Wants 2' },
+      ],
+      priority: 'must_have',
+      wishlistIds: [list.id],
+    });
+    expect(batch.status).toBe(201);
+    expect(batch.data).toMatchObject({ count: 2 });
+    expect(batch.data.url).toMatch(new RegExp(`/app/lists/${list.id}$`));
+
+    const entries = (await agent.get(`/api/wishlists/${list.id}`)).data.wishlist.entries;
+    expect(entries.map((e: any) => e.priority)).toEqual(['must_have', 'must_have']);
+    const items = (await agent.get('/api/items')).data.items;
+    expect(items.map((i: any) => [i.title, i.type]).sort()).toEqual([
+      ['Kindle', 'product'],
+      ['Mystery gift', 'custom'],
+    ]);
+
+    const tooMany = await ext.post('/api/extension/items/bulk', { items: Array.from({ length: 26 }, (_, n) => ({ title: `Item ${n}` })) });
+    expect(tooMany.status).toBe(400);
+  });
+
+  it("can't import onto someone else's list", async () => {
+    const { agent } = await signUp();
+    const other = await signUp();
+    const theirs = await createList(other.agent);
+    const ext = extension(await connect(agent));
+    const res = await ext.post('/api/extension/items/bulk', { items: [{ title: 'Sneakers' }], wishlistIds: [theirs.id] });
+    expect(res.status).toBe(400);
+    expect((await other.agent.get(`/api/wishlists/${theirs.id}`)).data.wishlist.entries).toHaveLength(0);
+  });
+
   it("can't save to someone else's list", async () => {
     const { agent } = await signUp();
     const other = await signUp();

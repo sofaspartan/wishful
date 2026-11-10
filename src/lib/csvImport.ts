@@ -117,9 +117,15 @@ export interface CsvFile {
   extraRows: number;
 }
 
+/** Every row; `limitRows` trims to what one import takes (after any preset filter). */
 export function readCsv(text: string): CsvFile {
   const [header = [], ...rows] = parseCsv(text);
-  return { headers: header.map((h) => h.trim()), rows: rows.slice(0, CSV_MAX_ROWS), extraRows: Math.max(rows.length - CSV_MAX_ROWS, 0) };
+  return { headers: header.map((h) => h.trim()), rows, extraRows: 0 };
+}
+
+export function limitRows(file: CsvFile): CsvFile {
+  if (file.rows.length <= CSV_MAX_ROWS) return file;
+  return { ...file, rows: file.rows.slice(0, CSV_MAX_ROWS), extraRows: file.extraRows + file.rows.length - CSV_MAX_ROWS };
 }
 
 const clip = (s: string, n: number) => s.trim().slice(0, n);

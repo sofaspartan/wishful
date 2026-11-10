@@ -3910,6 +3910,36 @@ button.quick-action.tile-blush:hover {
   gap: 6px;
   font-size: var(--text-sm);
 }
+.csv-preset {
+  display: grid;
+  gap: var(--s-3);
+  justify-items: start;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.csv-preset-head {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+}
+.csv-preset-head > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent);
+}
+.csv-preset-head > div {
+  display: grid;
+}
+.csv-preset-filter {
+  display: grid;
+  gap: var(--s-1);
+  width: min(100%, 280px);
+}
+.csv-preset p {
+  margin: 0;
+}
 .csv-preview li {
   display: flex;
   align-items: center;

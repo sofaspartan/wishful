@@ -287,6 +287,9 @@ export default function Landing() {
                 <Check size={16} aria-hidden /> Save to several wishlists or a collection at once
               </li>
               <li>
+                <Check size={16} aria-hidden /> Bring over a whole Amazon wishlist or gift registry
+              </li>
+              <li>
                 <Check size={16} aria-hidden /> Only reads the page when you click it
               </li>
             </ul>

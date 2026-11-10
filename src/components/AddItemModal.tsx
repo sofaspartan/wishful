@@ -17,7 +17,8 @@ import { ItemFormFields, draftToInput, emptyDraft, mapItemErrors, validateDraft,
 import type { AddItemMode, AddItemOptions } from './appActions';
 import { BulkPaste, BulkReview, bulkRowErrors, bulkRowToInput, useBulkRows } from './BulkAdd';
 import { CsvMapping, CsvPicker } from './CsvImport';
-import { buildImport, guessMapping, importBatches, type CsvField, type CsvFile } from '../lib/csvImport';
+import { buildImport, guessMapping, importBatches, limitRows, type CsvField, type CsvFile } from '../lib/csvImport';
+import { applyPreset, defaultFilter, detectPreset, presetCounts, type CsvPreset } from '../lib/csvPresets';
 import type { Wishlist } from '../../shared/types';
 
 interface Props {
@@ -60,7 +61,14 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   const [bulkText, setBulkText] = useState('');
   const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
   const bulk = useBulkRows();
-  const [csv, setCsv] = useState<{ file: CsvFile; name: string; mapping: Array<CsvField | null> } | null>(null);
+  const [csv, setCsv] = useState<{
+    file: CsvFile;
+    name: string;
+    mapping: Array<CsvField | null>;
+    preset: CsvPreset | null;
+    filter: string | null;
+    manual: boolean;
+  } | null>(null);
   const [csvDone, setCsvDone] = useState<number | null>(null);
 
   const currency = me?.preferences.currency ?? 'USD';
@@ -171,7 +179,13 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
 
   const chosenLists = destinations.filter((w) => selected.includes(w.id));
   const intoCollection = chosenLists.some((w) => w.kind === 'collection');
-  const csvPlan = useMemo(() => (csv ? buildImport(csv.file, csv.mapping, { intoCollection }) : null), [csv, intoCollection]);
+  const csvSource = useMemo(() => {
+    if (!csv) return null;
+    const source = csv.preset && !csv.manual ? applyPreset(csv.file, csv.preset, csv.filter) : { file: csv.file, mapping: csv.mapping };
+    return { ...source, file: limitRows(source.file) };
+  }, [csv]);
+  const csvCounts = useMemo(() => (csv?.preset ? presetCounts(csv.file, csv.preset) : {}), [csv?.file, csv?.preset]);
+  const csvPlan = useMemo(() => (csvSource ? buildImport(csvSource.file, csvSource.mapping, { intoCollection }) : null), [csvSource, intoCollection]);
 
   const saveCsv = async (e?: FormEvent) => {
     e?.preventDefault();
@@ -384,7 +398,15 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
             </div>
             <CsvPicker
               onLoaded={(file, name) => {
-                setCsv({ file, name, mapping: guessMapping(file.headers) });
+                const preset = detectPreset(file.headers);
+                setCsv({
+                  file,
+                  name,
+                  mapping: guessMapping(file.headers),
+                  preset,
+                  filter: preset ? defaultFilter(file, preset) : null,
+                  manual: false,
+                });
                 setFormError(null);
                 setStep('csv');
               }}
@@ -392,16 +414,26 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           </>
         )}
 
-        {step === 'csv' && csv && csvPlan && (
+        {step === 'csv' && csv && csvSource && csvPlan && (
           <form id="csv-import-form" className="stack" onSubmit={saveCsv} noValidate>
             <FormError message={formError} />
             <CsvMapping
-              file={csv.file}
+              file={csvSource.file}
               fileName={csv.name}
-              mapping={csv.mapping}
+              mapping={csvSource.mapping}
               onMapping={(mapping) => setCsv((c) => (c ? { ...c, mapping } : c))}
               plan={csvPlan}
               currency={currency}
+              preset={
+                csv.preset && {
+                  preset: csv.preset,
+                  filter: csv.filter,
+                  counts: csvCounts,
+                  manual: csv.manual,
+                  onFilter: (filter) => setCsv((c) => (c ? { ...c, filter } : c)),
+                  onManual: (manual) => setCsv((c) => (c ? { ...c, manual } : c)),
+                }
+              }
             />
             <hr className="divider" />
             <Destinations
@@ -414,7 +446,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
               onPriority={setPriority}
               hintNone="Not on a list? They'll be kept in Saved Items."
               hintSome={
-                csv.mapping.includes('priority')
+                csvPlan.rows.some((r) => r.priority)
                   ? 'Every item goes on each list you pick. Rows without a priority get the one below.'
                   : 'Every item goes on each list you pick. On a collection, everything is marked as yours.'
               }

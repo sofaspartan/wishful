@@ -1,39 +1,59 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, LoaderCircle, StickyNote } from 'lucide-react';
 import type { ExtensionSession } from '../../../shared/types';
-import { CURRENCIES, LIMITS, defaultCoverArt } from '../../../shared/constants';
+import { CURRENCIES, LIMITS } from '../../../shared/constants';
 import { parsePrice } from '../../../shared/metadata';
 import { brand } from '../../../src/config/brand';
 import { COVER_ICON_ART } from '../../../src/components/CoverArt';
 import { LogoMark } from '../../../src/components/Logo';
-import { ApiError, SITE_URL, api, siteAsset } from '../api';
+import { ApiError, SITE_URL, api } from '../api';
 import { clearToken, getLastLists, getToken, setLastLists, startConnect } from '../storage';
 import { readDetails, snapshotPage, type PageDetails, type PageSnapshot } from '../scrape';
+import { scanList, type ListScan } from '../listScrape';
+import { ListImport } from './ListImport';
+import { ListThumb } from './ListThumb';
 
 type List = ExtensionSession['lists'][number];
+
+interface ActiveTab {
+  tabId: number;
+  page: PageDetails;
+  /** Products found on the page without scrolling, for offering a whole-list import. */
+  scan: ListScan | null;
+}
 
 type View =
   | { kind: 'loading' }
   | { kind: 'connect'; notice?: string }
   | { kind: 'unsupported'; session: ExtensionSession }
-  | { kind: 'form'; session: ExtensionSession; page: PageDetails; selected: string[] }
-  | { kind: 'saved'; title: string; url: string; listNames: string[] }
+  | { kind: 'form'; session: ExtensionSession; tab: ActiveTab; selected: string[] }
+  | { kind: 'saved'; title: string; url: string; listNames: string[]; count?: number }
   | { kind: 'error'; message: string };
 
 const short = (s: string, max: number) => s.trim().slice(0, max);
 const fits = (url: string) => url.length <= LIMITS.url && /^https?:\/\//.test(url);
 
-async function readActiveTab(): Promise<PageDetails | null> {
+async function readActiveTab(): Promise<ActiveTab | null> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || !tab.url || !/^https?:/.test(tab.url) || tab.url.startsWith(SITE_URL)) return null;
-  try {
-    const [res] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: snapshotPage });
-    if (res?.result) return readDetails(res.result as PageSnapshot);
-  } catch {
-    /* Some pages (browser stores, PDFs) can't be read; fall back to the tab's own title and address. */
-  }
-  return { url: tab.url, title: tab.title ?? '', description: '', retailer: '', brand: '', price: null, currency: null, images: [] };
+  const tabId = tab.id;
+  const fallback: PageDetails = { url: tab.url, title: tab.title ?? '', description: '', retailer: '', brand: '', price: null, currency: null, images: [] };
+  // Some pages (browser stores, PDFs) can't be read; fall back to the tab's own title and address.
+  const [page, scan] = await Promise.all([
+    chrome.scripting
+      .executeScript({ target: { tabId }, func: snapshotPage })
+      .then(([res]) => (res?.result ? readDetails(res.result as PageSnapshot) : fallback))
+      .catch(() => fallback),
+    chrome.scripting
+      .executeScript({ target: { tabId }, func: scanList, args: [false] })
+      .then(([res]) => (res?.result as ListScan | undefined) ?? null)
+      .catch(() => null),
+  ]);
+  return { tabId, page, scan };
 }
+
+/** A list page with anything on it, or any page showing several products. */
+const offersList = (scan: ListScan | null): scan is ListScan => Boolean(scan && scan.items.length >= (scan.isListPage ? 1 : 3));
 
 export function Popup() {
   const [view, setView] = useState<View>({ kind: 'loading' });
@@ -42,12 +62,12 @@ export function Popup() {
     setView({ kind: 'loading' });
     if (!(await getToken())) return setView({ kind: 'connect' });
     try {
-      const [session, page, last] = await Promise.all([api<ExtensionSession>('/api/extension/session'), readActiveTab(), getLastLists()]);
-      if (!page) return setView({ kind: 'unsupported', session });
+      const [session, tab, last] = await Promise.all([api<ExtensionSession>('/api/extension/session'), readActiveTab(), getLastLists()]);
+      if (!tab) return setView({ kind: 'unsupported', session });
       const ids = new Set(session.lists.map((l) => l.id));
       const remembered = last.filter((id) => ids.has(id));
       const firstWishlist = session.lists.find((l) => l.kind === 'wishlist');
-      setView({ kind: 'form', session, page, selected: remembered.length ? remembered : firstWishlist ? [firstWishlist.id] : [] });
+      setView({ kind: 'form', session, tab, selected: remembered.length ? remembered : firstWishlist ? [firstWishlist.id] : [] });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         await clearToken();
@@ -101,11 +121,13 @@ export function Popup() {
         </div>
       )}
       {view.kind === 'form' && (
-        <SaveForm
+        <PageForms
+          key={view.tab.page.url}
           session={view.session}
-          page={view.page}
+          tab={view.tab}
           initialSelected={view.selected}
-          onSaved={(title, url, listNames) => setView({ kind: 'saved', title, url, listNames })}
+          onListCreated={(list) => setView({ ...view, session: { ...view.session, lists: [list, ...view.session.lists] } })}
+          onSaved={(title, url, listNames, count) => setView({ kind: 'saved', title, url, listNames, count })}
           onUnauthorized={(notice) => setView({ kind: 'connect', notice })}
         />
       )}
@@ -114,9 +136,9 @@ export function Popup() {
           <span className="saved-check" aria-hidden>
             <Check size={28} strokeWidth={2.6} />
           </span>
-          <h1 className="popup-title">Saved!</h1>
+          <h1 className="popup-title">{view.count !== undefined ? 'Imported!' : 'Saved!'}</h1>
           <p className="popup-muted">
-            <strong>{view.title}</strong> was added to{' '}
+            <strong>{view.title}</strong> {view.count !== undefined && view.count !== 1 ? 'were' : 'was'} added to{' '}
             {view.listNames.length ? new Intl.ListFormat(undefined, { type: 'conjunction' }).format(view.listNames) : 'your Saved Items'}.
           </p>
           <div className="popup-row">
@@ -167,16 +189,51 @@ function ConnectView({ notice }: { notice?: string }) {
   );
 }
 
-function ListThumb({ list }: { list: List }) {
-  if (list.coverImage) {
-    return (
-      <span className="thumb">
-        <img src={siteAsset(list.coverImage)} alt="" />
-      </span>
-    );
-  }
-  const art = list.coverArt ?? defaultCoverArt(list.kind);
-  return <span className={`thumb cover-bg-${art.backdrop}`}>{COVER_ICON_ART[art.icon]}</span>;
+/** The single-item form, plus a switch to the whole-list import when the page shows several products. */
+function PageForms({
+  session,
+  tab,
+  initialSelected,
+  onListCreated,
+  onSaved,
+  onUnauthorized,
+}: {
+  session: ExtensionSession;
+  tab: ActiveTab;
+  initialSelected: string[];
+  onListCreated: (list: List) => void;
+  onSaved: (title: string, url: string, listNames: string[], count?: number) => void;
+  onUnauthorized: (notice: string) => void;
+}) {
+  const scan = offersList(tab.scan) ? tab.scan : null;
+  const [mode, setMode] = useState<'item' | 'list'>(scan?.isListPage ? 'list' : 'item');
+
+  return (
+    <>
+      {scan && (
+        <div className="mode-switch" role="tablist" aria-label="What to save">
+          <button type="button" role="tab" aria-selected={mode === 'item'} className={mode === 'item' ? 'is-on' : ''} onClick={() => setMode('item')}>
+            This page
+          </button>
+          <button type="button" role="tab" aria-selected={mode === 'list'} className={mode === 'list' ? 'is-on' : ''} onClick={() => setMode('list')}>
+            {scan.isListPage ? 'Whole list' : `All items here · ${scan.items.length}`}
+          </button>
+        </div>
+      )}
+      {mode === 'list' && scan ? (
+        <ListImport
+          session={session}
+          tabId={tab.tabId}
+          initialScan={scan}
+          onListCreated={onListCreated}
+          onDone={(count, url, listNames) => onSaved(`${count} ${count === 1 ? 'item' : 'items'}`, url, listNames, count)}
+          onUnauthorized={onUnauthorized}
+        />
+      ) : (
+        <SaveForm session={session} page={tab.page} initialSelected={initialSelected} onSaved={onSaved} onUnauthorized={onUnauthorized} />
+      )}
+    </>
+  );
 }
 
 function SaveForm({

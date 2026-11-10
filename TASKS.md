@@ -164,6 +164,13 @@
 - [x] "Import a CSV file" in Add several: comma, semicolon or tab separated, up to 500 rows
 - [x] Column mapping guessed from the headers (name, link, price, photo, brand, store, category, tags, notes, set number, priority, quantity, date, price paid, condition, rating, review), changeable per column, with sample values and a preview
 - [x] Imported in batches of 25 through `POST /api/items/bulk`, onto any lists or just Saved Items; partial failures report how far it got
+- [x] Recognised exports: Goodreads, The StoryGraph, Discogs collection and wantlist, Letterboxd, IMDb, BoardGameGeek, Amazon order history; shelf/status filters, book covers from Open Library, ratings/reviews/dates carried over, manual mapping still available
+
+## Import a whole wishlist (extension)
+- [x] "Whole list" mode in the popup on wishlist/registry pages (or "All items here" on any page with several products)
+- [x] Amazon list reader with priority, comments and "wants N", following its "show more" pages; generic reader for Target, Etsy, Best Buy, registries and most stores (JSON-LD, product cards, load-more buttons, `rel=next` pages)
+- [x] Checklist to untick items, new list named after the source (wishlist or collection) and/or existing lists, progress while importing
+- [x] `POST /api/extension/items/bulk` and `POST /api/extension/lists` (own lists only, rate-limited) with tests
 
 ## Brickfolio integration
 - [x] Allow-listed by `INTEGRATION_ALLOWED_EMAILS`; Settings → Brickfolio to connect, sync now, change links or disconnect

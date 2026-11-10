@@ -42,6 +42,7 @@ export default function ExtensionPage() {
               <h1 className="display">Save from any store in one click.</h1>
               <p className="landing-lead">
                 Spot something you love? Click the {name} button and it lands on your wishlist — name, price and photo included. No copying links.
+                Already have a wishlist on Amazon, Target or Etsy? Open it and bring every item over at once.
               </p>
               <ExtensionGetButton size="lg" />
             </div>
