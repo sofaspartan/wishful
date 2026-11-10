@@ -350,6 +350,8 @@ export const pledgeTokenSchema = z.object({ pledgeToken: z.string().min(20).max(
 
 export const metadataRequestSchema = z.object({ url: httpUrlSchema });
 
+export const listImportRequestSchema = z.object({ url: httpUrlSchema, next: z.string().trim().max(4000).optional() });
+
 const httpsUrl = (message: string) => httpUrlSchema.refine((v) => v.startsWith('https://'), message);
 
 export const brickfolioConnectSchema = z.object({

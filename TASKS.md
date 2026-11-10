@@ -177,6 +177,13 @@
 - [x] Checklist to untick items, new list named after the source (wishlist or collection) and/or existing lists, progress while importing
 - [x] `POST /api/extension/items/bulk` and `POST /api/extension/lists` (own lists only, rate-limited) with tests
 
+## Import a whole wishlist (from its link)
+- [x] "Import from a website" next to "Import a CSV file" in Add several: paste a list link, with an illustration of where lists can come from
+- [x] `POST /api/import/list` reads public/shared Amazon wish lists (every Amazon country, list and grid layouts) 10 items per call through `safeFetch`; the browser follows Amazon's own "more items" page (same site and path only) up to 500 items, with "Stop and use these"
+- [x] Other sites: products listed in JSON-LD; sites that block servers (Etsy, Target, Walmart, Giftster) point to the browser extension
+- [x] Review checklist (photos, prices, priorities, comments, "Wants N" as a note), then the same checks and batched saving as CSV import
+- [x] List-to-item rules shared with the extension (`shared/listImport.ts`); tests for both Amazon layouts, next-page validation, JSON-LD and the endpoint's auth/SSRF checks
+
 ## Brickfolio integration
 - [x] Allow-listed by `INTEGRATION_ALLOWED_EMAILS`; Settings → Brickfolio to connect, sync now, change links or disconnect
 - [x] Reads the `full_sets` and `wishlist` sheet CSVs plus the site's `sets.csv`; set photos picked like the Brickfolio site; Brickset lookup through the site's proxy for sets missing from the catalog

@@ -35,7 +35,7 @@ export function decodeEntities(value: string): string {
 const clean = (v: unknown, max = 500): string =>
   typeof v === 'string' ? decodeEntities(v).replace(/\s+/g, ' ').trim().slice(0, max) : '';
 
-function parseAttributes(tag: string): Record<string, string> {
+export function parseAttributes(tag: string): Record<string, string> {
   const attrs: Record<string, string> = {};
   const re = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/g;
   let m: RegExpExecArray | null;

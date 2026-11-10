@@ -1,10 +1,11 @@
-import { metadataRequestSchema, notificationsReadSchema } from '../../shared/schemas';
+import { listImportRequestSchema, metadataRequestSchema, notificationsReadSchema } from '../../shared/schemas';
 import { LIMITS } from '../../shared/constants';
 import { images, getDriver } from '../storage';
 import { HttpError, badRequest, json, notFound, readJson, type Router } from '../http';
 import { requireUser, updateUserIndex } from '../services/auth';
 import { rateLimit } from '../services/rateLimit';
 import { fetchUrlMetadata } from '../services/metadata';
+import { importList } from '../services/listImport';
 import { UnsafeUrlError } from '../services/safeFetch';
 import { listNotifications, markRead } from '../services/notifications';
 import { emailConfigured } from '../services/email';
@@ -73,6 +74,18 @@ export function registerMiscRoutes(router: Router) {
     const { url } = await readJson(ctx.req, metadataRequestSchema);
     try {
       return json(await fetchUrlMetadata(url));
+    } catch (err) {
+      if (err instanceof UnsafeUrlError) throw badRequest(err.message, { url: err.message });
+      throw err;
+    }
+  });
+
+  router.post('/api/import/list', async (ctx) => {
+    const user = await requireUser(ctx);
+    await rateLimit('listImport', user.id);
+    const { url, next } = await readJson(ctx.req, listImportRequestSchema);
+    try {
+      return json(await importList(url, next));
     } catch (err) {
       if (err instanceof UnsafeUrlError) throw badRequest(err.message, { url: err.message });
       throw err;

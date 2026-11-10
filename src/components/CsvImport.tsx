@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AlertCircle, BadgeCheck, FileSpreadsheet } from 'lucide-react';
 import { formatPrice } from '../lib/format';
 import { CSV_FIELDS, CSV_FIELD_LABELS, CSV_MAX_ROWS, readCsv, type CsvField, type CsvFile, type ImportPlan } from '../lib/csvImport';
@@ -64,7 +64,7 @@ function PresetCard({ choice, rows }: { choice: PresetChoice; rows: number }) {
 }
 
 /** "Import a CSV file" button; reads the file in the browser. */
-export function CsvPicker({ onLoaded }: { onLoaded: (file: CsvFile, name: string) => void }) {
+export function CsvPicker({ onLoaded, aside }: { onLoaded: (file: CsvFile, name: string) => void; aside?: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const pick = async (f: File | undefined) => {
     if (!f) return;
@@ -76,20 +76,24 @@ export function CsvPicker({ onLoaded }: { onLoaded: (file: CsvFile, name: string
   };
   return (
     <div className="stack" style={{ gap: 'var(--s-2)' }}>
-      <label className="btn" style={{ alignSelf: 'flex-start', cursor: 'pointer' }}>
-        <FileSpreadsheet size={16} aria-hidden /> Import a CSV file
-        <input
-          type="file"
-          accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values"
-          className="sr-only"
-          onChange={(e) => {
-            void pick(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
-      </label>
+      <div className="row-wrap">
+        <label className="btn" style={{ cursor: 'pointer' }}>
+          <FileSpreadsheet size={16} aria-hidden /> Import a CSV file
+          <input
+            type="file"
+            accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values"
+            className="sr-only"
+            onChange={(e) => {
+              void pick(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+        </label>
+        {aside}
+      </div>
       <span className="field-hint">
-        From any spreadsheet (the first row should name the columns), or an export from {PRESET_SITES}. Up to {CSV_MAX_ROWS} items at a time.
+        A CSV from any spreadsheet (the first row should name the columns), or an export from {PRESET_SITES}. Or bring over a whole wish list from Amazon and
+        other sites with its link. Up to {CSV_MAX_ROWS} items at a time.
       </span>
       {error && (
         <FormNote icon={<AlertCircle size={16} aria-hidden />}>

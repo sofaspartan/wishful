@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ImagePlus, Lightbulb, Link2, ListPlus, Plus, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeft, Globe, ImagePlus, Lightbulb, Link2, ListPlus, Plus, Sparkles, Wand2 } from 'lucide-react';
 import type { Item, ItemType, Priority, UrlMetadata, WishlistSummary } from '../../shared/types';
 import { PRIORITY_LABELS } from '../../shared/constants';
 import { isHttpUrl } from '../../shared/schemas';
@@ -17,7 +17,8 @@ import { ItemFormFields, draftToInput, emptyDraft, mapItemErrors, validateDraft,
 import type { AddItemMode, AddItemOptions } from './appActions';
 import { BulkPaste, BulkReview, bulkRowErrors, bulkRowToInput, useBulkRows } from './BulkAdd';
 import { CsvMapping, CsvPicker } from './CsvImport';
-import { buildImport, guessMapping, importBatches, limitRows, type CsvField, type CsvFile } from '../lib/csvImport';
+import { WebsiteImportForm, WebsiteImportReview, websiteListFile, type WebsiteList } from './WebsiteImport';
+import { buildImport, CSV_FIELDS, guessMapping, importBatches, limitRows, type CsvField, type CsvFile } from '../lib/csvImport';
 import { applyPreset, defaultFilter, detectPreset, presetCounts, type CsvPreset } from '../lib/csvPresets';
 import type { Wishlist } from '../../shared/types';
 
@@ -27,7 +28,7 @@ interface Props {
   onCreateWishlist: (opts: { onCreated?: (w: Wishlist) => void }) => void;
 }
 
-type Step = 'start' | 'details' | 'review' | 'csv';
+type Step = 'start' | 'details' | 'review' | 'csv' | 'website' | 'website-review';
 
 /**
  * The Add Item workflow: paste a link (with automatic detail extraction),
@@ -70,6 +71,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     manual: boolean;
   } | null>(null);
   const [csvDone, setCsvDone] = useState<number | null>(null);
+  const [web, setWeb] = useState<{ list: WebsiteList; excluded: Set<string> } | null>(null);
 
   const currency = me?.preferences.currency ?? 'USD';
 
@@ -91,6 +93,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     bulk.reset();
     setCsv(null);
     setCsvDone(null);
+    setWeb(null);
   }, [options, currency, bulk.reset]);
 
   const destinations = useMemo(() => {
@@ -186,12 +189,14 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   }, [csv]);
   const csvCounts = useMemo(() => (csv?.preset ? presetCounts(csv.file, csv.preset) : {}), [csv?.file, csv?.preset]);
   const csvPlan = useMemo(() => (csvSource ? buildImport(csvSource.file, csvSource.mapping, { intoCollection }) : null), [csvSource, intoCollection]);
+  const webPlan = useMemo(() => (web ? buildImport(websiteListFile(web.list, web.excluded), [...CSV_FIELDS], { intoCollection }) : null), [web, intoCollection]);
+  const importPlan = step === 'website-review' ? webPlan : csvPlan;
 
   const saveCsv = async (e?: FormEvent) => {
     e?.preventDefault();
-    if (!csvPlan?.rows.length) return;
-    const batches = importBatches(csvPlan.rows, priority === 'none' ? null : priority);
-    const total = csvPlan.rows.length;
+    if (!importPlan?.rows.length) return;
+    const batches = importBatches(importPlan.rows, priority === 'none' ? null : priority);
+    const total = importPlan.rows.length;
     let done = 0;
     setSaving(true);
     setFormError(null);
@@ -212,7 +217,8 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
       onClose();
     } catch (err) {
       if (done > 0) invalidate(selected);
-      setFormError(done > 0 ? `Imported ${done} of ${total}, then stopped: ${errorMessage(err)} Remove the imported rows from the file before trying the rest.` : errorMessage(err));
+      const rest = step === 'website-review' ? 'Untick the items already imported before trying the rest.' : 'Remove the imported rows from the file before trying the rest.';
+      setFormError(done > 0 ? `Imported ${done} of ${total}, then stopped: ${errorMessage(err)} ${rest}` : errorMessage(err));
     } finally {
       setSaving(false);
       setCsvDone(null);
@@ -285,17 +291,31 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   };
 
   const footer =
-    step === 'csv' ? (
+    step === 'csv' || step === 'website-review' ? (
       <>
-        <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => setStep('start')} className="hide-xs" style={{ marginRight: 'auto' }} disabled={saving}>
+        <Button
+          variant="ghost"
+          icon={<ArrowLeft size={16} />}
+          onClick={() => setStep(step === 'website-review' ? 'website' : 'start')}
+          className="hide-xs"
+          style={{ marginRight: 'auto' }}
+          disabled={saving}
+        >
           Back
         </Button>
         <Button onClick={onClose} disabled={saving}>
           Cancel
         </Button>
-        <Button variant="primary" type="submit" form="csv-import-form" loading={saving} disabled={!csvPlan?.rows.length}>
-          {csvDone !== null ? `Importing ${csvDone} of ${csvPlan?.rows.length ?? 0}…` : `Import ${csvPlan?.rows.length ?? 0} item${csvPlan?.rows.length === 1 ? '' : 's'}`}
+        <Button variant="primary" type="submit" form="csv-import-form" loading={saving} disabled={!importPlan?.rows.length}>
+          {csvDone !== null ? `Importing ${csvDone} of ${importPlan?.rows.length ?? 0}…` : `Import ${importPlan?.rows.length ?? 0} item${importPlan?.rows.length === 1 ? '' : 's'}`}
         </Button>
+      </>
+    ) : step === 'website' ? (
+      <>
+        <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => setStep('start')} style={{ marginRight: 'auto' }}>
+          Back
+        </Button>
+        <Button onClick={onClose}>Cancel</Button>
       </>
     ) : step === 'review' ? (
       <>
@@ -324,7 +344,14 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     ) : undefined;
 
   return (
-    <Modal open={open} onClose={onClose} title="Add an item" subtitle="Anything you want — products, experiences, ideas." footer={footer} size="lg">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={step === 'website' || step === 'website-review' ? 'Import from a website' : 'Add an item'}
+      subtitle={step === 'website' || step === 'website-review' ? 'Bring a whole wish list over from another site.' : 'Anything you want — products, experiences, ideas.'}
+      footer={footer}
+      size="lg"
+    >
       <div className="stack">
         <Segmented
           label="How do you want to add it?"
@@ -410,8 +437,46 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                 setFormError(null);
                 setStep('csv');
               }}
+              aside={
+                <Button icon={<Globe size={16} />} onClick={() => setStep('website')}>
+                  Import from a website
+                </Button>
+              }
             />
           </>
+        )}
+
+        {step === 'website' && (
+          <WebsiteImportForm
+            onFound={(list) => {
+              setWeb({ list, excluded: new Set() });
+              setFormError(null);
+              setStep('website-review');
+            }}
+          />
+        )}
+
+        {step === 'website-review' && web && webPlan && (
+          <form id="csv-import-form" className="stack" onSubmit={saveCsv} noValidate>
+            <FormError message={formError} />
+            <WebsiteImportReview list={web.list} excluded={web.excluded} onExcluded={(excluded) => setWeb((w) => (w ? { ...w, excluded } : w))} currency={currency} />
+            <hr className="divider" />
+            <Destinations
+              options={options}
+              destinations={destinations}
+              selected={selected}
+              onToggle={toggleList}
+              onAddList={addNewList}
+              priority={priority}
+              onPriority={setPriority}
+              hintNone="Not on a list? They'll be kept in Saved Items."
+              hintSome={
+                webPlan.rows.some((r) => r.priority)
+                  ? 'Every item goes on each list you pick. Items without a priority get the one below.'
+                  : 'Every item goes on each list you pick.'
+              }
+            />
+          </form>
         )}
 
         {step === 'csv' && csv && csvSource && csvPlan && (

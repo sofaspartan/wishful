@@ -15,6 +15,8 @@ export const RATE_LIMITS = {
   recoveryCode: { limit: 10, windowSec: 60 * 60 },
   claim: { limit: 40, windowSec: 10 * 60 },
   metadata: { limit: 150, windowSec: 60 * 60 },
+  /** One request per page of 10 items, so a full 500-item list is 50. */
+  listImport: { limit: 200, windowSec: 60 * 60 },
   upload: { limit: 100, windowSec: 60 * 60 },
   invite: { limit: 30, windowSec: 60 * 60 },
   friend: { limit: 40, windowSec: 60 * 60 },
