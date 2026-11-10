@@ -1,5 +1,7 @@
+import { useState } from 'react';
+import { Star } from 'lucide-react';
 import { ACQUIRED_VIA, CONDITIONS, type AcquiredVia, type Condition, type ItemOwnership } from '../../shared/types';
-import { ACQUIRED_VIA_LABELS, CONDITION_LABELS } from '../../shared/constants';
+import { ACQUIRED_VIA_LABELS, CONDITION_LABELS, LIMITS } from '../../shared/constants';
 import type { OwnershipInput } from '../../shared/schemas';
 import { Field } from './ui/Field';
 
@@ -9,6 +11,9 @@ export interface OwnershipDraft {
   pricePaid: string;
   condition: Condition | '';
   quantity: string;
+  /** 0 = not rated */
+  rating: number;
+  review: string;
 }
 
 export function todayDateOnly(): string {
@@ -23,6 +28,8 @@ export function ownershipDraft(owned: ItemOwnership | null | undefined, defaults
     pricePaid: owned?.pricePaid != null ? String(owned.pricePaid) : '',
     condition: owned?.condition ?? '',
     quantity: String(owned?.quantity ?? 1),
+    rating: owned?.rating ?? 0,
+    review: owned?.review ?? '',
     ...(owned ? {} : defaults),
   };
 }
@@ -36,6 +43,8 @@ export function ownershipToInput(d: OwnershipDraft): OwnershipInput {
     pricePaid: amount(d.pricePaid),
     condition: d.condition || null,
     quantity: Number(d.quantity),
+    rating: d.rating || null,
+    review: d.review.trim(),
   };
 }
 
@@ -45,6 +54,7 @@ export function validateOwnership(d: OwnershipDraft): Record<string, string> {
   if (paid !== null && (!Number.isFinite(paid) || paid < 0)) errors.pricePaid = 'Enter a valid amount';
   const qty = Number(d.quantity);
   if (!Number.isInteger(qty) || qty < 1 || qty > 9999) errors.quantity = 'Use a whole number from 1';
+  if (d.review.length > LIMITS.review) errors.review = `Keep it under ${LIMITS.review} characters`;
   return errors;
 }
 
@@ -62,9 +72,36 @@ interface Props {
   currency: string;
   /** What was paid is only collected where the viewer is allowed to see it. */
   showPricePaid?: boolean;
+  /** Rating and review fields (they're kept in the user's sheet for synced items). */
+  showReview?: boolean;
+  /** Quantity comes from a synced sheet. */
+  lockQuantity?: boolean;
 }
 
-export function OwnershipFields({ draft, onChange, errors = {}, currency, showPricePaid = true }: Props) {
+export function StarRatingInput({ value, onChange, labelledBy }: { value: number; onChange: (n: number) => void; labelledBy: string }) {
+  const [hover, setHover] = useState(0);
+  const shown = hover || value;
+  return (
+    <div className="star-input" role="radiogroup" aria-labelledby={labelledBy} onMouseLeave={() => setHover(0)}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          role="radio"
+          aria-checked={value === n}
+          aria-label={`${n} star${n === 1 ? '' : 's'}`}
+          title={value === n ? 'Click again to clear' : undefined}
+          onMouseEnter={() => setHover(n)}
+          onClick={() => onChange(value === n ? 0 : n)}
+        >
+          <Star aria-hidden className={n <= shown ? 'star-on' : 'star-off'} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function OwnershipFields({ draft, onChange, errors = {}, currency, showPricePaid = true, showReview = true, lockQuantity = false }: Props) {
   return (
     <div className="stack">
       <div className="form-grid cols-2">
@@ -107,10 +144,39 @@ export function OwnershipFields({ draft, onChange, errors = {}, currency, showPr
             ))}
           </select>
         </Field>
-        <Field label="How many" error={errors.quantity}>
-          <input className="input" type="number" min={1} max={9999} step={1} value={draft.quantity} onChange={(e) => onChange({ quantity: e.target.value })} />
+        <Field label="How many" error={errors.quantity} hint={lockQuantity ? 'From your sheet' : undefined}>
+          <input
+            className="input"
+            type="number"
+            min={1}
+            max={9999}
+            step={1}
+            value={draft.quantity}
+            onChange={(e) => onChange({ quantity: e.target.value })}
+            disabled={lockQuantity}
+          />
         </Field>
       </div>
+      {showReview && (
+        <>
+          <div className="field">
+            <span className="field-label" id="rating-label">
+              Your rating <span className="field-optional">Optional</span>
+            </span>
+            <StarRatingInput value={draft.rating} onChange={(rating) => onChange({ rating })} labelledBy="rating-label" />
+          </div>
+          <Field label="Your review" optional error={errors.review}>
+            <textarea
+              className="textarea"
+              rows={3}
+              maxLength={LIMITS.review}
+              value={draft.review}
+              onChange={(e) => onChange({ review: e.target.value })}
+              placeholder="What do you love about it? Anything others should know?"
+            />
+          </Field>
+        </>
+      )}
     </div>
   );
 }

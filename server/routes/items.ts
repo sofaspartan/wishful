@@ -4,7 +4,19 @@ import type { Priority } from '../../shared/types';
 import { listOwnedWishlists } from '../domain/wishlists';
 import { forbidden, json, notFound, readJson, type Router } from '../http';
 import { requireUser } from '../services/auth';
-import { canEditItem, createItem, createItems, deleteItem, getItem, listOwnedItems, markGotIt, requireEditableItem, setMemberships, updateItem } from '../domain/items';
+import {
+  canEditItem,
+  createItem,
+  createItems,
+  deleteItem,
+  getItem,
+  listOwnedItems,
+  markGotIt,
+  requireEditableItem,
+  setMemberships,
+  syncedItemConflict,
+  updateItem,
+} from '../domain/items';
 
 export function registerItemRoutes(router: Router) {
   router.get('/api/items', async (ctx) => {
@@ -57,6 +69,7 @@ export function registerItemRoutes(router: Router) {
       if (await canEditItem(item, user)) throw forbidden('Only the owner can delete this item. Remove it from the list instead.');
       throw notFound('Item not found.');
     }
+    if (item.source) throw syncedItemConflict(item);
     await deleteItem(item);
     return json({ ok: true });
   });

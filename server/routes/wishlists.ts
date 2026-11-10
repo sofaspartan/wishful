@@ -35,7 +35,7 @@ import {
   requireWishlistAccess,
   summarize,
 } from '../domain/wishlists';
-import { addEntry, getItem, noteCollaboratorEdit, removeEntry } from '../domain/items';
+import { addEntry, getItem, noteCollaboratorEdit, removeEntry, syncedItemConflict } from '../domain/items';
 import { getClaimsDoc, ownerClaimViews, ownerClearClaim } from '../domain/claims';
 import { BRAND_NAME } from '../brand';
 
@@ -73,6 +73,14 @@ async function buildDetail(w: WishlistRecord, role: AccessRole): Promise<Wishlis
     claims: activity?.claims ?? null,
     pledges: activity?.pledges ?? null,
   };
+}
+
+/** A synced set stays on its linked list until its row leaves the sheet. */
+async function assertNotSyncedEntry(w: WishlistRecord, entryId: string): Promise<void> {
+  if (!w.link) return;
+  const entry = w.entries.find((e) => e.id === entryId);
+  const item = entry ? await getItem(entry.itemId) : null;
+  if (item?.source) throw syncedItemConflict(item);
 }
 
 async function addCollaborator(w: WishlistRecord, target: UserRecord, role: 'viewer' | 'editor', inviter: UserRecord) {
@@ -196,6 +204,7 @@ export function registerWishlistRoutes(router: Router) {
     const input = await readJson(ctx.req, entryCreateSchema);
     const item = await getItem(input.itemId);
     if (!item || item.ownerId !== wishlist.ownerId) throw notFound('Item not found.');
+    if (wishlist.link && item.source && !wishlist.entries.some((e) => e.itemId === item.id)) throw syncedItemConflict(item);
     await addEntry(wishlist.id, item, user.id, input);
     await noteCollaboratorEdit(wishlist, user);
     return json({ ok: true }, 201);
@@ -237,6 +246,7 @@ export function registerWishlistRoutes(router: Router) {
   router.delete('/api/wishlists/:id/entries/:entryId', async (ctx) => {
     const user = await requireUser(ctx);
     const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'editor');
+    await assertNotSyncedEntry(wishlist, ctx.params.entryId);
     await removeEntry(wishlist.id, ctx.params.entryId);
     await noteCollaboratorEdit(wishlist, user);
     return json({ ok: true });
@@ -253,6 +263,7 @@ export function registerWishlistRoutes(router: Router) {
     if (!entry) throw notFound('That item is no longer on this list.');
     const item = await getItem(entry.itemId);
     if (!item) throw notFound('Item not found.');
+    if (item.source && (wishlist.link || target.link)) throw syncedItemConflict(item);
     await addEntry(target.id, item, user.id, { priority: entry.priority, customNotes: entry.customNotes });
     await removeEntry(wishlist.id, entry.id);
     await noteCollaboratorEdit(wishlist, user);

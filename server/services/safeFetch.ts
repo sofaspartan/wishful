@@ -120,6 +120,7 @@ export interface SafeFetchResult {
   status: number;
   contentType: string;
   body: string;
+  headers: http.IncomingHttpHeaders;
 }
 
 export interface SafeFetchOptions {
@@ -241,13 +242,13 @@ async function fetchRaw(rawUrl: string, options: SafeFetchOptions, overflow: 'tr
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const pinned = await resolveSafe(url.hostname);
     const res = await requestOnce(url, pinned, deadline, maxBytes, headers, overflow);
-    if (res.status >= 300 && res.status < 400) {
+    if (res.status >= 300 && res.status < 400 && res.status !== 304) {
       const location = res.headers.location;
       if (!location) throw new Error('Redirect without location');
       url = assertSafeUrl(new URL(location, url));
       continue;
     }
-    return { url: url.toString(), status: res.status, contentType: String(res.headers['content-type'] || ''), body: res.body };
+    return { url: url.toString(), status: res.status, contentType: String(res.headers['content-type'] || ''), body: res.body, headers: res.headers };
   }
   throw new Error('Too many redirects');
 }
@@ -258,6 +259,9 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
 }
 
 /** The same protections for binary downloads (images). A response over `maxBytes` is an error, not a truncated body. */
-export async function safeFetchBytes(rawUrl: string, options: SafeFetchOptions = {}): Promise<{ url: string; status: number; contentType: string; body: Buffer }> {
+export async function safeFetchBytes(
+  rawUrl: string,
+  options: SafeFetchOptions = {},
+): Promise<{ url: string; status: number; contentType: string; body: Buffer; headers: http.IncomingHttpHeaders }> {
   return fetchRaw(rawUrl, options, 'reject');
 }

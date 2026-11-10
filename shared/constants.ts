@@ -163,6 +163,7 @@ export const LIMITS = {
   wishlistTitle: 120,
   bio: 500,
   message: 500,
+  review: 3000,
   imageBytes: 5 * 1024 * 1024,
   /** Items per bulk add. */
   bulkItems: 25,

@@ -319,6 +319,20 @@ const Record = (
   </Svg>
 );
 
+const Brick = (
+  <Svg>
+    {[12, 27].map((x) => (
+      <g key={x}>
+        <rect x={x} y="12.5" width="9" height="8" rx="1.6" fill="#d63d34" />
+        <ellipse cx={x + 4.5} cy="12.5" rx="4.5" ry="1.9" fill="#f0675d" />
+      </g>
+    ))}
+    <rect x="7" y="18" width="34" height="21" rx="3" fill="#e5483e" />
+    <rect x="7" y="33" width="34" height="6" rx="2.5" fill="#c4362e" />
+    <path d="M11 22.5h10" stroke="#fff" strokeWidth="2" strokeLinecap="round" opacity=".4" />
+  </Svg>
+);
+
 function sparklePath(cx: number, cy: number, r: number): string {
   const k = r * 0.16;
   return `M${cx} ${cy - r}C${cx + k} ${cy - k} ${cx + k} ${cy - k} ${cx + r} ${cy}C${cx + k} ${cy + k} ${cx + k} ${cy + k} ${cx} ${cy + r}C${cx - k} ${cy + k} ${cx - k} ${cy + k} ${cx - r} ${cy}C${cx - k} ${cy - k} ${cx - k} ${cy - k} ${cx} ${cy - r}Z`;
@@ -391,4 +405,5 @@ export const COVER_ILLUSTRATIONS: Record<string, ReactElement> = {
   star: StarIcon,
   suitcase: Suitcase,
   record: Record,
+  brick: Brick,
 };

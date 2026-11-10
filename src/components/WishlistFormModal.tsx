@@ -44,6 +44,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
   const [occasion, setOccasion] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('unlisted');
+  const [showReviews, setShowReviews] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -61,6 +62,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
     setOccasion(wishlist?.occasion ?? '');
     setEventDate(wishlist?.eventDate ?? '');
     setVisibility(wishlist?.visibility ?? me?.preferences.defaultVisibility ?? 'unlisted');
+    setShowReviews(wishlist?.settings.showReviews ?? true);
     setErrors({});
     setFormError(null);
   }, [open, wishlist, me, kind]);
@@ -81,7 +83,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
       coverArt: coverMode === 'graphic' ? coverArt : null,
     };
     const body = collection
-      ? { title, description, ...cover, accentColor, visibility }
+      ? { title, description, ...cover, accentColor, visibility, settings: { showReviews } }
       : { title, description, ...cover, accentColor, occasion, eventDate: eventDate || null, visibility };
     const parsed = wishlistCreateSchema.safeParse(body);
     if (!parsed.success) return setErrors(zodFieldErrors(parsed.error));
@@ -227,6 +229,17 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
             ))}
           </div>
         </div>
+        {collection && (
+          <label className="check" style={{ alignSelf: 'flex-start' }}>
+            <input type="checkbox" checked={showReviews} onChange={(e) => setShowReviews(e.target.checked)} />
+            <span>
+              <strong style={{ fontWeight: 550 }}>Show my ratings and reviews</strong>
+              <span className="muted text-sm" style={{ display: 'block' }}>
+                People you share this collection with can see your stars and what you wrote.
+              </span>
+            </span>
+          </label>
+        )}
       </form>
     </Modal>
   );

@@ -155,6 +155,7 @@ export const wishlistSettingsSchema = z.object({
   showPriorities: z.boolean(),
   itemOrder: z.enum(ITEM_ORDERS).optional(),
   reservationDays: z.number().int().min(0).max(365),
+  showReviews: z.boolean().optional(),
 });
 
 export const preferencesUpdateSchema = z.object({
@@ -196,6 +197,8 @@ export const ownershipSchema = z.object({
   pricePaid: money.nullable().optional(),
   condition: z.enum(CONDITIONS).nullable().optional(),
   quantity: z.number().int('Use a whole number').min(1, 'At least 1').max(9999).optional(),
+  rating: z.number().int('Use whole stars').min(1, 'From 1 to 5 stars').max(5, 'From 1 to 5 stars').nullable().optional(),
+  review: z.string().trim().max(LIMITS.review, `Keep it under ${LIMITS.review} characters`).optional(),
 });
 
 const itemFields = {
@@ -331,6 +334,14 @@ export const pledgeSchema = z.object({
 export const pledgeTokenSchema = z.object({ pledgeToken: z.string().min(20).max(200) });
 
 export const metadataRequestSchema = z.object({ url: httpUrlSchema });
+
+const httpsUrl = (message: string) => httpUrlSchema.refine((v) => v.startsWith('https://'), message);
+
+export const brickfolioConnectSchema = z.object({
+  siteUrl: httpsUrl('Use the https:// address of your Brickfolio site'),
+  fullSetsCsvUrl: httpsUrl('Paste the published CSV link for the full_sets tab'),
+  wishlistCsvUrl: httpsUrl('Paste the published CSV link for the wishlist tab'),
+});
 
 export const notificationsReadSchema = z.object({
   ids: z.array(z.string().max(64)).max(200).optional(),

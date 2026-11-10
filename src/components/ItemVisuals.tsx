@@ -82,8 +82,25 @@ export function ownershipFacts(owned: PublicOwnership): string[] {
 
 export function OwnedLine({ owned }: { owned: PublicOwnership }) {
   const facts = ownershipFacts(owned);
-  if (facts.length === 0) return null;
-  return <span className="owned-line">{facts.join(' · ')}</span>;
+  if (facts.length === 0 && !owned.rating) return null;
+  return (
+    <span className="owned-line">
+      {owned.rating ? <Stars value={owned.rating} size={12} /> : null}
+      {facts.length > 0 && <span className="truncate">{facts.join(' · ')}</span>}
+    </span>
+  );
+}
+
+/** Read-only star rating, e.g. 4 of 5 filled. */
+export function Stars({ value, size = 14 }: { value: number; size?: number }) {
+  const filled = Math.max(0, Math.min(5, Math.round(value)));
+  return (
+    <span className="stars" role="img" aria-label={`${filled} out of 5 stars`} style={{ ['--star-size' as string]: `${size}px` }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star key={n} aria-hidden className={n <= filled ? 'star-on' : 'star-off'} />
+      ))}
+    </span>
+  );
 }
 
 export function StatusBadge({ status, mine }: { status: ClaimStatus | null; mine?: boolean }) {

@@ -122,7 +122,7 @@ export default function SavedItems() {
       <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditing(item)}>
         Edit
       </MenuItem>
-      {!item.owned && (
+      {!item.owned && !item.source && (
         <MenuItem icon={<PartyPopper size={16} />} onSelect={() => setGotIt(item)}>
           Got it!
         </MenuItem>
@@ -130,10 +130,14 @@ export default function SavedItems() {
       <MenuItem icon={<ListChecks size={16} />} onSelect={() => setListsFor(item)}>
         Lists…
       </MenuItem>
-      <MenuSeparator />
-      <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => remove(item)}>
-        Delete
-      </MenuItem>
+      {!item.source && (
+        <>
+          <MenuSeparator />
+          <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => remove(item)}>
+            Delete
+          </MenuItem>
+        </>
+      )}
     </Menu>
   );
 
@@ -301,7 +305,7 @@ export default function SavedItems() {
         footer={
           openItem ? (
             <>
-              {!openItem.owned && (
+              {!openItem.owned && !openItem.source && (
                 <Button
                   icon={<PartyPopper size={16} />}
                   onClick={() => {

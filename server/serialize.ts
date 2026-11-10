@@ -1,6 +1,7 @@
 import type { ItemOwnership, PublicItem, PublicOwnership, PublicUser, SelfUser } from '../shared/types';
 import { DEFAULT_PREFERENCES } from '../shared/constants';
 import type { ItemRecord, UserRecord } from './records';
+import { integrationsAllowed } from './integrations/access';
 
 export function toPublicUser(u: UserRecord): PublicUser {
   return { id: u.id, username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl };
@@ -19,6 +20,7 @@ export function toSelfUser(u: UserRecord): SelfUser {
       notifications: { ...DEFAULT_PREFERENCES.notifications, ...u.preferences?.notifications },
     },
     recoveryCodeCreatedAt: u.recoveryCodeCreatedAt ?? null,
+    integrations: { brickfolio: integrationsAllowed(u.email) },
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
   };

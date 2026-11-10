@@ -6,6 +6,7 @@ import { registerPublicRoutes } from './routes/public';
 import { registerMiscRoutes } from './routes/misc';
 import { registerFriendRoutes } from './routes/friends';
 import { registerExtensionRoutes } from './routes/extension';
+import { registerIntegrationRoutes } from './routes/integrations';
 
 const router = new Router();
 registerAuthRoutes(router);
@@ -15,6 +16,7 @@ registerPublicRoutes(router);
 registerMiscRoutes(router);
 registerFriendRoutes(router);
 registerExtensionRoutes(router);
+registerIntegrationRoutes(router);
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export const CSRF_HEADER = 'x-requested-with';

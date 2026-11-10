@@ -16,6 +16,8 @@ import { ImagePicker } from './ImagePicker';
 import { ItemFormFields, draftToInput, emptyDraft, mapItemErrors, validateDraft, type ItemDraft } from './ItemForm';
 import type { AddItemMode, AddItemOptions } from './appActions';
 import { BulkPaste, BulkReview, bulkRowErrors, bulkRowToInput, useBulkRows } from './BulkAdd';
+import { CsvMapping, CsvPicker } from './CsvImport';
+import { buildImport, guessMapping, importBatches, type CsvField, type CsvFile } from '../lib/csvImport';
 import type { Wishlist } from '../../shared/types';
 
 interface Props {
@@ -24,7 +26,7 @@ interface Props {
   onCreateWishlist: (opts: { onCreated?: (w: Wishlist) => void }) => void;
 }
 
-type Step = 'start' | 'details' | 'review';
+type Step = 'start' | 'details' | 'review' | 'csv';
 
 /**
  * The Add Item workflow: paste a link (with automatic detail extraction),
@@ -58,6 +60,8 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   const [bulkText, setBulkText] = useState('');
   const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
   const bulk = useBulkRows();
+  const [csv, setCsv] = useState<{ file: CsvFile; name: string; mapping: Array<CsvField | null> } | null>(null);
+  const [csvDone, setCsvDone] = useState<number | null>(null);
 
   const currency = me?.preferences.currency ?? 'USD';
 
@@ -77,6 +81,8 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     setBulkText('');
     setBulkErrors({});
     bulk.reset();
+    setCsv(null);
+    setCsvDone(null);
   }, [options, currency, bulk.reset]);
 
   const destinations = useMemo(() => {
@@ -163,6 +169,42 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
 
   const bulkFetching = bulk.rows.filter((r) => r.status === 'loading').length;
 
+  const chosenLists = destinations.filter((w) => selected.includes(w.id));
+  const intoCollection = chosenLists.some((w) => w.kind === 'collection');
+  const csvPlan = useMemo(() => (csv ? buildImport(csv.file, csv.mapping, { intoCollection }) : null), [csv, intoCollection]);
+
+  const saveCsv = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!csvPlan?.rows.length) return;
+    const batches = importBatches(csvPlan.rows, priority === 'none' ? null : priority);
+    const total = csvPlan.rows.length;
+    let done = 0;
+    setSaving(true);
+    setFormError(null);
+    setCsvDone(0);
+    try {
+      for (const batch of batches) {
+        await post('/api/items/bulk', { items: batch.items, wishlistIds: selected, priority: batch.priority });
+        done += batch.items.length;
+        setCsvDone(done);
+      }
+      invalidate(selected);
+      const what = `${total} item${total === 1 ? '' : 's'}`;
+      const target = selected[0];
+      toast.success(
+        chosenLists.length ? `Imported ${what} to ${chosenLists.length === 1 ? `“${chosenLists[0].title}”` : `${chosenLists.length} lists`}` : `Imported ${what} to Saved Items`,
+        { label: 'View', onClick: () => navigate(target ? `/app/lists/${target}` : '/app/items') },
+      );
+      onClose();
+    } catch (err) {
+      if (done > 0) invalidate(selected);
+      setFormError(done > 0 ? `Imported ${done} of ${total}, then stopped: ${errorMessage(err)} Remove the imported rows from the file before trying the rest.` : errorMessage(err));
+    } finally {
+      setSaving(false);
+      setCsvDone(null);
+    }
+  };
+
   const saveBulk = async (e?: FormEvent) => {
     e?.preventDefault();
     const rowErrors = bulkRowErrors(bulk.rows);
@@ -229,7 +271,19 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   };
 
   const footer =
-    step === 'review' ? (
+    step === 'csv' ? (
+      <>
+        <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => setStep('start')} className="hide-xs" style={{ marginRight: 'auto' }} disabled={saving}>
+          Back
+        </Button>
+        <Button onClick={onClose} disabled={saving}>
+          Cancel
+        </Button>
+        <Button variant="primary" type="submit" form="csv-import-form" loading={saving} disabled={!csvPlan?.rows.length}>
+          {csvDone !== null ? `Importing ${csvDone} of ${csvPlan?.rows.length ?? 0}…` : `Import ${csvPlan?.rows.length ?? 0} item${csvPlan?.rows.length === 1 ? '' : 's'}`}
+        </Button>
+      </>
+    ) : step === 'review' ? (
       <>
         <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => setStep('start')} className="hide-xs" style={{ marginRight: 'auto' }}>
           Back
@@ -314,16 +368,58 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
         )}
 
         {step === 'start' && mode === 'bulk' && (
-          <BulkPaste
-            text={bulkText}
-            onChange={setBulkText}
-            onSubmit={(lines) => {
-              setBulkErrors({});
-              setFormError(null);
-              bulk.start(lines);
-              setStep('review');
-            }}
-          />
+          <>
+            <BulkPaste
+              text={bulkText}
+              onChange={setBulkText}
+              onSubmit={(lines) => {
+                setBulkErrors({});
+                setFormError(null);
+                bulk.start(lines);
+                setStep('review');
+              }}
+            />
+            <div className="or-divider" role="separator">
+              <span>or</span>
+            </div>
+            <CsvPicker
+              onLoaded={(file, name) => {
+                setCsv({ file, name, mapping: guessMapping(file.headers) });
+                setFormError(null);
+                setStep('csv');
+              }}
+            />
+          </>
+        )}
+
+        {step === 'csv' && csv && csvPlan && (
+          <form id="csv-import-form" className="stack" onSubmit={saveCsv} noValidate>
+            <FormError message={formError} />
+            <CsvMapping
+              file={csv.file}
+              fileName={csv.name}
+              mapping={csv.mapping}
+              onMapping={(mapping) => setCsv((c) => (c ? { ...c, mapping } : c))}
+              plan={csvPlan}
+              currency={currency}
+            />
+            <hr className="divider" />
+            <Destinations
+              options={options}
+              destinations={destinations}
+              selected={selected}
+              onToggle={toggleList}
+              onAddList={addNewList}
+              priority={priority}
+              onPriority={setPriority}
+              hintNone="Not on a list? They'll be kept in Saved Items."
+              hintSome={
+                csv.mapping.includes('priority')
+                  ? 'Every item goes on each list you pick. Rows without a priority get the one below.'
+                  : 'Every item goes on each list you pick. On a collection, everything is marked as yours.'
+              }
+            />
+          </form>
         )}
 
         {step === 'review' && (

@@ -75,7 +75,9 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
     if (!item) continue;
     if (collection) {
       // No gifting on collections: no claim state, pledges or priorities.
-      entries.push({ id: entry.id, priority: null, customNotes: entry.customNotes, groupGift: false, groupGiftNote: '', item: toPublicItem(item), status: null, claim: null, pledges: [] });
+      const publicItem = toPublicItem(item);
+      if (settings.showReviews === false && publicItem.owned) publicItem.owned = { ...publicItem.owned, rating: null, review: '' };
+      entries.push({ id: entry.id, priority: null, customNotes: entry.customNotes, groupGift: false, groupGiftNote: '', item: publicItem, status: null, claim: null, pledges: [] });
       continue;
     }
     const claim = activeClaim(doc.claims[entry.id]);

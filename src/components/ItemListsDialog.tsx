@@ -58,8 +58,13 @@ export function ItemListsDialog({ item, onClose }: { item: Item | null; onClose:
         {visible.length ? (
           <div className="check-list" role="group" aria-label="Lists">
             {visible.map((w) => (
-              <label key={w.id} className="check">
-                <input type="checkbox" checked={selected.includes(w.id)} onChange={() => setSelected((s) => (s.includes(w.id) ? s.filter((x) => x !== w.id) : [...s, w.id]))} />
+              <label key={w.id} className="check" title={item.source && w.link ? 'Follows your Brickfolio sheet' : undefined}>
+                <input
+                  type="checkbox"
+                  checked={selected.includes(w.id)}
+                  disabled={Boolean(item.source && w.link)}
+                  onChange={() => setSelected((s) => (s.includes(w.id) ? s.filter((x) => x !== w.id) : [...s, w.id]))}
+                />
                 <span className="swatch-dot" style={{ background: w.accentColor }} aria-hidden />
                 <span className="truncate" style={{ flex: 1 }}>
                   {w.title}

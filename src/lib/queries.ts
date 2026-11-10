@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
   AppNotification,
+  BrickfolioStatus,
+  ListLink,
   ExtensionConnection,
   FriendProfileView,
   FriendsOverview,
@@ -12,7 +15,7 @@ import type {
   WishlistDetail,
   WishlistSummary,
 } from '../../shared/types';
-import { get } from './api';
+import { get, post } from './api';
 
 export const keys = {
   me: ['me'] as const,
@@ -26,7 +29,38 @@ export const keys = {
   friends: ['friends'] as const,
   friend: (id: string) => ['friend', id] as const,
   extensionConnections: ['extension-connections'] as const,
+  brickfolio: ['integrations', 'brickfolio'] as const,
 };
+
+export type BrickfolioResponse = { status: BrickfolioStatus; changed: boolean };
+
+export function useBrickfolio(enabled = true) {
+  return useQuery({
+    queryKey: keys.brickfolio,
+    queryFn: () => get<BrickfolioResponse>('/api/integrations/brickfolio').then((r) => r.status),
+    enabled,
+  });
+}
+
+/** When a synced list opens, quietly pull the sheet if the last sync is old, then refresh. */
+export function useStaleSync(link: ListLink | null | undefined) {
+  const qc = useQueryClient();
+  const provider = link?.provider;
+  useEffect(() => {
+    if (provider !== 'brickfolio') return;
+    let cancelled = false;
+    post<BrickfolioResponse>('/api/integrations/brickfolio/sync?ifStale=1')
+      .then((r) => {
+        if (cancelled) return;
+        qc.setQueryData(keys.brickfolio, r.status);
+        if (r.changed) invalidateContent(qc);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [provider, qc]);
+}
 
 export function useExtensionConnections() {
   return useQuery({

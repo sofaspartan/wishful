@@ -153,6 +153,26 @@
 - [x] Add Item explains what's missing, how to copy a photo link, and suggests the extension for blocked stores
 - [x] Parser and detection tests (127 tests total)
 
+## Spoiler warning
+- [x] Owner viewing their own public page with Surprise Mode off: reserved and bought status hidden behind a spoiler warning until they choose to show it (remembered for the browser session)
+
+## Ratings & reviews
+- [x] 1–5 stars and a written review on owned items (edit modal, cards, item detail)
+- [x] "Top rated" sort; per-list "Show ratings and reviews" setting, enforced in the public API
+
+## CSV import
+- [x] "Import a CSV file" in Add several: comma, semicolon or tab separated, up to 500 rows
+- [x] Column mapping guessed from the headers (name, link, price, photo, brand, store, category, tags, notes, set number, priority, quantity, date, price paid, condition, rating, review), changeable per column, with sample values and a preview
+- [x] Imported in batches of 25 through `POST /api/items/bulk`, onto any lists or just Saved Items; partial failures report how far it got
+
+## Brickfolio integration
+- [x] Allow-listed by `INTEGRATION_ALLOWED_EMAILS`; Settings → Brickfolio to connect, sync now, change links or disconnect
+- [x] Reads the `full_sets` and `wishlist` sheet CSVs plus the site's `sets.csv`; set photos picked like the Brickfolio site; Brickset lookup through the site's proxy for sets missing from the catalog
+- [x] Mirrors into a "LEGO Collection" collection and a "LEGO Wishlist" wishlist; adds, updates, moves and removes sets on each sync; leaves other lists alone
+- [x] Hourly scheduled sync plus a sync when the owner opens a linked list and it's stale
+- [x] Synced items are read-only except notes and ownership details; API returns 409 for the rest
+- [x] Tests (161 tests total)
+
 ## Future
 - [ ] Price tracking & price-drop alerts
 - [ ] Monetary contributions for group gifts

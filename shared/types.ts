@@ -66,6 +66,7 @@ export const COVER_ICONS = [
   'book',
   'mug',
   'record',
+  'brick',
   'idea',
   'plane',
 ] as const;
@@ -122,6 +123,9 @@ export interface ItemOwnership {
   pricePaid: number | null;
   condition: Condition | null;
   quantity: number;
+  /** 1–5 stars. Absent on items saved before reviews existed. */
+  rating?: number | null;
+  review?: string;
 }
 
 export type PublicOwnership = Omit<ItemOwnership, 'pricePaid'>;
@@ -143,6 +147,8 @@ export interface WishlistSettings {
   itemOrder?: ItemOrder;
   /** Days before an un-purchased reservation lapses. 0 = never. */
   reservationDays: number;
+  /** Collections: ratings and reviews appear on the shared page. Missing: shown. */
+  showReviews?: boolean;
 }
 
 export interface NotificationPreferences {
@@ -175,6 +181,8 @@ export interface SelfUser extends PublicUser {
   preferences: UserPreferences;
   /** When the current recovery code was made; null if the account has none yet. */
   recoveryCodeCreatedAt: string | null;
+  /** Site integrations this account may connect (enabled per account on the server). */
+  integrations: { brickfolio: boolean };
   createdAt: string;
   updatedAt: string;
 }
@@ -216,11 +224,55 @@ export interface Item {
   metadata: ItemMetadata;
   /** Set once the owner has it (adding to a collection does this). Absent on items saved before collections existed. */
   owned?: ItemOwnership | null;
+  /** Kept in sync from another site; the synced fields are edited there, not here. */
+  source?: ItemSource | null;
   /** Wishlists (owned by `ownerId`) that contain this item. */
   wishlistIds: string[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export const SYNC_PROVIDERS = ['brickfolio'] as const;
+export type SyncProvider = (typeof SYNC_PROVIDERS)[number];
+
+export interface ItemSource {
+  provider: SyncProvider;
+  /** The item's id at the source, e.g. a LEGO set number. */
+  key: string;
+  /** More photos from the source, besides `imageUrl`. */
+  gallery: string[];
+  syncedAt: string;
+}
+
+/** A list mirrored from one tab of a synced source. */
+export interface ListLink {
+  provider: SyncProvider;
+  tab: 'full_sets' | 'wishlist';
+}
+
+export interface SyncResult {
+  added: number;
+  updated: number;
+  removed: number;
+  /** Moved from the wishlist tab to the collection tab ("got it"). */
+  moved: number;
+  /** Set numbers Brickfolio's catalog doesn't know yet (shown with basic details). */
+  notInCatalog: string[];
+}
+
+/** The Brickfolio connection as shown in Settings. */
+export interface BrickfolioStatus {
+  connected: boolean;
+  siteUrl: string;
+  fullSetsCsvUrl: string;
+  wishlistCsvUrl: string;
+  collectionId: string | null;
+  wishlistId: string | null;
+  lastSyncAt: string | null;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  lastResult: SyncResult | null;
 }
 
 /** The per-wishlist relationship for an item ("wishlist item"). */
@@ -269,6 +321,8 @@ export interface Wishlist {
   surpriseMode: boolean;
   settings: WishlistSettings;
   archivedAt: string | null;
+  /** Mirrored from a synced source (e.g. a Brickfolio sheet tab). */
+  link?: ListLink | null;
   createdAt: string;
   updatedAt: string;
   entries: WishlistEntry[];
@@ -297,6 +351,7 @@ export interface WishlistSummary {
   collaboratorCount: number;
   role: AccessRole;
   owner: PublicUser;
+  link: ListLink | null;
   /** Up to four item image URLs for card mosaics. */
   previewImages: string[];
 }

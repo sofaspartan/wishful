@@ -79,7 +79,7 @@ export function applyCollectionRules(w: WishlistRecord): void {
   w.surpriseMode = false;
   w.occasion = '';
   w.eventDate = null;
-  w.settings = { ...COLLECTION_SETTINGS };
+  w.settings = { ...COLLECTION_SETTINGS, showReviews: w.settings?.showReviews ?? true };
   for (const e of w.entries) {
     e.groupGift = false;
     e.groupGiftNote = '';
@@ -239,6 +239,7 @@ export async function summarize(lists: WishlistRecord[], viewerId: string): Prom
     collaboratorCount: l.collaborators.length,
     role: accessRole(l, viewerId) ?? 'viewer',
     owner: owners.get(l.ownerId)!,
+    link: l.link ?? null,
     previewImages: l.entries
       .slice(0, 6)
       .map((e) => images.get(e.itemId))

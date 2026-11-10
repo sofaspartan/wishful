@@ -20,7 +20,8 @@ export function collectionStats(items: Array<Item | PublicItem>) {
   for (const item of items) {
     const qty = item.owned?.quantity ?? 1;
     count += qty;
-    if ((item.owned?.acquiredOn ?? item.createdAt).startsWith(thisYear)) newThisYear += qty;
+    // A synced item's creation date is when it was first synced, not when it was got.
+    if ((item.owned?.acquiredOn ?? (item.source ? '' : item.createdAt)).startsWith(thisYear)) newThisYear += qty;
     if (item.owned?.acquiredVia === 'gift') gifts += qty;
     const value = itemValue(item);
     if (value != null) byCurrency.set(item.currency, (byCurrency.get(item.currency) ?? 0) + value);

@@ -59,6 +59,8 @@ export const isLocalDev = () => getDriver().name !== 'netlify';
  *   friendships    {userIdA}.{userIdB} (sorted)   → FriendshipRecord (pending request or friends)
  *   friend-index   {userId}                       → { ids } of everyone with a friendship record
  *   extension-tokens {userId}                     → ExtensionTokensDoc (connected browser extensions)
+ *   integrations   {userId}                       → IntegrationsDoc (connected sites, e.g. Brickfolio)
+ *   integration-cache {sha256(source url)}        → CatalogCacheRecord
  */
 export const COLLECTIONS = [
   'users',
@@ -77,6 +79,8 @@ export const COLLECTIONS = [
   'friendships',
   'friend-index',
   'extension-tokens',
+  'integrations',
+  'integration-cache',
 ] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 

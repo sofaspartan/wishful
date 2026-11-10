@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, Check, Copy, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
+import { CalendarDays, Check, Copy, Eye, EyeOff, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
 import type { PublicEntry, PublicWishlistView } from '../../shared/types';
 import { PRIORITY_RANK, priorityLayout } from '../../shared/constants';
 import { keys, useMe, usePublicList } from '../lib/queries';
@@ -25,7 +25,7 @@ import { useToast } from '../components/ui/Toast';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 type Filter = 'all' | 'available' | 'mine';
-type Sort = 'order' | 'priority' | 'acquired' | 'price_asc' | 'price_desc';
+type Sort = 'order' | 'priority' | 'acquired' | 'rating' | 'price_asc' | 'price_desc';
 
 interface Mine {
   claim: StoredClaim | null;
@@ -198,8 +198,36 @@ function PublicHeader() {
   );
 }
 
+const spoilerKey = (listId: string) => `wishful.spoilers.${listId}`;
+
+function readSpoilersShown(listId: string): boolean {
+  try {
+    return sessionStorage.getItem(spoilerKey(listId)) === 'shown';
+  } catch {
+    return false;
+  }
+}
+
 function PublicListView({ view, token }: { view: PublicWishlistView; token: string }) {
-  const { wishlist: w, owner, entries, viewer } = view;
+  const { wishlist: w, owner, viewer } = view;
+  const [spoilersShown, setSpoilersShown] = useState(() => readSpoilersShown(w.id));
+  // Only reachable when the API already shares claims with the owner (Surprise Mode off).
+  const giftActivity =
+    viewer.isOwner && !viewer.claimsHidden && view.entries.some((e) => (e.status !== null && e.status !== 'available') || e.pledges.length > 0);
+  const spoilersHidden = giftActivity && !spoilersShown;
+  const entries = useMemo(
+    () => (spoilersHidden ? view.entries.map((e) => ({ ...e, status: e.status === null ? null : ('available' as const), claim: null, pledges: [] })) : view.entries),
+    [view.entries, spoilersHidden],
+  );
+  const toggleSpoilers = (show: boolean) => {
+    try {
+      if (show) sessionStorage.setItem(spoilerKey(w.id), 'shown');
+      else sessionStorage.removeItem(spoilerKey(w.id));
+    } catch {
+      /* private mode: keep the choice in memory only */
+    }
+    setSpoilersShown(show);
+  };
   const [params, setParams] = useSearchParams();
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('order');
@@ -224,6 +252,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
       const price = (e: PublicEntry) => e.item.price ?? e.item.metadata.suggestedAmount ?? e.item.metadata.budget ?? null;
       if (sort === 'priority') list.sort((a, b) => (a.priority ? PRIORITY_RANK[a.priority] : 9) - (b.priority ? PRIORITY_RANK[b.priority] : 9));
       if (sort === 'acquired') list.sort((a, b) => (b.item.owned?.acquiredOn ?? '').localeCompare(a.item.owned?.acquiredOn ?? ''));
+      if (sort === 'rating') list.sort((a, b) => (b.item.owned?.rating ?? 0) - (a.item.owned?.rating ?? 0));
       if (sort === 'price_asc') list.sort((a, b) => (price(a) ?? Infinity) - (price(b) ?? Infinity));
       if (sort === 'price_desc') list.sort((a, b) => (price(b) ?? -1) - (price(a) ?? -1));
     }
@@ -287,12 +316,34 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
                 ? 'What you paid stays private.'
                 : viewer.claimsHidden
                   ? 'Surprise Mode is on, so reservations are hidden from you here too.'
-                  : 'Reservation details are visible to you because Surprise Mode is off.'}
+                  : giftActivity
+                    ? 'Surprise Mode is off, so reservation details can show here.'
+                    : 'Reservation details are visible to you because Surprise Mode is off.'}
             </div>
             <Link to={`/app/lists/${w.id}`} className="btn btn-sm">
               <Pencil size={14} aria-hidden /> Edit list
             </Link>
           </div>
+          {giftActivity && (
+            <div className="notice notice-warning" role="status" style={{ marginTop: 'var(--s-3)', marginBottom: 0 }}>
+              {spoilersHidden ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+              <div style={{ flex: 1 }}>
+                {spoilersHidden ? (
+                  <>
+                    <strong>Spoiler alert: people have started getting things from this list.</strong> We've hidden what's been reserved and bought so
+                    you don't stumble onto a surprise. Turn on Surprise Mode to keep it hidden for good.
+                  </>
+                ) : (
+                  <>
+                    <strong>Gift activity is showing.</strong> You can see what people have reserved and bought, which might spoil a surprise.
+                  </>
+                )}
+              </div>
+              <button type="button" className="btn btn-sm" onClick={() => toggleSpoilers(spoilersHidden)}>
+                {spoilersHidden ? 'Show anyway' : 'Hide again'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -363,7 +414,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
 
         {entries.length > 0 && (
           <div className="toolbar">
-            {!collection && (
+            {!collection && !viewer.isOwner && (
               <div className="filter-row" style={{ marginBottom: 0 }} role="group" aria-label="Filter">
                 <button type="button" className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
                   All
@@ -385,6 +436,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
               <option value="order">{possessive(owner.displayName)} order</option>
               {layout === 'ordered' && <option value="priority">Most wanted first</option>}
               {collection && <option value="acquired">Recently acquired</option>}
+              {collection && entries.some((e) => e.item.owned?.rating) && <option value="rating">Top rated</option>}
               <option value="price_asc">Price: low to high</option>
               <option value="price_desc">Price: high to low</option>
             </select>

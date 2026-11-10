@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Trash2 } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import type { Item } from '../../shared/types';
 import { useInvalidate, useWishlists } from '../lib/queries';
 import { del, errorMessage, fieldErrors, patch, put } from '../lib/api';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
-import { FormError } from './ui/Field';
+import { Field, FormError } from './ui/Field';
 import { useConfirm } from './ui/misc';
 import { useToast } from './ui/Toast';
 import { ItemFormFields, draftFromItem, draftToInput, mapItemErrors, validateDraft, type ItemDraft } from './ItemForm';
@@ -49,13 +49,14 @@ export function EditItemModal({ item, onClose, isOwner, inCollection: openedInCo
 
   if (!item || !draft) return null;
 
+  const synced = Boolean(item.source);
   const collectionIds = new Set(lists.filter((l) => l.kind === 'collection').map((l) => l.id));
-  const inCollection = Boolean(openedInCollection) || memberships.some((id) => collectionIds.has(id));
-  const tracksOwnership = hasIt || inCollection;
+  const inCollection = synced ? Boolean(item.owned) : Boolean(openedInCollection) || memberships.some((id) => collectionIds.has(id));
+  const tracksOwnership = synced ? Boolean(item.owned) : hasIt || inCollection;
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    const clientErrors = validateDraft(draft);
+    const clientErrors = synced ? {} : validateDraft(draft);
     const clientOwnedErrors = tracksOwnership ? validateOwnership(owned) : {};
     setErrors(clientErrors);
     setOwnedErrors(clientOwnedErrors);
@@ -63,10 +64,12 @@ export function EditItemModal({ item, onClose, isOwner, inCollection: openedInCo
     setSaving(true);
     setFormError(null);
     try {
-      await patch(`/api/items/${item.id}`, {
-        ...draftToInput(draft),
-        owned: tracksOwnership ? ownershipToInput(owned) : item.owned ? null : undefined,
-      });
+      await patch(
+        `/api/items/${item.id}`,
+        synced
+          ? { notes: draft.notes, owned: tracksOwnership ? ownershipToInput(owned) : undefined }
+          : { ...draftToInput(draft), owned: tracksOwnership ? ownershipToInput(owned) : item.owned ? null : undefined },
+      );
       const changed = isOwner && (memberships.length !== item.wishlistIds.length || memberships.some((m) => !item.wishlistIds.includes(m)));
       if (changed) await put(`/api/items/${item.id}/wishlists`, { wishlistIds: memberships });
       invalidate([...new Set([...item.wishlistIds, ...memberships])]);
@@ -112,7 +115,7 @@ export function EditItemModal({ item, onClose, isOwner, inCollection: openedInCo
       size="lg"
       footer={
         <>
-          {isOwner && (
+          {isOwner && !synced && (
             <Button variant="danger-ghost" icon={<Trash2 size={16} />} onClick={remove} style={{ marginRight: 'auto' }}>
               <span className="hide-xs">Delete</span>
             </Button>
@@ -126,10 +129,27 @@ export function EditItemModal({ item, onClose, isOwner, inCollection: openedInCo
     >
       <form id="edit-item-form" className="stack" onSubmit={save} noValidate>
         <FormError message={formError} />
-        <ItemFormFields draft={draft} onChange={(p) => setDraft((d) => (d ? { ...d, ...p } : d))} errors={errors} onUploadingChange={setUploading} />
-        <hr className="divider" />
+        {synced ? (
+          <>
+            <div className="notice" style={{ marginBottom: 0 }}>
+              <RefreshCw size={16} aria-hidden />
+              <div>
+                <strong>{item.title}</strong> comes from your Brickfolio sheet. Its name, photos, price, theme, quantity, rating and review update from the sheet, so
+                change those there.
+              </div>
+            </div>
+            <Field label="Private notes" optional error={errors.notes} hint="Only you (and editors) can see these — never shown on shared links.">
+              <textarea className="textarea" rows={2} value={draft.notes} onChange={(e) => setDraft((d) => (d ? { ...d, notes: e.target.value } : d))} maxLength={5000} />
+            </Field>
+          </>
+        ) : (
+          <ItemFormFields draft={draft} onChange={(p) => setDraft((d) => (d ? { ...d, ...p } : d))} errors={errors} onUploadingChange={setUploading} />
+        )}
+        {(!synced || tracksOwnership) && <hr className="divider" />}
         <div className="field">
-          {inCollection ? (
+          {synced ? (
+            tracksOwnership && <span className="field-label">About yours</span>
+          ) : inCollection ? (
             <span className="field-label">About yours</span>
           ) : (
             <label className="check" style={{ alignSelf: 'flex-start' }}>
@@ -138,7 +158,14 @@ export function EditItemModal({ item, onClose, isOwner, inCollection: openedInCo
             </label>
           )}
           {tracksOwnership && (
-            <OwnershipFields draft={owned} onChange={(p) => setOwned((o) => ({ ...o, ...p }))} errors={ownedErrors} currency={draft.currency} />
+            <OwnershipFields
+              draft={owned}
+              onChange={(p) => setOwned((o) => ({ ...o, ...p }))}
+              errors={ownedErrors}
+              currency={draft.currency}
+              showReview={!synced}
+              lockQuantity={synced}
+            />
           )}
         </div>
         {isOwner && ownLists.length > 0 && (
@@ -150,10 +177,11 @@ export function EditItemModal({ item, onClose, isOwner, inCollection: openedInCo
               </span>
               <div className="check-list" role="group" aria-labelledby="memberships-label">
                 {ownLists.map((w) => (
-                  <label key={w.id} className="check">
+                  <label key={w.id} className="check" title={synced && w.link ? 'Follows your Brickfolio sheet' : undefined}>
                     <input
                       type="checkbox"
                       checked={memberships.includes(w.id)}
+                      disabled={synced && Boolean(w.link)}
                       onChange={() => setMemberships((m) => (m.includes(w.id) ? m.filter((x) => x !== w.id) : [...m, w.id]))}
                     />
                     <span className="swatch-dot" style={{ background: w.accentColor }} aria-hidden />

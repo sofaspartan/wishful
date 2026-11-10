@@ -18,6 +18,7 @@ import {
   PartyPopper,
   Pencil,
   Plus,
+  RefreshCw,
   Rows3,
   Search,
   Settings2,
@@ -28,7 +29,7 @@ import {
 } from 'lucide-react';
 import type { Item, OwnerClaimView, OwnerPledgeView, Priority, WishlistDetail as Detail, WishlistEntry } from '../../shared/types';
 import { PRIORITY_LABELS, PRIORITY_LAYOUTS, priorityLayout, priorityLayoutSettings, type PriorityLayout } from '../../shared/constants';
-import { keys, useMe, useWishlist, useInvalidate } from '../lib/queries';
+import { keys, useMe, useStaleSync, useWishlist, useInvalidate } from '../lib/queries';
 import { ApiError, del, errorMessage, patch, post, put } from '../lib/api';
 import { mergeSectionOrder } from '../lib/priority';
 import { PrioritySections } from '../components/PrioritySections';
@@ -55,7 +56,7 @@ import { Button } from '../components/ui/Button';
 import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
 
-const SORTS = ['custom', 'priority', 'acquired', 'price_asc', 'price_desc', 'newest', 'name'] as const;
+const SORTS = ['custom', 'priority', 'acquired', 'rating', 'price_asc', 'price_desc', 'newest', 'name'] as const;
 type Sort = (typeof SORTS)[number];
 const VIEWS = ['grid', 'list'] as const;
 
@@ -108,6 +109,8 @@ function WishlistView({ detail }: { detail: Detail }) {
   const canEdit = detail.role !== 'viewer';
   const claimsVisible = detail.claims !== null;
   const collection = w.kind === 'collection';
+  const synced = (item: Item) => Boolean(w.link && item.source);
+  useStaleSync(isOwner ? w.link : null);
 
   const [view, setView] = useLocalPref('detail.view', 'grid', VIEWS);
   const [sort, setSort] = useLocalPref<Sort>('detail.sort', 'custom', SORTS);
@@ -153,7 +156,7 @@ function WishlistView({ detail }: { detail: Detail }) {
   const rowById = useMemo(() => new Map(rows.map((r) => [r.entry.id, r])), [rows]);
 
   // "Priority" used to be a personal sort; grouping by priority is now a setting of the list itself.
-  const effectiveSort: Sort = sort === 'priority' || (sort === 'acquired' && !collection) ? 'custom' : sort;
+  const effectiveSort: Sort = sort === 'priority' || ((sort === 'acquired' || sort === 'rating') && !collection) ? 'custom' : sort;
   const layout: PriorityLayout = collection ? 'hidden' : priorityLayout(w.settings);
   const showPriority = layout !== 'hidden';
   const grouped = layout === 'grouped' && effectiveSort === 'custom';
@@ -171,6 +174,7 @@ function WishlistView({ detail }: { detail: Detail }) {
       list = [...list];
       const price = (r: Row) => effectivePrice(r.item);
       if (effectiveSort === 'acquired') list.sort((a, b) => (b.item.owned?.acquiredOn ?? '').localeCompare(a.item.owned?.acquiredOn ?? ''));
+      if (effectiveSort === 'rating') list.sort((a, b) => (b.item.owned?.rating ?? 0) - (a.item.owned?.rating ?? 0));
       if (effectiveSort === 'price_asc') list.sort((a, b) => (price(a) ?? Infinity) - (price(b) ?? Infinity));
       if (effectiveSort === 'price_desc') list.sort((a, b) => (price(b) ?? -1) - (price(a) ?? -1));
       if (effectiveSort === 'newest') list.sort((a, b) => b.entry.createdAt.localeCompare(a.entry.createdAt));
@@ -280,7 +284,7 @@ function WishlistView({ detail }: { detail: Detail }) {
         <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditingItem(r.item)}>
           Edit item
         </MenuItem>
-        {isOwner && !collection && (
+        {isOwner && !collection && !synced(r.item) && (
           <MenuItem icon={<PartyPopper size={16} />} onSelect={() => setGotIt(r.item)}>
             Got it!
           </MenuItem>
@@ -290,9 +294,11 @@ function WishlistView({ detail }: { detail: Detail }) {
             Priority, note & group gift
           </MenuItem>
         )}
-        <MenuItem icon={<ArrowLeft size={16} style={{ transform: 'scaleX(-1)' }} />} onSelect={() => setMoving(r.entry)}>
-          Move to another list
-        </MenuItem>
+        {!synced(r.item) && (
+          <MenuItem icon={<ArrowLeft size={16} style={{ transform: 'scaleX(-1)' }} />} onSelect={() => setMoving(r.entry)}>
+            Move to another list
+          </MenuItem>
+        )}
         {isOwner && (
           <MenuItem icon={<ListChecks size={16} />} onSelect={() => setListsFor(r.item)}>
             Add to other lists
@@ -303,10 +309,14 @@ function WishlistView({ detail }: { detail: Detail }) {
             Clear reservation
           </MenuItem>
         )}
-        <MenuSeparator />
-        <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => removeEntry(r)}>
-          Remove from list
-        </MenuItem>
+        {!synced(r.item) && (
+          <>
+            <MenuSeparator />
+            <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => removeEntry(r)}>
+              Remove from list
+            </MenuItem>
+          </>
+        )}
       </Menu>
     ) : null;
 
@@ -357,6 +367,11 @@ function WishlistView({ detail }: { detail: Detail }) {
           <div className="row-wrap">
             {isOwner ? <VisibilityBadge visibility={w.visibility} outline /> : <span className="badge badge-outline">{detail.role === 'editor' ? 'You can edit' : 'View only'}</span>}
             {collection && <CollectionBadge outline />}
+            {w.link && (
+              <span className="badge badge-outline">
+                <RefreshCw aria-hidden /> Synced from Brickfolio
+              </span>
+            )}
             {w.surpriseMode && (
               <span className="badge badge-accent">
                 <Gift aria-hidden /> Surprise Mode
@@ -479,6 +494,18 @@ function WishlistView({ detail }: { detail: Detail }) {
           )}
         </div>
       )}
+      {isOwner && w.link && (
+        <div className="notice">
+          <RefreshCw size={18} aria-hidden />
+          <div style={{ flex: 1 }}>
+            This list mirrors the <strong>{w.link.tab}</strong> tab of your Brickfolio sheet. Add, remove or {w.link.tab === 'wishlist' ? 'move sets to full_sets' : 'edit sets'} in the
+            sheet; your notes and purchase details stay here.
+          </div>
+          <Link to="/app/settings?tab=brickfolio" className="btn btn-sm">
+            Sync settings
+          </Link>
+        </div>
+      )}
       {canEdit && !claimsVisible && w.surpriseMode && rows.length > 0 && (
         <div className="notice notice-accent">
           <Gift size={18} aria-hidden />
@@ -530,6 +557,7 @@ function WishlistView({ detail }: { detail: Detail }) {
           <select className="select" value={effectiveSort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort items">
             <option value="custom">{collection ? 'Custom order' : 'List order'}</option>
             {collection && <option value="acquired">Recently acquired</option>}
+            {collection && <option value="rating">Top rated</option>}
             <option value="price_asc">Price: low to high</option>
             <option value="price_desc">Price: high to low</option>
             <option value="newest">Recently added</option>
@@ -617,7 +645,7 @@ function WishlistView({ detail }: { detail: Detail }) {
         footer={
           openRow && canEdit ? (
             <>
-              {isOwner && !collection && (
+              {isOwner && !collection && !synced(openRow.item) && (
                 <Button
                   icon={<PartyPopper size={16} />}
                   onClick={() => {

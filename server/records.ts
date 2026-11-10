@@ -3,7 +3,7 @@
  * hashes, claim token hashes) and must be mapped through the serializers in
  * `server/serialize.ts` before being returned to any client.
  */
-import type { ClaimStatus, Item, ListKind, PledgeRole, UserPreferences, Wishlist } from '../shared/types';
+import type { ClaimStatus, Item, ListKind, PledgeRole, SyncResult, UserPreferences, Wishlist } from '../shared/types';
 
 export interface UserRecord {
   id: string;
@@ -134,4 +134,47 @@ export interface ExtensionTokenRecord {
 
 export interface ExtensionTokensDoc {
   tokens: ExtensionTokenRecord[];
+}
+
+export interface BrickfolioLinkRecord {
+  /** Origin of the Brickfolio site, e.g. https://example.netlify.app */
+  siteUrl: string;
+  /** "Publish to web" CSV links for the two sheet tabs. */
+  fullSetsCsvUrl: string;
+  wishlistCsvUrl: string;
+  collectionId: string | null;
+  wishlistId: string | null;
+  connectedAt: string;
+  lastSyncAt: string | null;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  lastResult: SyncResult | null;
+  /** Another sync holds the lock until this time. */
+  syncLockUntil: string | null;
+}
+
+/** A user's connected sites. */
+export interface IntegrationsDoc {
+  brickfolio?: BrickfolioLinkRecord;
+}
+
+/** Just the catalog rows a user's sheet needs, revalidated against the catalog file's ETag. */
+export interface CatalogCacheRecord {
+  etag: string | null;
+  lastModified: string | null;
+  sets: Record<string, CatalogSet>;
+  /** Looked up and not in the catalog. */
+  missing: string[];
+  /** Sets the catalog lacks, found through Brickfolio's Brickset proxy. */
+  extra?: Record<string, CatalogSet>;
+  /** When Brickset last didn't know a set (retried after a day). */
+  unknownCheckedAt?: Record<string, string>;
+}
+
+export interface CatalogSet {
+  setNum: string;
+  name: string;
+  year: number | null;
+  pieces: number | null;
+  imageUrl: string | null;
 }

@@ -354,6 +354,7 @@ export async function deleteAccount(user: UserRecord): Promise<void> {
   if (user.avatarUrl?.startsWith('/api/images/')) await images().delete(user.avatarUrl.split('/').pop()!);
   await db('notifications').delete(user.id);
   await deleteExtensionTokens(user.id);
+  await db('integrations').delete(user.id);
   await db('user-index').delete(user.id);
   await db('email-index').delete(sha256(user.email));
   await db('username-index').delete(user.username);

@@ -105,6 +105,8 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
 | `friend-index` | userId | `{ ids }` of everyone the user has a friendship record with (listing only) |
 | `images` | imageId | Uploaded image bytes + content type metadata |
 | `extension-tokens` | userId | `{ tokens: [{ id, secretHash, label, createdAt, lastUsedAt }] }` — connected browsers (max 10), secrets stored as SHA-256 only |
+| `integrations` | userId | Brickfolio connection: site + sheet CSV links, the two mirrored list ids, item ids per set key, last sync result and error |
+| `integration-cache` | sha256(site URL) | Brickfolio `sets.csv` catalog (with ETag/Last-Modified), sets found through the site's Brickset proxy, and when unknown sets were last looked up |
 
 **Relationships**
 
@@ -116,8 +118,9 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
 * **Collections** are lists with `kind: 'collection'` (fixed at creation; records
   without `kind` are wishlists). They chronicle things the owner already has: the
   API forces Surprise Mode, occasion, date, claims and group gifts off, and refuses
-  reservations and pledges with `403 collection`. Items carry optional
-  `owned { acquiredOn, acquiredVia, pricePaid, condition, quantity }`, set
+  reservations and pledges with `403 collection`.   Items carry optional
+  `owned { acquiredOn, acquiredVia, pricePaid, condition, quantity, rating, review }`
+  (`rating` 1–5 or null; `review` up to 3,000 characters), set
   automatically when an item lands in a collection. `POST /api/items/bulk` creates up
   to 25 items in one request and files them on the same lists (one write per item,
   one per list). `POST /api/items/:id/got-it`
@@ -136,6 +139,11 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
 * Claims and pledges reference an **entry**, never an item, and store whether
   Surprise Mode was on at the time (`surprise: true`), so turning Surprise Mode off
   later never reveals gifts reserved during it.
+* **Synced items** (Brickfolio) carry `source { provider, key, gallery, … }` and live on
+  lists that carry `link { provider }`. The sheet owns them: the API answers
+  `409 synced_item` to edits of sheet fields, deletes, Got it, moves and membership
+  changes on linked lists. Private notes and price paid / date / condition / how
+  you got it stay editable and survive syncs.
 
 ## 5. Security model
 
@@ -180,7 +188,12 @@ Each collection is a site-wide Blobs store of the same name. Documents are JSON.
   only, ports 80/443, no credentials, blocked internal hostnames, every DNS answer
   checked against private/reserved IPv4/IPv6 ranges, socket pinned to the validated
   address, redirects re-validated (max 4), 8 s timeout, 1.5 MB cap (3 MB for
-  previews).
+  previews). Brickfolio sheet, `sets.csv` and Brickset-proxy fetches go through the
+  same guard, and the connect form only accepts `https://` links.
+* **Integrations** are limited to the accounts in `INTEGRATION_ALLOWED_EMAILS`,
+  checked on the server for every integration route and on each scheduled sync;
+  everyone else gets 404 and never sees the Settings tab. Syncs are rate-limited
+  (30 an hour per user).
 * **Uploads**: 5 MB cap, magic-byte sniffing (JPEG, PNG, GIF, WebP only — SVG and
   anything else rejected), served with `nosniff` and a sandboxed CSP. The browser
   downsizes large photos before upload.
@@ -208,6 +221,7 @@ See `.env.example`. None are exposed to the browser.
 | `DATA_DIR` | No | Folder for the local `fs` driver (default `.data`) |
 | `BRAND_NAME` | No | Product name used in emails (default `Wishful`) |
 | `RATE_LIMIT_DISABLED` | No | `1` disables rate limiting (local testing only) |
+| `INTEGRATION_ALLOWED_EMAILS` | No | Comma-separated account emails allowed to connect Brickfolio. Empty = nobody |
 
 Email is optional. Password resets work without it through recovery codes; the
 Forgot password page only offers an emailed link when `RESEND_API_KEY` and
@@ -245,7 +259,10 @@ To reset local data, delete the `.data/` folder.
    `RESEND_API_KEY` and `EMAIL_FROM` to turn on email, and `APP_URL` if you use a
    custom domain. The site works without them; passwords are reset with recovery codes.
 4. Deploy. Netlify Blobs is enabled automatically for the site — no setup needed.
-   The `daily` scheduled function is picked up automatically.
+   The `daily` and hourly `sync` scheduled functions are picked up automatically.
+   To mirror a Brickfolio LEGO sheet, add `INTEGRATION_ALLOWED_EMAILS` with your
+   account email, then connect in **Settings → Brickfolio** with the Brickfolio site
+   URL and the published CSV links of the `full_sets` and `wishlist` tabs.
 5. (Optional) Verify your sending domain in Resend so emails are delivered.
 
 Every push to the main branch redeploys; pull requests get preview deploys (they
@@ -381,7 +398,19 @@ so preview tags are written into the HTML on the way out:
   page (All / Wishlists / Collections filter). Per-item ownership details (date, bought
   or gift, price paid, condition, quantity), a stats strip (count, value, new this
   year, gifts), "Got it!" from any wishlist or Saved Items to move an item into a
-  collection, and a browse-only shared page with no reservation UI.
+  collection, and a browse-only shared page with no reservation UI. 1–5 star ratings
+  and written reviews on owned items, a "Top rated" sort, and a per-list setting to
+  show or hide them on shared pages (hidden ones are stripped by the API).
+* CSV import: "Add several → Import a CSV file" reads up to 500 rows, guesses which
+  column is which (editable), previews the result and creates the items in batches
+  of 25 on the chosen lists.
+* Brickfolio (allow-listed accounts): mirrors a LEGO collection and wishlist from the
+  Brickfolio Google Sheet into two read-only lists, with the same photo rules as the
+  Brickfolio site, ratings and reviews from the sheet, hourly and on-open syncs, and a
+  Brickset lookup for sets missing from `sets.csv`.
+* Spoiler warning: when an owner opens their own share link with Surprise Mode off
+  and gifts have been reserved or bought, reservation status is hidden behind a
+  warning until they choose to see it.
 * Items: products, experiences, ideas, gift cards and custom items; one item on many
   lists with per-list priority, note for gift-givers and order; drag-and-drop reorder;
   move between lists; add to several lists; categories, tags, private notes,

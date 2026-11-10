@@ -1,13 +1,32 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bell, Camera, ChevronRight, ExternalLink, Gift, Globe, KeyRound, LifeBuoy, LogOut, Mail, Puzzle, Shield, Trash2, UserRound, type LucideIcon } from 'lucide-react';
-import { VISIBILITIES, type NotificationPreferences, type SelfUser, type Visibility, type WishlistSettings } from '../../shared/types';
+import {
+  AlertTriangle,
+  Bell,
+  Blocks,
+  Camera,
+  ChevronRight,
+  ExternalLink,
+  Gift,
+  Globe,
+  KeyRound,
+  LifeBuoy,
+  LogOut,
+  Mail,
+  Puzzle,
+  RefreshCw,
+  Shield,
+  Trash2,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react';
+import { VISIBILITIES, type NotificationPreferences, type SelfUser, type SyncResult, type Visibility, type WishlistSettings } from '../../shared/types';
 import { CURRENCIES, RESERVATION_DAY_OPTIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS } from '../../shared/constants';
-import { keys, useExtensionConnections, useMe } from '../lib/queries';
+import { keys, useBrickfolio, useExtensionConnections, useInvalidate, useMe, type BrickfolioResponse } from '../lib/queries';
 import { formatDate, relativeTime } from '../lib/format';
 import { brand } from '../config/brand';
-import { del, errorMessage, fieldErrors, patch, post } from '../lib/api';
+import { del, errorMessage, fieldErrors, patch, post, put } from '../lib/api';
 import { uploadImage } from '../lib/images';
 import { showRecoveryCode } from '../lib/recoveryCode';
 import { ExtensionGetButton, InstallSteps } from '../components/ExtensionInstall';
@@ -25,9 +44,12 @@ const TABS = [
   { id: 'privacy', label: 'Privacy & sharing', icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'extension', label: 'Browser extension', icon: Puzzle },
+  { id: 'brickfolio', label: 'Brickfolio', icon: Blocks },
   { id: 'account', label: 'Account', icon: KeyRound },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
+
+const tabsFor = (me: SelfUser) => TABS.filter((t) => t.id !== 'brickfolio' || me.integrations.brickfolio);
 
 function CardTitle({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
   return (
@@ -48,9 +70,9 @@ function useSaveUser() {
 export default function Settings() {
   const { data: me } = useMe();
   const [params, setParams] = useSearchParams();
-  const tab = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'profile') as Tab;
-
   if (!me) return <PageLoader />;
+  const tabs = tabsFor(me);
+  const tab = (tabs.find((t) => t.id === params.get('tab'))?.id ?? 'profile') as Tab;
   return (
     <div className="page">
       <PageSky
@@ -86,18 +108,19 @@ export default function Settings() {
       </PageSky>
       <div className="settings-layout">
         <div className="tabs settings-nav" role="tablist" aria-label="Settings sections">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {tabs.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setParams({ tab: id }, { replace: true })}>
               <Icon size={16} aria-hidden />
               {label}
             </button>
           ))}
         </div>
-        <div role="tabpanel" aria-label={TABS.find((t) => t.id === tab)?.label}>
+        <div role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
           {tab === 'profile' && <ProfileSection me={me} />}
           {tab === 'privacy' && <PrivacySection me={me} />}
           {tab === 'notifications' && <NotificationsSection me={me} />}
           {tab === 'extension' && <ExtensionSection />}
+          {tab === 'brickfolio' && <BrickfolioSection />}
           {tab === 'account' && <AccountSection me={me} />}
         </div>
       </div>
@@ -414,6 +437,202 @@ function ExtensionSection() {
         )}
       </div>
       <p className="muted text-sm">Changing your password also disconnects every browser.</p>
+    </div>
+  );
+}
+
+function syncSummary(r: SyncResult): string {
+  const parts = [
+    r.added && `${r.added} added`,
+    r.updated && `${r.updated} updated`,
+    r.moved && `${r.moved} moved to your collection`,
+    r.removed && `${r.removed} removed`,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'Everything was already up to date';
+}
+
+function BrickfolioSection() {
+  const qc = useQueryClient();
+  const invalidate = useInvalidate();
+  const toast = useToast();
+  const { data: status, isLoading } = useBrickfolio();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ siteUrl: '', fullSetsCsvUrl: '', wishlistCsvUrl: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<'connect' | 'sync' | 'disconnect' | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+
+  useEffect(() => {
+    if (status?.connected) setForm({ siteUrl: status.siteUrl, fullSetsCsvUrl: status.fullSetsCsvUrl, wishlistCsvUrl: status.wishlistCsvUrl });
+  }, [status?.connected, status?.siteUrl, status?.fullSetsCsvUrl, status?.wishlistCsvUrl]);
+
+  const done = (r: BrickfolioResponse, okMessage: string) => {
+    qc.setQueryData(keys.brickfolio, r.status);
+    invalidate();
+    if (r.status.lastError) toast.error(r.status.lastError);
+    else toast.success(okMessage);
+  };
+
+  const connect = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy('connect');
+    setErrors({});
+    try {
+      const r = await put<BrickfolioResponse>('/api/integrations/brickfolio', form);
+      setEditing(false);
+      done(r, r.status.lastResult ? `Synced: ${syncSummary(r.status.lastResult)}` : 'Connected');
+    } catch (err) {
+      const f = fieldErrors(err);
+      setErrors(Object.keys(f).length ? f : { form: errorMessage(err) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const syncNow = async () => {
+    setBusy('sync');
+    try {
+      const r = await post<BrickfolioResponse>('/api/integrations/brickfolio/sync');
+      done(r, r.status.lastResult ? syncSummary(r.status.lastResult) : 'Synced');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const disconnect = async () => {
+    setBusy('disconnect');
+    try {
+      const r = await del<BrickfolioResponse>('/api/integrations/brickfolio');
+      qc.setQueryData(keys.brickfolio, r.status);
+      invalidate();
+      setConfirmDisconnect(false);
+      setForm({ siteUrl: '', fullSetsCsvUrl: '', wishlistCsvUrl: '' });
+      toast.success('Brickfolio disconnected. Your sets stay, as ordinary items.');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (isLoading || !status) return <p className="muted text-sm">Loading…</p>;
+  const set = (k: keyof typeof form) => (e: ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const linksForm = (
+    <form className="stack" onSubmit={connect} noValidate>
+      <FormError message={errors.form ?? null} />
+      <Field label="Brickfolio site" error={errors.siteUrl} hint="Used for your own set photos and the set catalog (sets.csv).">
+        <input className="input" type="url" inputMode="url" placeholder="https://your-collection.netlify.app" value={form.siteUrl} onChange={set('siteUrl')} spellCheck={false} />
+      </Field>
+      <Field label="full_sets tab (published CSV link)" error={errors.fullSetsCsvUrl}>
+        <input className="input" type="url" inputMode="url" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?gid=…&output=csv" value={form.fullSetsCsvUrl} onChange={set('fullSetsCsvUrl')} spellCheck={false} />
+      </Field>
+      <Field label="wishlist tab (published CSV link)" error={errors.wishlistCsvUrl}>
+        <input className="input" type="url" inputMode="url" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?gid=…&output=csv" value={form.wishlistCsvUrl} onChange={set('wishlistCsvUrl')} spellCheck={false} />
+      </Field>
+      <p className="muted text-sm">
+        These are the same links Brickfolio reads. In Google Sheets: File → Share → Publish to web, choose the tab, pick “Comma-separated values (.csv)” and copy the link.
+      </p>
+      <div className="row-wrap">
+        <Button type="submit" variant="primary" loading={busy === 'connect'} disabled={!form.siteUrl || !form.fullSetsCsvUrl || !form.wishlistCsvUrl}>
+          {status.connected ? 'Save and sync' : 'Connect and sync'}
+        </Button>
+        {status.connected && <Button onClick={() => setEditing(false)}>Cancel</Button>}
+      </div>
+    </form>
+  );
+
+  return (
+    <div className="settings-section">
+      <div className="card card-pad stack">
+        <div>
+          <CardTitle icon={Blocks}>Brickfolio</CardTitle>
+          <p className="muted text-sm">
+            Your Google Sheet stays the one place you edit. {brand.name} mirrors the full_sets tab into a LEGO collection and the wishlist tab into a LEGO wishlist,
+            with the same names, photos, ratings and reviews. Move a row from wishlist to full_sets and it moves here too. It syncs every hour and whenever you open
+            one of those lists.
+          </p>
+        </div>
+        {!status.connected || editing ? (
+          linksForm
+        ) : (
+          <>
+            {status.lastError && (
+              <div className="notice notice-warning" role="alert" style={{ marginBottom: 0 }}>
+                <AlertTriangle size={16} aria-hidden />
+                <span>{status.lastError}</span>
+              </div>
+            )}
+            <dl className="detail-facts">
+              <dt>Site</dt>
+              <dd>
+                <a href={status.siteUrl} target="_blank" rel="noreferrer">
+                  {status.siteUrl.replace(/^https:\/\//, '')} <ExternalLink size={12} aria-hidden />
+                </a>
+              </dd>
+              <dt>Last synced</dt>
+              <dd>{status.lastSuccessAt ? relativeTime(status.lastSuccessAt) : 'Not yet'}</dd>
+              {status.lastResult && (
+                <>
+                  <dt>Last change</dt>
+                  <dd>{syncSummary(status.lastResult)}</dd>
+                </>
+              )}
+              {status.lastResult && status.lastResult.notInCatalog.length > 0 && (
+                <>
+                  <dt>Not in catalog</dt>
+                  <dd>
+                    {status.lastResult.notInCatalog.join(', ')} <span className="muted">(shown with your sheet’s details only)</span>
+                  </dd>
+                </>
+              )}
+            </dl>
+            <div className="row-wrap">
+              {status.collectionId && (
+                <Link className="btn btn-sm" to={`/app/lists/${status.collectionId}`}>
+                  LEGO collection
+                </Link>
+              )}
+              {status.wishlistId && (
+                <Link className="btn btn-sm" to={`/app/lists/${status.wishlistId}`}>
+                  LEGO wishlist
+                </Link>
+              )}
+            </div>
+            <div className="row-wrap">
+              <Button variant="primary" icon={<RefreshCw size={16} />} onClick={() => void syncNow()} loading={busy === 'sync'}>
+                Sync now
+              </Button>
+              <Button onClick={() => setEditing(true)}>Change links</Button>
+              <Button variant="ghost" onClick={() => setConfirmDisconnect(true)}>
+                Disconnect
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+      <p className="muted text-sm">
+        Synced sets can’t be renamed, deleted or moved here; change them in the sheet. Your own notes, where and when you got a set, what you paid and its
+        condition are kept in {brand.name}.
+      </p>
+      <Modal
+        open={confirmDisconnect}
+        onClose={() => setConfirmDisconnect(false)}
+        title="Disconnect Brickfolio?"
+        size="sm"
+        footer={
+          <>
+            <Button onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+            <Button variant="danger" onClick={() => void disconnect()} loading={busy === 'disconnect'}>
+              Disconnect
+            </Button>
+          </>
+        }
+      >
+        <p className="muted">Syncing stops. Your LEGO lists and sets stay as ordinary items you can edit or delete. Your sheet isn’t touched.</p>
+      </Modal>
     </div>
   );
 }

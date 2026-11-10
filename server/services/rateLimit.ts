@@ -20,6 +20,7 @@ export const RATE_LIMITS = {
   friend: { limit: 40, windowSec: 60 * 60 },
   extensionConnect: { limit: 20, windowSec: 60 * 60 },
   extensionSave: { limit: 300, windowSec: 60 * 60 },
+  integrationSync: { limit: 30, windowSec: 60 * 60 },
 } as const;
 
 /**

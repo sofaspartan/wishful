@@ -133,7 +133,7 @@ export function GotItDialog({ item, fromWishlist, onClose }: Props) {
           </label>
         )}
         <hr className="divider" />
-        <OwnershipFields draft={owned} onChange={(p) => setOwned((o) => ({ ...o, ...p }))} errors={errors} currency={item.currency} />
+        <OwnershipFields draft={owned} onChange={(p) => setOwned((o) => ({ ...o, ...p }))} errors={errors} currency={item.currency} showReview={false} />
       </form>
     </Modal>
   );

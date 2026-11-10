@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import type { Item, Priority, PublicItem } from '../../shared/types';
 import { ACQUIRED_VIA_LABELS, CONDITION_LABELS, ITEM_TYPE_LABELS } from '../../shared/constants';
 import { formatDate, formatPrice, hostname } from '../lib/format';
 import { Modal } from './ui/Modal';
-import { ItemImage, ItemTypeIcon, PriorityBadge } from './ItemVisuals';
+import { ItemImage, ItemTypeIcon, PriorityBadge, Stars } from './ItemVisuals';
 import { effectivePrice } from './ItemForm';
 
 interface Props {
@@ -73,6 +73,35 @@ function OwnershipFacts({ item }: { item: Item | PublicItem }) {
           ))}
         </dl>
       )}
+      {(o.rating || o.review) && (
+        <div style={{ marginTop: rows.length ? 'var(--s-3)' : 6 }}>
+          {o.rating ? <Stars value={o.rating} size={16} /> : null}
+          {o.review && <p className="review-text">{o.review}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Main photo plus thumbnails of the other photos (synced sets bring their own). */
+function DetailMedia({ item }: { item: Item | PublicItem }) {
+  const photos = [...(item.imageUrl ? [item.imageUrl] : []), ...(item.source?.gallery ?? [])];
+  const [shown, setShown] = useState(0);
+  useEffect(() => setShown(0), [item.id]);
+  return (
+    <div className="detail-media-wrap">
+      <div className="detail-media">
+        <ItemImage src={photos[shown] ?? item.imageUrl} type={item.type} alt={item.title} iconSize={40} />
+      </div>
+      {photos.length > 1 && (
+        <div className="detail-thumbs" role="group" aria-label="Photos">
+          {photos.map((src, i) => (
+            <button key={src} type="button" className="detail-thumb" aria-pressed={i === shown} aria-label={`Photo ${i + 1}`} onClick={() => setShown(i)}>
+              <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -87,9 +116,7 @@ export function ItemDetailModal({ item, onClose, priority, entryNote, children, 
   return (
     <Modal open onClose={onClose} title={item.title} size="lg" footer={footer}>
       <div className="detail-grid">
-        <div className="detail-media">
-          <ItemImage src={item.imageUrl} type={item.type} alt={item.title} iconSize={40} />
-        </div>
+        <DetailMedia item={item} />
         <div className="stack">
           <div className="row-wrap">
             <span className="badge badge-outline">

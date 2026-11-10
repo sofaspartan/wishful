@@ -47,6 +47,8 @@ export function mergeOwnership(current: ItemOwnership | null | undefined, input:
     pricePaid: input.pricePaid !== undefined ? input.pricePaid : (current?.pricePaid ?? null),
     condition: input.condition !== undefined ? input.condition : (current?.condition ?? null),
     quantity: input.quantity ?? current?.quantity ?? 1,
+    rating: input.rating !== undefined ? input.rating : (current?.rating ?? null),
+    review: input.review !== undefined ? input.review : (current?.review ?? ''),
   };
 }
 
@@ -91,7 +93,7 @@ export async function noteCollaboratorEdit(wishlist: WishlistRecord, editor: Use
   );
 }
 
-function newEntry(itemId: string, userId: string, priority: Priority | null = null, customNotes = ''): WishlistEntry {
+export function newEntry(itemId: string, userId: string, priority: Priority | null = null, customNotes = ''): WishlistEntry {
   const stamp = nowIso();
   return {
     id: newId(),
@@ -236,7 +238,22 @@ export async function createItems(user: UserRecord, input: ItemBulkCreateInput):
   return items;
 }
 
-export async function updateItem(item: ItemRecord, input: ItemUpdateInput, user: UserRecord): Promise<ItemRecord> {
+/** Changes that would be undone by the next sync are refused with a pointer to the source. */
+export function syncedItemConflict(item: ItemRecord) {
+  return conflict(`“${item.title}” comes from your Brickfolio sheet. Make this change in the sheet and it’ll show up here on the next sync.`, 'synced_item');
+}
+
+/** A synced item keeps the fields its source provides; only Wishful-only details can be edited. */
+function editableInput(input: ItemUpdateInput, item: ItemRecord): ItemUpdateInput {
+  if (!item.source) return input;
+  return {
+    notes: input.notes,
+    owned: input.owned ? { ...input.owned, quantity: undefined, rating: undefined, review: undefined } : undefined,
+  };
+}
+
+export async function updateItem(item: ItemRecord, rawInput: ItemUpdateInput, user: UserRecord): Promise<ItemRecord> {
+  const input = editableInput(rawInput, item);
   const updated = await atomicUpdateExisting<ItemRecord>(db('items'), item.id, (current) => {
     const next: ItemRecord = { ...current };
     if (input.type !== undefined) next.type = input.type;
@@ -292,6 +309,10 @@ export async function setMemberships(item: ItemRecord, user: UserRecord, wishlis
     if (!w || w.ownerId !== user.id) throw badRequest('You can only add items to your own wishlists here.');
   }
   const current = new Set(item.wishlistIds);
+  if (item.source) {
+    const changed = [...desired].filter((id) => !current.has(id)).concat([...current].filter((id) => !desired.has(id)));
+    for (const id of changed) if ((await getWishlist(id))?.link) throw syncedItemConflict(item);
+  }
   for (const id of desired) if (!current.has(id)) await addEntry(id, item, user.id);
   for (const id of current) {
     if (desired.has(id)) continue;
@@ -312,6 +333,9 @@ export async function setMemberships(item: ItemRecord, user: UserRecord, wishlis
  */
 export async function markGotIt(item: ItemRecord, user: UserRecord, input: GotItInput): Promise<{ item: ItemRecord; collectionId: string }> {
   if (item.ownerId !== user.id) throw notFound('Item not found.');
+  if (item.source) {
+    throw conflict(`Move “${item.title}” to the full_sets tab of your Brickfolio sheet and it’ll move to your LEGO collection on the next sync.`, 'synced_item');
+  }
   let leaving: { wishlistId: string; entryId: string } | null = null;
   if (input.removeFromWishlistId) {
     const { wishlist: from } = await requireWishlistAccess(input.removeFromWishlistId, user, 'owner');

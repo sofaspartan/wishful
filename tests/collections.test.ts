@@ -29,7 +29,7 @@ describe('collections', () => {
     const { agent } = await signUp();
     const c = await createList(agent, { kind: 'collection' });
     const item = await createItem(agent, { wishlistIds: [c.id] });
-    expect(item.owned).toEqual({ acquiredOn: null, acquiredVia: null, pricePaid: null, condition: null, quantity: 1 });
+    expect(item.owned).toEqual({ acquiredOn: null, acquiredVia: null, pricePaid: null, condition: null, quantity: 1, rating: null, review: '' });
 
     const detail = await agent.get(`/api/wishlists/${c.id}`);
     const entryId = detail.data.wishlist.entries[0].id;
@@ -52,7 +52,7 @@ describe('collections', () => {
     expect(view.status).toBe(200);
     expect(view.data.wishlist.kind).toBe('collection');
     expect(view.data.entries[0].status).toBeNull();
-    expect(view.data.entries[0].item.owned).toEqual({ acquiredOn: '2024-03-02', acquiredVia: null, condition: 'good', quantity: 1 });
+    expect(view.data.entries[0].item.owned).toEqual({ acquiredOn: '2024-03-02', acquiredVia: null, condition: 'good', quantity: 1, rating: null, review: '' });
     expect(JSON.stringify(view.data)).not.toContain('pricePaid');
 
     const claim = await visitor.post(`/api/public/lists/${c.shareToken}/entries/${entryId}/claim`, { name: 'Ana' });
