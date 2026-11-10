@@ -42,6 +42,6 @@ export function withoutPricePaid(owned: ItemOwnership | null | undefined): Publi
 
 /** Strip private fields (personal notes, price paid, owner/membership ids) for anonymous viewers. */
 export function toPublicItem(item: ItemRecord): PublicItem {
-  const { notes: _notes, ownerId: _ownerId, wishlistIds: _wishlistIds, createdBy: _createdBy, owned, ...rest } = item;
+  const { notes: _notes, ownerId: _ownerId, wishlistIds: _wishlistIds, boxId: _boxId, createdBy: _createdBy, owned, ...rest } = item;
   return { ...rest, owned: withoutPricePaid(owned) };
 }

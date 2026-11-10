@@ -28,6 +28,8 @@ export const RATE_LIMITS = {
   extensionSave: { limit: 300, windowSec: 60 * 60 },
   extensionImport: { limit: 120, windowSec: 60 * 60 },
   integrationSync: { limit: 30, windowSec: 60 * 60 },
+  /** Opening a box by its code, per IP address; codes are 60 random bits, this just stops guessing in bulk. */
+  boxScan: { limit: 120, windowSec: 10 * 60 },
 } as const;
 
 /**

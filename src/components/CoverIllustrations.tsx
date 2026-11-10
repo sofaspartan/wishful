@@ -1628,6 +1628,134 @@ const Puzzle = (
   </Svg>
 );
 
+/* ── Storage ───────────────────────────────────────────────────────────── */
+
+const StorageBox = (
+  <Svg>
+    <path d="M6 17l18-7 18 7-18 7z" fill="#e2c093" />
+    <path d="M6 17v19l18 7V24z" fill="#c8a27a" />
+    <path d="M42 17v19l-18 7V24z" fill="#b48a5e" />
+    <path d="M6 17l-3.5 6.5L20.5 30 24 24zM42 17l3.5 6.5L27.5 30 24 24z" fill="#d9b585" />
+    <path d="M15 13.5l18 7v6.2l-3.2-1.2v-4.2l-18-7z" fill="#e8d3b2" opacity=".9" />
+    <path d="M28.5 28.2l9-3.5v5.6l-9 3.5z" fill="#fff" opacity=".9" />
+    <path d="M30.2 30.2l5.4-2.1M30.2 32.3l3.4-1.3" stroke={INK} strokeWidth="1" strokeLinecap="round" opacity=".35" />
+  </Svg>
+);
+
+const StorageTote = (
+  <Svg>
+    <path d="M9 19h30l-2.6 21a3 3 0 0 1-3 2.6H14.6a3 3 0 0 1-3-2.6z" fill="#5b8fd6" />
+    <path d="M12.4 26h23.2M13.2 33h21.6" stroke="#4a7cc2" strokeWidth="1.8" strokeLinecap="round" />
+    <rect x="5" y="13" width="38" height="7.5" rx="2.6" fill="#2f5fa8" />
+    <rect x="18" y="15" width="12" height="3.4" rx="1.7" fill="#1f4c8f" />
+    <rect x="17" y="27.5" width="14" height="8" rx="1.4" fill="#fff" opacity=".92" />
+    <path d="M19.5 30.5h9M19.5 33h6" stroke="#9aa3ad" strokeWidth="1.2" strokeLinecap="round" />
+    <path d="M14 22.5l1.6 15" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" opacity=".3" />
+  </Svg>
+);
+
+const TUB_BODY = 'M9 19h30l-2.4 20.5a3 3 0 0 1-3 2.6H14.4a3 3 0 0 1-3-2.6z';
+
+const ClearTub = (
+  <Svg>
+    <circle cx="17.5" cy="34.5" r="5" fill="#f2a541" />
+    <path d="M15 31.5c2 1 3.5 3 3.8 5.6" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" opacity=".6" />
+    <rect x="22" y="24.5" width="7" height="15" rx="1" fill="#7c6cf0" transform="rotate(-6 25.5 32)" />
+    <rect x="29.5" y="29.5" width="6.5" height="10" rx="1.4" fill="#e86a92" />
+    <path d={TUB_BODY} fill="#d6ecf8" opacity=".5" />
+    <path d={TUB_BODY} stroke="#94c3e2" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M13.5 22.5l1.8 15.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" opacity=".75" />
+    <rect x="5" y="13" width="38" height="7.5" rx="2.6" fill="#eef2f6" stroke="#c4ced8" strokeWidth="1" />
+    <rect x="18" y="15" width="12" height="3.4" rx="1.7" fill="#d5dde5" />
+    <rect x="6.5" y="17" width="4.5" height="8" rx="1.4" fill="#5b8fd6" />
+    <rect x="37" y="17" width="4.5" height="8" rx="1.4" fill="#5b8fd6" />
+  </Svg>
+);
+
+const WoodenCrate = (
+  <Svg>
+    <path d="M7 13l4.5-4.5h32L39 13z" fill="#e6b57e" />
+    <path d="M39 13l4.5-4.5v27L39 40z" fill="#9c6a3b" />
+    <rect x="7" y="13" width="32" height="27" fill="#8a5a30" />
+    {[14, 23, 32].map((y) => (
+      <g key={y}>
+        <rect x="7" y={y} width="32" height="7" fill="#d9a066" />
+        <path d={`M14 ${y + 2.6}h9M25 ${y + 4.6}h8`} stroke="#c08850" strokeWidth="1" strokeLinecap="round" />
+      </g>
+    ))}
+    <rect x="7" y="13" width="5" height="27" fill="#c58b52" />
+    <rect x="34" y="13" width="5" height="27" fill="#c58b52" />
+    {[17.5, 26.5, 35.5].map((cy) => (
+      <g key={cy} fill="#5e3e22">
+        <circle cx="9.5" cy={cy} r=".9" />
+        <circle cx="36.5" cy={cy} r=".9" />
+      </g>
+    ))}
+  </Svg>
+);
+
+const MetalCase = (
+  <Svg>
+    <path d="M18.5 13.5v-3a2.5 2.5 0 0 1 2.5-2.5h6a2.5 2.5 0 0 1 2.5 2.5v3" stroke={INK} strokeWidth="2.4" strokeLinecap="round" />
+    <rect x="6" y="18" width="36" height="23" rx="2.5" fill="#8d99a8" />
+    <path d="M6 29.5h36M6 35h36" stroke="#7b8796" strokeWidth="1.4" />
+    <rect x="5" y="13" width="38" height="8" rx="2.5" fill="#6f7c8d" />
+    <path d="M8 15.5h32" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" opacity=".25" />
+    <path d="M6 37v1.5A2.5 2.5 0 0 0 8.5 41H12v-4zM42 37v1.5a2.5 2.5 0 0 1-2.5 2.5H36v-4z" fill="#56616f" />
+    {[11, 32].map((x) => (
+      <g key={x}>
+        <rect x={x} y="18" width="5" height="7.5" rx="1.2" fill="#f6c443" />
+        <circle cx={x + 2.5} cy="23" r=".9" fill="#b58a1e" />
+      </g>
+    ))}
+    <path d="M10.5 22v14" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" opacity=".2" />
+  </Svg>
+);
+
+const FabricBin = (
+  <Svg>
+    <path d="M14 13c0-4 4.5-6 8-4 2.5-3 9-2.5 10 1.5 1.5.5 2 1.5 2 2.5z" fill="#f2c14e" />
+    <path d="M22 9.5c.5 1.5.5 2.5 0 3.5" stroke="#d9a62e" strokeWidth="1.2" strokeLinecap="round" />
+    <path d="M9 15h30l.8 25a2.5 2.5 0 0 1-2.5 2.6H10.7A2.5 2.5 0 0 1 8.2 40z" fill="#8fb3a3" />
+    <rect x="11.5" y="19.5" width="25" height="20.5" rx="1.5" stroke="#fff" strokeWidth="1" strokeDasharray="1.6 1.6" opacity=".55" />
+    <rect x="8" y="12" width="32" height="5.5" rx="2.2" fill="#7aa18f" />
+    <rect x="18.5" y="22" width="11" height="4.2" rx="2.1" fill="#4f6f61" />
+    <path d="M12 23l1 14" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" opacity=".25" />
+  </Svg>
+);
+
+const StorageDrawers = (
+  <Svg>
+    <circle cx="14.5" cy="44" r="2" fill={INK} />
+    <circle cx="33.5" cy="44" r="2" fill={INK} />
+    <rect x="10" y="5" width="28" height="38" rx="3" fill="#eef2f6" stroke="#c4ced8" strokeWidth="1" />
+    {[
+      { y: 8, tint: '#f2a541' },
+      { y: 19.5, tint: '#e86a92' },
+      { y: 31, tint: '#4f9e68' },
+    ].map(({ y, tint }) => (
+      <g key={y}>
+        <rect x="13" y={y} width="22" height="9.5" rx="1.6" fill="#cfe6f5" />
+        <rect x="15.5" y={y + 4.5} width="7" height="4" rx="1" fill={tint} opacity=".55" />
+        <rect x="25.5" y={y + 5.5} width="6" height="3" rx="1" fill={tint} opacity=".35" />
+        <rect x="19.5" y={y + 1.4} width="9" height="2.4" rx="1.2" fill="#5b8fd6" />
+      </g>
+    ))}
+  </Svg>
+);
+
+const ArchiveBox = (
+  <Svg>
+    <rect x="7" y="17" width="34" height="25" rx="1.5" fill="#ece4d6" />
+    <rect x="7" y="37" width="34" height="5" rx="1" fill="#4f9e68" opacity=".85" />
+    <rect x="5.5" y="12" width="37" height="7.5" rx="1.6" fill="#f6f0e6" />
+    <path d="M7 19.5h34" stroke="#d6cbb8" strokeWidth="1.2" />
+    <rect x="19" y="13.8" width="10" height="3.2" rx="1.6" fill="#a8977c" />
+    <rect x="14" y="23.5" width="20" height="10.5" rx="1" fill="#fff" stroke="#cbbfa9" strokeWidth="1" />
+    <path d="M17 27.2h14M17 30.5h9" stroke={INK} strokeWidth="1.2" strokeLinecap="round" opacity=".35" />
+  </Svg>
+);
+
 /** Icons drawn elsewhere (feature and item illustrations), filled in by CoverArt. */
 type BorrowedIcon = 'collection' | 'gift' | 'bag' | 'camera' | 'headphones' | 'sneaker' | 'watch' | 'sweater' | 'plant' | 'book' | 'mug' | 'idea' | 'plane';
 
@@ -1736,4 +1864,12 @@ export const COVER_ILLUSTRATIONS: Record<Exclude<CoverIcon, BorrowedIcon>, React
   doll: Doll,
   'toy-car': ToyCar,
   puzzle: Puzzle,
+  box: StorageBox,
+  tote: StorageTote,
+  'clear-tub': ClearTub,
+  crate: WoodenCrate,
+  'metal-case': MetalCase,
+  'fabric-bin': FabricBin,
+  drawers: StorageDrawers,
+  'archive-box': ArchiveBox,
 };

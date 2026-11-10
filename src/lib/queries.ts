@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
   AppNotification,
+  BoxDetail,
+  BoxSummary,
   BrickfolioStatus,
   ListLink,
   PlayshelfStatus,
@@ -10,6 +12,7 @@ import type {
   FriendsOverview,
   Item,
   Priority,
+  PublicBoxView,
   PublicProfileView,
   PublicWishlistView,
   SelfUser,
@@ -32,7 +35,35 @@ export const keys = {
   extensionConnections: ['extension-connections'] as const,
   brickfolio: ['integrations', 'brickfolio'] as const,
   playshelf: ['integrations', 'playshelf'] as const,
+  boxes: ['boxes'] as const,
+  box: (id: string) => ['box', id] as const,
+  publicBox: (code: string) => ['public-box', code] as const,
 };
+
+export function useBoxes(enabled = true) {
+  return useQuery({
+    queryKey: keys.boxes,
+    queryFn: () => get<{ boxes: BoxSummary[] }>('/api/boxes').then((r) => r.boxes),
+    enabled,
+  });
+}
+
+export function useBox(id: string | undefined) {
+  return useQuery({
+    queryKey: keys.box(id ?? ''),
+    queryFn: () => get<BoxDetail>(`/api/boxes/${id}`),
+    enabled: Boolean(id),
+  });
+}
+
+export function usePublicBox(code: string | undefined) {
+  return useQuery({
+    queryKey: keys.publicBox(code ?? ''),
+    queryFn: () => get<PublicBoxView>(`/api/public/boxes/${code}`),
+    enabled: Boolean(code),
+    retry: (count, err) => ![403, 404, 429].includes((err as { status?: number }).status ?? 0) && count < 2,
+  });
+}
 
 export type BrickfolioResponse = { status: BrickfolioStatus; changed: boolean };
 export type PlayshelfResponse = { status: PlayshelfStatus; changed: boolean };
@@ -171,6 +202,8 @@ export function invalidateContent(qc: QueryClient, wishlistIds: string[] = []) {
   void qc.invalidateQueries({ queryKey: keys.wishlists });
   void qc.invalidateQueries({ queryKey: keys.shared });
   void qc.invalidateQueries({ queryKey: keys.items });
+  void qc.invalidateQueries({ queryKey: keys.boxes });
+  void qc.invalidateQueries({ queryKey: ['box'] });
   if (wishlistIds.length) for (const id of wishlistIds) void qc.invalidateQueries({ queryKey: keys.wishlist(id) });
   else void qc.invalidateQueries({ queryKey: ['wishlist'] });
 }

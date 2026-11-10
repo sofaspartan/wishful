@@ -9,7 +9,7 @@ import type { ComponentType, CSSProperties, ReactElement, ReactNode } from 'reac
 import { renderToStaticMarkup } from 'react-dom/server';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { CalendarDays, Gift, Library } from 'lucide-react';
+import { CalendarDays, Gift, Library, Truck, Wine } from 'lucide-react';
 import {
   coverColors,
   isDarkBackdrop,
@@ -24,6 +24,7 @@ import { COVER_ICON_ART, DEFAULT_COVER_FRAME, suggestCoverArt } from '../../src/
 import { ILLUSTRATED_ITEMS } from '../../src/components/ItemIllustrations';
 import { brand, taglineParts } from '../../src/config/brand';
 import { formatDate, initials, possessive } from '../../src/lib/format';
+import { qrSvg } from '../../shared/qr';
 
 export const OG_WIDTH = 1200;
 export const OG_HEIGHT = 630;
@@ -54,13 +55,13 @@ async function loadFonts() {
   return Promise.all(FONT_FILES.map(async (f) => ({ name: f.name, weight: f.weight, style: 'normal' as const, data: await readFont(f.file) })));
 }
 
-export async function renderPng(node: ReactNode): Promise<Uint8Array> {
+export async function renderPng(node: ReactNode, size: { width: number; height: number } = { width: OG_WIDTH, height: OG_HEIGHT }): Promise<Uint8Array> {
   fontsLoading ??= loadFonts().catch((err) => {
     fontsLoading = null;
     throw err;
   });
-  const svg = await satori(node, { width: OG_WIDTH, height: OG_HEIGHT, fonts: await fontsLoading });
-  return new Resvg(svg, { fitTo: { mode: 'width', value: OG_WIDTH } }).render().asPng();
+  const svg = await satori(node, { ...size, fonts: await fontsLoading });
+  return new Resvg(svg, { fitTo: { mode: 'width', value: size.width } }).render().asPng();
 }
 
 // ── Colours and artwork ───────────────────────────────────────────────────
@@ -582,5 +583,88 @@ export function SiteCard({ host }: { host: string }) {
         <span>{host}</span>
       </div>
     </Card>
+  );
+}
+
+// ── Box labels ────────────────────────────────────────────────────────────
+
+export const BOX_LABEL_WIDTH = 1200;
+export const BOX_LABEL_HEIGHT = 1560;
+
+export interface BoxLabelData {
+  name: string;
+  number: number | null;
+  color: string;
+  coverArt: CoverArt;
+  room: string;
+  fragile: boolean;
+  url: string;
+  code: string;
+  host: string;
+}
+
+/** A printable box label: the box's cover art on top, a big QR code and its name below. */
+export function BoxLabelCard(d: BoxLabelData) {
+  const dark = isDarkCover(d.coverArt);
+  const backdrop = d.coverArt.backdrop;
+  const name = plainText(d.name, 60) || 'Box';
+  const room = plainText(d.room, 40);
+  return (
+    <div style={{ width: BOX_LABEL_WIDTH, height: BOX_LABEL_HEIGHT, display: 'flex', flexDirection: 'column', background: '#fff', fontFamily: 'Inter', color: INK }}>
+      <div style={{ width: OG_WIDTH, height: 520, display: 'flex', position: 'relative', background: coverBackground(d.coverArt), overflow: 'hidden' }}>
+        {!isPlainBackdrop(backdrop) && <img src={decorSrc(backdrop)} width={OG_WIDTH} height={OG_HEIGHT} style={{ position: 'absolute', left: 0, top: -110 }} />}
+        <div style={{ position: 'absolute', left: 56, top: 50, right: 56, display: 'flex', justifyContent: 'space-between' }}>
+          {d.number ? (
+            <Pill dark={dark} strong>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ width: 22, height: 22, borderRadius: 11, background: d.color, border: '2px solid rgba(0,0,0,0.12)' }} />
+                Box {d.number}
+              </span>
+            </Pill>
+          ) : (
+            <span />
+          )}
+          {d.fragile && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 20px 8px 16px',
+                borderRadius: 14,
+                background: '#fff',
+                border: '3px solid #b42318',
+                color: '#b42318',
+                fontSize: 26,
+                fontWeight: 700,
+                letterSpacing: 2,
+              }}
+            >
+              <img src={lucideSrc(Wine, '#b42318')} width={26} height={26} />
+              FRAGILE
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 30 }}>
+          <IconTile art={d.coverArt} photo={null} size={270} />
+        </div>
+      </div>
+      <div style={{ height: 22, background: d.color, display: 'flex' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, padding: '34px 70px 40px', gap: 18 }}>
+        <div style={{ display: 'flex', fontFamily: 'Fraunces', fontWeight: 600, fontSize: name.length > 30 ? 56 : 72, lineHeight: 1.05, letterSpacing: -1, textAlign: 'center' }}>
+          {name}
+        </div>
+        {room && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 34, fontWeight: 600, color: INK_2 }}>
+            <img src={lucideSrc(Truck, INK_2)} width={36} height={36} />
+            Goes to {room}
+          </div>
+        )}
+        <img src={svgUri(qrSvg(d.url))} width={room ? 640 : 690} height={room ? 640 : 690} style={{ marginTop: 6 }} />
+        <div style={{ display: 'flex', fontSize: 30, fontWeight: 600, color: INK_2, letterSpacing: 1 }}>
+          {d.host}/b · {d.code}
+        </div>
+      </div>
+    </div>
   );
 }

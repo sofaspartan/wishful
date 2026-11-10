@@ -146,6 +146,14 @@ export const COVER_ICONS = [
   'puzzle',
   'idea',
   'plane',
+  'box',
+  'tote',
+  'clear-tub',
+  'crate',
+  'metal-case',
+  'fabric-bin',
+  'drawers',
+  'archive-box',
 ] as const;
 export type CoverIcon = (typeof COVER_ICONS)[number];
 
@@ -358,6 +366,8 @@ export interface Item {
   source?: ItemSource | null;
   /** Wishlists (owned by `ownerId`) that contain this item. */
   wishlistIds: string[];
+  /** The storage box it's packed in; a thing is only ever in one box. */
+  boxId?: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -551,7 +561,7 @@ export interface PublicClaim {
   purchasedAt: string | null;
 }
 
-export type PublicItem = Omit<Item, 'notes' | 'ownerId' | 'wishlistIds' | 'createdBy' | 'owned'> & { owned?: PublicOwnership | null };
+export type PublicItem = Omit<Item, 'notes' | 'ownerId' | 'wishlistIds' | 'boxId' | 'createdBy' | 'owned'> & { owned?: PublicOwnership | null };
 
 export interface PublicEntry {
   id: string;
@@ -609,6 +619,99 @@ export interface PublicProfileView {
   }>;
 }
 
+// ── Storage boxes ───────────────────────────────────────────────────────────
+
+export const BOX_MATERIALS = ['cardboard', 'plastic', 'clear', 'wood', 'metal', 'fabric', 'basket', 'suitcase', 'drawer', 'archive', 'other'] as const;
+export type BoxMaterial = (typeof BOX_MATERIALS)[number];
+
+export const BOX_SIZES = ['small', 'medium', 'large', 'xl'] as const;
+export type BoxSize = (typeof BOX_SIZES)[number];
+
+/** `link`: anyone who scans the code sees what's inside. `owner`: only the owner, signed in. */
+export const BOX_ACCESS = ['link', 'owner'] as const;
+export type BoxAccess = (typeof BOX_ACCESS)[number];
+
+/** Something in a box that isn't worth a full item, like "3 winter blankets". */
+export interface BoxLine {
+  id: string;
+  text: string;
+  quantity: number;
+}
+
+export interface Box {
+  id: string;
+  ownerId: string;
+  name: string;
+  /** "Box 3"; filled in with the next free number when a box is made. */
+  number: number | null;
+  /** #rrggbb, the colour of the box itself. */
+  color: string;
+  material: BoxMaterial;
+  size: BoxSize | null;
+  /** Where it's kept, e.g. "Garage, shelf 2". Never shown to people who scan the code. */
+  location: string;
+  /** Moving: the room it's going to, printed large on the label. */
+  room: string;
+  fragile: boolean;
+  /** Private notes, never shown to people who scan the code. */
+  notes: string;
+  coverArt: CoverArt;
+  /** Items packed in it, most recently added first. `item.boxId` is the source of truth. */
+  itemIds: string[];
+  lines: BoxLine[];
+  /** 12 characters of Crockford base32: the QR link is `/b/{code}`, printed as XXXX-XXXX-XXXX. */
+  code: string;
+  access: BoxAccess;
+  /** Prices are hidden from people who scan the code unless this is on. */
+  showPrices: boolean;
+  lastScannedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BoxSummary extends Omit<Box, 'itemIds' | 'lines' | 'notes'> {
+  itemCount: number;
+  lineCount: number;
+  /** For "Where is my…?" search across the box list. */
+  lineTexts: string[];
+  previewImages: string[];
+}
+
+export interface BoxDetail {
+  box: Box;
+  /** The items in the box, in `box.itemIds` order. */
+  items: Item[];
+}
+
+/** What someone sees when they scan a box's code. */
+export interface PublicBoxView {
+  box: Pick<Box, 'name' | 'number' | 'color' | 'material' | 'size' | 'room' | 'fragile' | 'coverArt' | 'showPrices' | 'code' | 'updatedAt'> & {
+    /** Only for the owner. */
+    id: string | null;
+    location: string | null;
+  };
+  items: PublicItem[];
+  lines: BoxLine[];
+  viewer: { isOwner: boolean };
+}
+
+const BOX_CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+export const BOX_CODE_LENGTH = 12;
+
+/** Tidy a typed or scanned box code: case, dashes and spaces, and the letters people mix up with digits. */
+export function normalizeBoxCode(input: string): string {
+  return input.toUpperCase().replace(/[\s-]/g, '').replace(/O/g, '0').replace(/[IL]/g, '1').replace(/U/g, 'V');
+}
+
+export const isBoxCode = (code: string): boolean => code.length === BOX_CODE_LENGTH && [...code].every((c) => BOX_CODE_ALPHABET.includes(c));
+
+/** XXXX-XXXX-XXXX */
+export const formatBoxCode = (code: string): string => code.replace(/(.{4})(?=.)/g, '$1-');
+
+export function boxCodeFromBytes(bytes: Uint8Array): string {
+  return Array.from(bytes.slice(0, BOX_CODE_LENGTH), (b) => BOX_CODE_ALPHABET[b & 31]).join('');
+}
+
 export interface FriendSummary {
   user: PublicUser;
   since: string;
@@ -648,13 +751,7 @@ export interface FriendProfileView {
 }
 
 export type NotificationType =
-  | 'shared_with_you'
-  | 'collaborator_edit'
-  | 'occasion_upcoming'
-  | 'price_drop'
-  | 'item_changed'
-  | 'friend_request'
-  | 'friend_accepted';
+  'shared_with_you' | 'collaborator_edit' | 'occasion_upcoming' | 'price_drop' | 'item_changed' | 'friend_request' | 'friend_accepted';
 
 export interface AppNotification {
   id: string;

@@ -12,6 +12,7 @@ import { DragHandle, SortableList } from '../components/Sortable';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/misc';
 import { SkyArt } from '../components/SkyArt';
+import { ListsSwitch } from '../components/ListsSwitch';
 import { useToast } from '../components/ui/Toast';
 
 const SORTS = ['custom', 'updated', 'date', 'name'] as const;
@@ -67,6 +68,7 @@ export default function Wishlists() {
 
   return (
     <div className="page">
+      <ListsSwitch />
       <div className="page-header">
         <div>
           <h1 className="page-title display">My Lists</h1>

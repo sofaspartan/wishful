@@ -51,7 +51,17 @@ const BACKGROUND_STYLES: Array<{ value: BackgroundStyle; label: string }> = [
 const sameColor = (a: string | undefined, b: string) => a?.toLowerCase() === b.toLowerCase();
 
 /** Choose an illustrated icon, a backdrop and the icon's frame for a list cover, with a live preview of the list header. */
-export function CoverArtPicker({ value, onChange, title }: { value: CoverArtValue; onChange: (v: CoverArtValue) => void; title?: string }) {
+export function CoverArtPicker({
+  value,
+  onChange,
+  title,
+  placeholder = 'Your list',
+}: {
+  value: CoverArtValue;
+  onChange: (v: CoverArtValue) => void;
+  title?: string;
+  placeholder?: string;
+}) {
   const frame = value.frame ?? DEFAULT_COVER_FRAME;
   const setFrame = (patch: Partial<CoverFrame>) => onChange({ ...value, frame: { ...frame, ...patch } });
   const dark = isDarkCover(value);
@@ -110,7 +120,7 @@ export function CoverArtPicker({ value, onChange, title }: { value: CoverArtValu
         <div className="cover-preview-hero">
           <CoverAvatar className="cover-preview-avatar" icon={value.icon} frame={frame} />
           <div className="cover-preview-text">
-            <span className="cover-preview-title">{title?.trim() || 'Your list'}</span>
+            <span className="cover-preview-title">{title?.trim() || placeholder}</span>
             <span className="cover-preview-line" />
             <span className="cover-preview-line short" />
           </div>
@@ -283,7 +293,7 @@ export function CoverArtPicker({ value, onChange, title }: { value: CoverArtValu
 }
 
 /** The browser's colour picker behind a swatch showing the current colour. */
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (color: string) => void }) {
+export function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (color: string) => void }) {
   return (
     <label className="cover-paint-custom">
       <span className="cover-paint-custom-swatch" style={{ background: value }}>

@@ -3,7 +3,7 @@
  * hashes, claim token hashes) and must be mapped through the serializers in
  * `server/serialize.ts` before being returned to any client.
  */
-import type { ClaimStatus, Item, ListKind, PledgeRole, SyncResult, UserPreferences, Wishlist } from '../shared/types';
+import type { Box, ClaimStatus, Item, ListKind, PledgeRole, SyncResult, UserPreferences, Wishlist } from '../shared/types';
 
 export interface UserRecord {
   id: string;
@@ -39,9 +39,20 @@ export interface UserIndex {
   sharedWishlistIds: string[];
   /** Uploaded image ids, so they can be removed with the account. */
   imageIds: string[];
+  /** Storage boxes, in the user's display order. */
+  boxIds: string[];
 }
 
 export type ItemRecord = Item;
+
+export type BoxRecord = Box;
+
+/** A box's printed code. Old codes stay as revoked records so they never resolve again. */
+export interface BoxCodeRecord {
+  boxId: string;
+  createdAt: string;
+  revokedAt: string | null;
+}
 
 export interface WishlistRecord extends Omit<Wishlist, 'kind'> {
   /** Absent on lists created before collections existed (they are wishlists); test with `isCollection`. */

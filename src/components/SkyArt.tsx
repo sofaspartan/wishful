@@ -1,8 +1,9 @@
 import type { CSSProperties, ReactElement } from 'react';
 import { Cloud } from './Cloud';
 import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from './ItemIllustrations';
+import { COVER_ILLUSTRATIONS } from './CoverIllustrations';
 
-export type SkyScene = 'hello' | 'wishlist' | 'collection' | 'items' | 'search' | 'friends' | 'invite' | 'shared' | 'invites' | 'gifts';
+export type SkyScene = 'hello' | 'wishlist' | 'collection' | 'items' | 'search' | 'friends' | 'invite' | 'shared' | 'invites' | 'gifts' | 'boxes';
 
 const [camera, sweater, headphones, sneaker, watch, plant, book, mug] = ILLUSTRATED_ITEMS.map((i) => i.art);
 const F = FEATURE_ILLUSTRATIONS;
@@ -60,6 +61,11 @@ const SCENES: Record<SkyScene, Array<[ReactElement, number, number, number]>> = 
     [F.surprise, 52, 24, 16],
     [headphones, 30, 0, 44],
     [sneaker, 30, 70, 2],
+  ],
+  boxes: [
+    [COVER_ILLUSTRATIONS.box, 52, 24, 16],
+    [COVER_ILLUSTRATIONS.tote, 30, 0, 2],
+    [mug, 30, 70, 44],
   ],
 };
 

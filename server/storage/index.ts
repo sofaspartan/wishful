@@ -62,6 +62,8 @@ export const isLocalDev = () => getDriver().name !== 'netlify';
  *   integrations   {userId}                       → IntegrationsDoc (connected sites, e.g. Brickfolio)
  *   integration-cache {sha256(source url)}        → CatalogCacheRecord
  *   gift-cache     {sha256(store|query|price|page)} → one store's page of gift search results
+ *   boxes          {boxId}                        → BoxRecord (storage box; contents in itemIds + lines)
+ *   box-codes      {code}                         → BoxCodeRecord (the printed QR code → box)
  */
 export const COLLECTIONS = [
   'users',
@@ -83,6 +85,8 @@ export const COLLECTIONS = [
   'integrations',
   'integration-cache',
   'gift-cache',
+  'boxes',
+  'box-codes',
 ] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 

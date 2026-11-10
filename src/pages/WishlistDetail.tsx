@@ -15,6 +15,7 @@ import {
   ListPlus,
   LogOut,
   MoreHorizontal,
+  Package,
   PartyPopper,
   Pencil,
   Plus,
@@ -53,6 +54,8 @@ import { CollaboratorsDialog, EntrySettingsDialog, GiftSettingsDialog, MoveEntry
 import { useWishlistActions } from '../components/WishlistMenu';
 import { DragHandle, SortableList } from '../components/Sortable';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
+import { BoxChip, useBoxMap } from '../components/BoxVisuals';
+import { PutInBoxDialog } from '../components/BoxDialogs';
 import { Button } from '../components/ui/Button';
 import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
@@ -128,6 +131,9 @@ function WishlistView({ detail }: { detail: Detail }) {
   const [entrySettings, setEntrySettings] = useState<WishlistEntry | null>(null);
   const [moving, setMoving] = useState<WishlistEntry | null>(null);
   const [gotIt, setGotIt] = useState<Item | null>(null);
+  const [boxFor, setBoxFor] = useState<Item | null>(null);
+  const boxById = useBoxMap(isOwner);
+  const boxOf = (item: Item) => (isOwner && item.boxId ? boxById.get(item.boxId) : undefined);
 
   const openItemId = params.get('item');
 
@@ -305,6 +311,11 @@ function WishlistView({ detail }: { detail: Detail }) {
             Add to other lists
           </MenuItem>
         )}
+        {isOwner && (
+          <MenuItem icon={<Package size={16} />} onSelect={() => setBoxFor(r.item)}>
+            {r.item.boxId ? 'Move to another box…' : 'Put in a box…'}
+          </MenuItem>
+        )}
         {r.claim && (
           <MenuItem icon={<Undo2 size={16} />} onSelect={() => clearClaim(r)}>
             Clear reservation
@@ -333,6 +344,7 @@ function WishlistView({ detail }: { detail: Detail }) {
       menu={itemMenu(r)}
       dragHandle={dragHandle}
       view={view}
+      footer={boxOf(r.item) ? <BoxChip box={boxOf(r.item)!} /> : undefined}
     />
   );
 
@@ -719,6 +731,9 @@ function WishlistView({ detail }: { detail: Detail }) {
 
       <EditItemModal item={editingItem} onClose={() => setEditingItem(null)} isOwner={isOwner} inCollection={collection} />
       {isOwner && !collection && <GotItDialog item={gotIt} fromWishlist={{ id: w.id, title: w.title }} onClose={() => setGotIt(null)} />}
+      {isOwner && (
+        <PutInBoxDialog itemIds={boxFor ? [boxFor.id] : []} currentBoxId={boxFor?.boxId ?? null} title={boxFor?.title ?? ''} open={Boolean(boxFor)} onClose={() => setBoxFor(null)} />
+      )}
       <ItemListsDialog item={listsFor} onClose={() => setListsFor(null)} />
       <EntrySettingsDialog wishlistId={w.id} entry={entrySettings} itemTitle={entrySettings ? (detail.items[entrySettings.itemId]?.title ?? '') : ''} onClose={() => setEntrySettings(null)} />
       <MoveEntryDialog detail={detail} entry={moving} onClose={() => setMoving(null)} />

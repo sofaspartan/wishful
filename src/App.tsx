@@ -26,6 +26,11 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
 const ExtensionConnect = lazy(() => import('./pages/ExtensionConnect'));
 const ExtensionPage = lazy(() => import('./pages/ExtensionPage'));
+const Boxes = lazy(() => import('./pages/Boxes'));
+const BoxDetailPage = lazy(() => import('./pages/BoxDetail'));
+const BoxLabels = lazy(() => import('./pages/BoxLabels'));
+const BoxScan = lazy(() => import('./pages/BoxScan'));
+const BoxCodeEntry = lazy(() => import('./pages/BoxScan').then((m) => ({ default: m.BoxCodeEntry })));
 
 /** Redirects to /login (remembering the destination) when signed out. */
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -87,6 +92,8 @@ export function App() {
           <Route path="/s/:token" element={<PublicWishlist />} />
           <Route path="/u/:username" element={<PublicProfile />} />
           <Route path="/gifts" element={<PublicGifts />} />
+          <Route path="/b" element={<BoxCodeEntry />} />
+          <Route path="/b/:code" element={<BoxScan />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/extension" element={<ExtensionPage />} />
@@ -95,6 +102,14 @@ export function App() {
             element={
               <RequireAuth>
                 <ExtensionConnect />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/app/boxes/labels"
+            element={
+              <RequireAuth>
+                <BoxLabels />
               </RequireAuth>
             }
           />
@@ -109,6 +124,8 @@ export function App() {
             <Route index element={<Home />} />
             <Route path="lists" element={<Wishlists />} />
             <Route path="lists/:id" element={<WishlistDetailPage />} />
+            <Route path="boxes" element={<Boxes />} />
+            <Route path="boxes/:id" element={<BoxDetailPage />} />
             <Route path="items" element={<SavedItems />} />
             <Route path="shared" element={<SharedWithMe />} />
             <Route path="gifts" element={<GiftIdeas />} />

@@ -27,6 +27,7 @@ import {
 } from '../services/auth';
 import { rateLimit } from '../services/rateLimit';
 import { deleteExtensionTokens } from '../services/extensionTokens';
+import { deleteAllBoxes } from '../domain/boxes';
 import { emailConfigured, sendEmail } from '../services/email';
 import { hashRecoveryCode, newRecoveryCode, recoveryCodeMatches } from '../services/recoveryCode';
 import { notify } from '../services/notifications';
@@ -340,6 +341,7 @@ export function registerAuthRoutes(router: Router) {
 export async function deleteAccount(user: UserRecord): Promise<void> {
   const idx = await getUserIndex(user.id);
   for (const w of await listOwnedWishlists(user.id)) await deleteWishlist(w);
+  await deleteAllBoxes(user.id);
   for (const item of await listOwnedItems(user.id)) await db('items').delete(item.id);
   for (const wid of idx.sharedWishlistIds) {
     const w = await getWishlist(wid);

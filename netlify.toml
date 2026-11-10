@@ -37,6 +37,13 @@
     X-Robots-Tag = "noindex, nofollow"
     Referrer-Policy = "no-referrer"
 
+# Box label codes work the same way.
+[[headers]]
+  for = "/b/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Referrer-Policy = "no-referrer"
+
 [[headers]]
   for = "/assets/*"
   [headers.values]

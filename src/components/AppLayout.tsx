@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Gift, House, List, LogOut, Plus, Search, Settings, User, UserRoundPlus, Users } from 'lucide-react';
+import { Bookmark, Gift, House, List, LogOut, Package, Plus, Search, Settings, User, UserRoundPlus, Users } from 'lucide-react';
 import { useFriends, useMe, useWishlists } from '../lib/queries';
 import { post } from '../lib/api';
 import { Logo } from './Logo';
@@ -25,6 +25,9 @@ const NAV = [
   { to: '/app/shared', label: 'Shared With Me', short: 'Shared', icon: Users },
 ];
 
+/** Boxes get their own sidebar link; on phones they sit behind the Lists tab. */
+const SIDEBAR_NAV = [...NAV.slice(0, 2), { to: '/app/boxes', label: 'Boxes', icon: Package }, ...NAV.slice(2)];
+
 export function AppLayout() {
   const { data: user } = useMe();
   const { data: wishlists } = useWishlists();
@@ -37,6 +40,7 @@ export function AppLayout() {
       </span>
     ) : null;
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const qc = useQueryClient();
   const [addItem, setAddItem] = useState<AddItemOptions | null>(null);
   const [createList, setCreateList] = useState<CreateListOptions | null>(null);
@@ -106,7 +110,7 @@ export function AppLayout() {
             Add item
           </Button>
           <nav className="sidebar-nav" aria-label="Main" style={{ marginTop: 12 }}>
-            {NAV.map(({ to, label, icon: Icon, end }) => (
+            {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
               <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
                 <Icon size={18} aria-hidden />
                 {label}
@@ -194,7 +198,12 @@ export function AppLayout() {
 
         <nav className="bottom-nav" aria-label="Main">
           {NAV.slice(0, 2).map(({ to, short, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) => `bottom-link${isActive || (to === '/app/lists' && pathname.startsWith('/app/boxes')) ? ' active' : ''}`}
+            >
               <Icon size={21} aria-hidden />
               {short ?? label}
             </NavLink>

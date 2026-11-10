@@ -8,6 +8,7 @@ import { registerFriendRoutes } from './routes/friends';
 import { registerExtensionRoutes } from './routes/extension';
 import { registerIntegrationRoutes } from './routes/integrations';
 import { registerGiftRoutes } from './routes/gifts';
+import { registerBoxRoutes } from './routes/boxes';
 
 const router = new Router();
 registerAuthRoutes(router);
@@ -19,6 +20,7 @@ registerFriendRoutes(router);
 registerExtensionRoutes(router);
 registerIntegrationRoutes(router);
 registerGiftRoutes(router);
+registerBoxRoutes(router);
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export const CSRF_HEADER = 'x-requested-with';

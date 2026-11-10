@@ -26,3 +26,4 @@ export function useLocalPref<T extends string>(key: string, fallback: T, allowed
 }
 
 export const shareUrl = (token: string) => `${window.location.origin}/s/${token}`;
+export const boxUrl = (code: string) => `${window.location.origin}/b/${code}`;

@@ -18,6 +18,7 @@ import {
   unlinkItems,
 } from './wishlists';
 import { clearEntryActivity } from './claims';
+import { unpackDeletedItem } from './boxes';
 
 export async function getItem(id: string): Promise<ItemRecord | null> {
   const res = await db('items').get<ItemRecord>(id);
@@ -295,6 +296,7 @@ export async function deleteItem(item: ItemRecord): Promise<void> {
     });
     await clearEntryActivity(wishlistId, removed);
   }
+  await unpackDeletedItem(item);
   await updateUserIndex(item.ownerId, (idx) => {
     idx.itemIds = idx.itemIds.filter((id) => id !== item.id);
   });

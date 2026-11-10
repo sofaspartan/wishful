@@ -143,6 +143,14 @@ export const COVER_ICON_LABELS: Record<CoverIcon, string> = {
   puzzle: 'Puzzle',
   idea: 'Lightbulb',
   plane: 'Paper plane',
+  box: 'Cardboard box',
+  tote: 'Storage tote',
+  'clear-tub': 'Clear plastic tub',
+  crate: 'Wooden crate',
+  'metal-case': 'Metal case',
+  'fabric-bin': 'Fabric bin',
+  drawers: 'Storage drawers',
+  'archive-box': 'Archive box',
 };
 
 export const COVER_ICON_GROUPS: Array<{ label: string; icons: CoverIcon[] }> = [
@@ -168,6 +176,7 @@ export const COVER_ICON_GROUPS: Array<{ label: string; icons: CoverIcon[] }> = [
   { label: 'Home & kitchen', icons: ['whisk', 'chef-hat', 'mug', 'candle', 'plant', 'watering-can'] },
   { label: 'Fashion & beauty', icons: ['lipstick', 'perfume', 'handbag', 'watch', 'sweater'] },
   { label: 'Tech & games', icons: ['laptop', 'phone', 'tablet', 'headphones', 'controller'] },
+  { label: 'Storage & moving', icons: ['box', 'tote', 'clear-tub', 'crate', 'metal-case', 'fabric-bin', 'drawers', 'archive-box', 'chest', 'suitcase', 'basket', 'house'] },
   { label: 'Other', icons: ['idea', 'plane'] },
 ];
 
@@ -290,6 +299,14 @@ const COVER_ICON_KEYWORDS: Partial<Record<CoverIcon, string>> = {
   puzzle: 'games jigsaw',
   idea: 'ideas lightbulb',
   plane: 'travel trip flight',
+  box: 'storage moving packing carton',
+  tote: 'storage bin container plastic tub',
+  'clear-tub': 'storage bin container plastic tub clear see through transparent',
+  crate: 'storage wood wooden box crate',
+  'metal-case': 'storage metal toolbox tools footlocker trunk case',
+  'fabric-bin': 'storage fabric cloth cube bin canvas',
+  drawers: 'storage drawers drawer unit plastic organizer',
+  'archive-box': 'storage archive files documents paperwork bankers box',
 };
 
 const normalize = (s: string) =>

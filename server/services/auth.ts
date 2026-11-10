@@ -122,7 +122,7 @@ export async function requireUser(ctx: RequestContext): Promise<UserRecord> {
 
 // ── User index helpers ──────────────────────────────────────────────────────
 
-export const emptyIndex = (): UserIndex => ({ wishlistIds: [], itemIds: [], sharedWishlistIds: [], imageIds: [] });
+export const emptyIndex = (): UserIndex => ({ wishlistIds: [], itemIds: [], sharedWishlistIds: [], imageIds: [], boxIds: [] });
 
 export async function getUserIndex(userId: string): Promise<UserIndex> {
   const res = await db('user-index').get<UserIndex>(userId);

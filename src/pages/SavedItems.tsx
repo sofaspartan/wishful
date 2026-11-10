@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, LayoutGrid, ListChecks, MoreHorizontal, PartyPopper, Pencil, Plus, Rows3, Search, Trash2 } from 'lucide-react';
+import { Check, LayoutGrid, ListChecks, MoreHorizontal, Package, PartyPopper, Pencil, Plus, Rows3, Search, Trash2 } from 'lucide-react';
 import { ITEM_TYPES, type Item, type ItemType, type Priority } from '../../shared/types';
 import { ITEM_TYPE_LABELS, PRIORITY_LABELS, PRIORITY_RANK } from '../../shared/constants';
 import { useItems, useWishlists, useInvalidate } from '../lib/queries';
@@ -12,6 +12,8 @@ import { ItemDetailModal } from '../components/ItemDetailModal';
 import { EditItemModal } from '../components/EditItemModal';
 import { ItemListsDialog } from '../components/ItemListsDialog';
 import { GotItDialog } from '../components/GotItDialog';
+import { BoxChip, useBoxMap } from '../components/BoxVisuals';
+import { PutInBoxDialog } from '../components/BoxDialogs';
 import { SkyArt } from '../components/SkyArt';
 import { effectivePrice } from '../components/ItemForm';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
@@ -23,7 +25,7 @@ const SORTS = ['newest', 'oldest', 'priority', 'price_asc', 'price_desc', 'name'
 type Sort = (typeof SORTS)[number];
 const VIEWS = ['grid', 'list'] as const;
 type ListFilter = 'all' | 'unlisted' | 'listed' | 'owned' | 'wanted' | string;
-const RESERVED_FILTERS = ['all', 'unlisted', 'listed', 'owned', 'wanted'];
+const RESERVED_FILTERS = ['all', 'unlisted', 'listed', 'owned', 'wanted', 'boxed', 'unboxed'];
 
 export default function SavedItems() {
   const { data, isLoading } = useItems();
@@ -44,6 +46,9 @@ export default function SavedItems() {
   const [editing, setEditing] = useState<Item | null>(null);
   const [listsFor, setListsFor] = useState<Item | null>(null);
   const [gotIt, setGotIt] = useState<Item | null>(null);
+  const [boxFor, setBoxFor] = useState<Item | null>(null);
+  const boxById = useBoxMap();
+  const boxOf = (item: Item) => (item.boxId ? boxById.get(item.boxId) : undefined);
 
   const items = useMemo(() => data?.items ?? [], [data]);
   const priorities = useMemo(() => data?.priorities ?? {}, [data]);
@@ -61,6 +66,8 @@ export default function SavedItems() {
       if (listFilter === 'listed' && i.wishlistIds.length === 0) return false;
       if (listFilter === 'owned' && !i.owned) return false;
       if (listFilter === 'wanted' && i.owned) return false;
+      if (listFilter === 'boxed' && !i.boxId) return false;
+      if (listFilter === 'unboxed' && i.boxId) return false;
       if (!RESERVED_FILTERS.includes(listFilter) && !i.wishlistIds.includes(listFilter)) return false;
       if (!q) return true;
       return [i.title, i.description, i.retailer, i.brand, i.category, i.tags.join(' '), i.notes, i.metadata.location ?? '', i.metadata.venue ?? ''].some((s) =>
@@ -130,6 +137,9 @@ export default function SavedItems() {
       <MenuItem icon={<ListChecks size={16} />} onSelect={() => setListsFor(item)}>
         Lists…
       </MenuItem>
+      <MenuItem icon={<Package size={16} />} onSelect={() => setBoxFor(item)}>
+        {item.boxId ? 'Move to another box…' : 'Put in a box…'}
+      </MenuItem>
       {!item.source && (
         <>
           <MenuSeparator />
@@ -194,6 +204,12 @@ export default function SavedItems() {
               <option value="owned">Things I have</option>
               <option value="unlisted">Not on any list</option>
               <option value="listed">On a list</option>
+              {boxById.size > 0 && (
+                <>
+                  <option value="boxed">Packed in a box</option>
+                  <option value="unboxed">Not in a box</option>
+                </>
+              )}
               {lists.length > 0 && (
                 <optgroup label="On list">
                   {lists.map((l) => (
@@ -290,7 +306,12 @@ export default function SavedItems() {
                 }
                 onOpen={() => setOpen(item.id)}
                 menu={menu(item)}
-                footer={onListsLine(item)}
+                footer={
+                  <>
+                    {onListsLine(item)}
+                    {boxOf(item) && <BoxChip box={boxOf(item)!} />}
+                  </>
+                }
               />
             ))}
           </div>
@@ -350,12 +371,23 @@ export default function SavedItems() {
             ) : (
               <p className="text-sm muted">Not on any list yet.</p>
             )}
+            {boxOf(openItem) && (
+              <>
+                <span className="section-label" style={{ marginTop: 'var(--s-2)' }}>
+                  Packed in
+                </span>
+                <div className="row-wrap">
+                  <BoxChip box={boxOf(openItem)!} />
+                </div>
+              </>
+            )}
           </div>
         )}
       </ItemDetailModal>
       <EditItemModal item={editing} onClose={() => setEditing(null)} isOwner />
       <ItemListsDialog item={listsFor} onClose={() => setListsFor(null)} />
       <GotItDialog item={gotIt} fromWishlist={gotIt ? soleWishlist(gotIt) : undefined} onClose={() => setGotIt(null)} />
+      <PutInBoxDialog itemIds={boxFor ? [boxFor.id] : []} currentBoxId={boxFor?.boxId ?? null} title={boxFor?.title ?? ''} open={Boolean(boxFor)} onClose={() => setBoxFor(null)} />
     </div>
   );
 }

@@ -1,4 +1,17 @@
-import type { AcquiredVia, Condition, CoverArt, ItemType, ListKind, Priority, UserPreferences, Visibility, WishlistSettings } from './types';
+import type {
+  AcquiredVia,
+  BoxMaterial,
+  BoxSize,
+  Condition,
+  CoverArt,
+  CoverIcon,
+  ItemType,
+  ListKind,
+  Priority,
+  UserPreferences,
+  Visibility,
+  WishlistSettings,
+} from './types';
 
 /** Lists saved before collections existed have no `kind`; they are wishlists. */
 export const isCollection = (list: { kind?: ListKind }): boolean => list.kind === 'collection';
@@ -173,4 +186,64 @@ export const LIMITS = {
 export function defaultCoverArt(kind: ListKind): CoverArt {
   const frame = { shape: 'rounded', fill: 'glass', color: '#ffffff' } as const;
   return kind === 'collection' ? { icon: 'collection', backdrop: 'blush', frame } : { icon: 'gift', backdrop: 'sky', frame };
+}
+
+// ── Boxes ───────────────────────────────────────────────────────────────────
+
+export const BOX_MATERIAL_LABELS: Record<BoxMaterial, string> = {
+  cardboard: 'Cardboard box',
+  plastic: 'Plastic tote',
+  clear: 'Clear bin',
+  wood: 'Wooden crate',
+  metal: 'Metal case',
+  fabric: 'Fabric bin',
+  basket: 'Basket',
+  suitcase: 'Suitcase',
+  drawer: 'Drawer',
+  archive: 'Archive box',
+  other: 'Other',
+};
+
+export const BOX_SIZE_LABELS: Record<BoxSize, string> = {
+  small: 'Small',
+  medium: 'Medium',
+  large: 'Large',
+  xl: 'Extra large',
+};
+
+/** Colours real boxes and bins come in. Values must be valid `#rrggbb`. */
+export const BOX_COLORS = [
+  { name: 'Kraft', value: '#c8a27a' },
+  { name: 'Black', value: '#2f3440' },
+  { name: 'Gray', value: '#9aa3ad' },
+  { name: 'White', value: '#eef0f2' },
+  { name: 'Red', value: '#e0533d' },
+  { name: 'Orange', value: '#f08a3c' },
+  { name: 'Yellow', value: '#f2c14e' },
+  { name: 'Green', value: '#4f9e68' },
+  { name: 'Teal', value: '#4fa3a5' },
+  { name: 'Blue', value: '#5b8fd6' },
+  { name: 'Purple', value: '#7c6cf0' },
+  { name: 'Pink', value: '#f19bb0' },
+] as const;
+
+export const SUGGESTED_ROOMS = ['Kitchen', 'Living room', 'Bedroom', 'Bathroom', 'Office', 'Kids’ room', 'Garage', 'Basement', 'Attic', 'Storage'] as const;
+
+const MATERIAL_ICONS: Record<BoxMaterial, CoverIcon> = {
+  cardboard: 'box',
+  plastic: 'tote',
+  clear: 'clear-tub',
+  wood: 'crate',
+  metal: 'metal-case',
+  fabric: 'fabric-bin',
+  basket: 'basket',
+  suitcase: 'suitcase',
+  drawer: 'drawers',
+  archive: 'archive-box',
+  other: 'box',
+};
+
+/** The cover graphic a new box starts with: a drawing of its material on a soft sky. */
+export function defaultBoxCoverArt(material: BoxMaterial): CoverArt {
+  return { icon: MATERIAL_ICONS[material], backdrop: 'sky', frame: { shape: 'rounded', fill: 'glass', color: '#ffffff' } };
 }

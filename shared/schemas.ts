@@ -8,6 +8,9 @@
 import { z } from 'zod';
 import {
   ACQUIRED_VIA,
+  BOX_ACCESS,
+  BOX_MATERIALS,
+  BOX_SIZES,
   COLLABORATOR_ROLES,
   CONDITIONS,
   COVER_BACKDROPS,
@@ -331,6 +334,39 @@ export const collaboratorInviteSchema = z.object({
 
 export const collaboratorUpdateSchema = z.object({ role: collaboratorRoleSchema });
 
+// ── Boxes ───────────────────────────────────────────────────────────────────
+
+export const MAX_BOX_ITEMS = 500;
+export const MAX_BOX_LINES = 200;
+
+export const boxLineSchema = z.object({
+  id: idSchema.optional(),
+  text: z.string().trim().min(1, 'Say what it is').max(120, 'Keep it under 120 characters'),
+  quantity: z.number().int('Use a whole number').min(1, 'At least 1').max(9999),
+});
+
+const boxFields = {
+  name: z.string().trim().min(1, 'Give the box a name').max(80, 'Keep it under 80 characters'),
+  number: z.number().int('Use a whole number').min(1, 'From 1').max(99999).nullable().optional(),
+  color: colorSchema.optional(),
+  material: z.enum(BOX_MATERIALS).optional(),
+  size: z.enum(BOX_SIZES).nullable().optional(),
+  location: z.string().trim().max(80, 'Keep it under 80 characters').optional(),
+  room: z.string().trim().max(40, 'Keep it under 40 characters').optional(),
+  fragile: z.boolean().optional(),
+  notes: z.string().trim().max(LIMITS.notes).optional(),
+  coverArt: coverArtSchema.optional(),
+  access: z.enum(BOX_ACCESS).optional(),
+  showPrices: z.boolean().optional(),
+  lines: z.array(boxLineSchema).max(MAX_BOX_LINES, `A box can list up to ${MAX_BOX_LINES} other things`).optional(),
+};
+
+export const boxCreateSchema = z.object(boxFields);
+export const boxUpdateSchema = z.object({ ...boxFields, name: boxFields.name.optional() });
+
+/** Pack items into a box, or take them out of whatever box they're in (`boxId: null`). */
+export const boxItemsSchema = z.object({ itemIds: z.array(idSchema).min(1).max(MAX_BOX_ITEMS), boxId: idSchema.nullable() });
+
 export const friendRequestSchema = z.object({
   username: z.preprocess((v) => (typeof v === 'string' ? v.trim().replace(/^@/, '') : v), usernameSchema),
 });
@@ -400,6 +436,8 @@ export type OwnershipInput = z.infer<typeof ownershipSchema>;
 export type GotItInput = z.infer<typeof gotItSchema>;
 export type WishlistCreateInput = z.infer<typeof wishlistCreateSchema>;
 export type WishlistUpdateInput = z.infer<typeof wishlistUpdateSchema>;
+export type BoxCreateInput = z.infer<typeof boxCreateSchema>;
+export type BoxUpdateInput = z.infer<typeof boxUpdateSchema>;
 
 /** Flatten a ZodError into `{ "field.path": "message" }`. */
 export function zodFieldErrors(error: z.ZodError): Record<string, string> {
