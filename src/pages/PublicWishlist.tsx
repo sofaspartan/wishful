@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, Check, Copy, Eye, EyeOff, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
+import { CalendarDays, Check, Copy, Eye, EyeOff, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, Search, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
 import { isDarkCover, type PublicEntry, type PublicWishlistView } from '../../shared/types';
 import { PRIORITY_RANK, firstName as givenName, joinNames, possessiveNames, priorityLayout } from '../../shared/constants';
 import { ListPeopleLinks } from '../components/WishlistCard';
@@ -253,6 +253,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
   const [params, setParams] = useSearchParams();
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('order');
+  const [query, setQuery] = useState('');
   const [itemsView, setItemsView] = useLocalPref<CardListView>('public.itemsView', 'grid', CARD_LIST_VIEWS);
   const [tick, setTick] = useState(0);
   const refreshMine = () => setTick((t) => t + 1);
@@ -262,6 +263,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
   const myCount = [...mine.values()].filter((m) => m.claim || m.pledge).length;
 
   const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
     let list = entries.filter((e) => {
       if (filter === 'available') return e.status === 'available';
       if (filter === 'mine') {
@@ -270,6 +272,14 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
       }
       return true;
     });
+    if (q) {
+      list = list.filter((e) => {
+        const i = e.item;
+        return [i.title, i.description, i.retailer, i.brand, i.category, i.tags.join(' '), i.metadata.location ?? '', i.metadata.venue ?? ''].some((s) =>
+          s.toLowerCase().includes(q),
+        );
+      });
+    }
     if (sort !== 'order') {
       list = [...list];
       const price = (e: PublicEntry) => e.item.price ?? e.item.metadata.suggestedAmount ?? e.item.metadata.budget ?? null;
@@ -280,7 +290,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
       if (sort === 'price_desc') list.sort((a, b) => (price(b) ?? -1) - (price(a) ?? -1));
     }
     return list;
-  }, [entries, filter, sort, mine]);
+  }, [entries, filter, sort, mine, query]);
 
   const openId = params.get('item');
   const openEntry = openId ? entries.find((e) => e.id === openId) ?? null : null;
@@ -297,8 +307,9 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
   const canClaim = !collection && w.settings.allowClaims && !viewer.isOwner;
   const layout = collection ? 'hidden' : priorityLayout(w.settings);
   const showPriority = layout !== 'hidden';
-  const grouped = layout === 'grouped' && sort === 'order';
+  const grouped = layout === 'grouped' && sort === 'order' && !query.trim();
   const thingCount = collection ? entries.reduce((n, e) => n + (e.item.owned?.quantity ?? 1), 0) : entries.length;
+  const searchPlaceholder = collection ? 'Search this collection' : 'Search this list';
 
   const badge = (e: PublicEntry) => {
     const m = mine.get(e.id);
@@ -488,6 +499,17 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
 
         {entries.length > 0 && (
           <div className="toolbar">
+            <div className="input-group" style={{ flex: '1 1 220px', maxWidth: 360 }}>
+              <Search size={16} aria-hidden />
+              <input
+                className="input"
+                type="search"
+                placeholder={searchPlaceholder}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label={searchPlaceholder}
+              />
+            </div>
             {!collection && !viewer.isOwner && (
               <div className="filter-row" style={{ marginBottom: 0 }} role="group" aria-label="Filter">
                 <button type="button" className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
@@ -523,8 +545,10 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
             {forOthers ? `Nothing’s on ${possessiveNames(listNames(view))} list yet.` : `${firstName} hasn't added anything to this list yet.`} Check back soon!
           </EmptyState>
         ) : shown.length === 0 ? (
-          <EmptyState icon={<Gift size={22} />} title="Nothing to show">
-            No items match this filter.
+          <EmptyState icon={<Search size={22} />} title={query.trim() ? 'No matches' : 'Nothing to show'}>
+            {query.trim()
+              ? `Nothing matches “${query.trim()}”. Try a different search${filter !== 'all' ? ' or filter' : ''}.`
+              : 'No items match this filter.'}
           </EmptyState>
         ) : grouped ? (
           <PrioritySections rows={shown} idOf={(e) => e.id} priorityOf={(e) => e.priority} view={itemsView} renderCard={card} />

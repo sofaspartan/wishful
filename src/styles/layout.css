@@ -401,32 +401,9 @@
   gap: var(--s-4);
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
 }
-.wl-row-thumb {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  flex-shrink: 0;
-  background: var(--wl-accent, var(--accent));
-}
-.wl-row-thumb .wl-cover {
-  aspect-ratio: auto;
-  width: 100%;
-  height: 100%;
-}
-.wl-row-thumb .wl-cover-initial {
-  font-size: 1.25rem;
-  left: 8px;
-  bottom: 6px;
-}
-.box-row-thumb {
-  position: relative;
-  background: var(--box-color, var(--accent));
-}
-.box-row-thumb .box-stripe {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
+.item-row > .mini-cover {
+  width: 44px;
+  height: 44px;
 }
 .home-list-grid {
   display: grid;

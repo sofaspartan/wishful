@@ -221,21 +221,19 @@ function BoxScanView({ view }: { view: PublicBoxView }) {
           </EmptyState>
         ) : (
           <>
-            {total > 6 && (
-              <div className="toolbar">
-                <div className="input-group" style={{ flex: '1 1 260px' }}>
-                  <Search size={16} aria-hidden />
-                  <input
-                    className="input"
-                    type="search"
-                    placeholder="Search this box"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    aria-label="Search this box"
-                  />
-                </div>
+            <div className="toolbar">
+              <div className="input-group" style={{ flex: '1 1 220px', maxWidth: 360 }}>
+                <Search size={16} aria-hidden />
+                <input
+                  className="input"
+                  type="search"
+                  placeholder="Search this box"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Search this box"
+                />
               </div>
-            )}
+            </div>
             {items.length > 0 && (
               <section className="section" aria-label="Items">
                 {lines.length > 0 && <h2 className="section-label">Items</h2>}

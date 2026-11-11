@@ -12,7 +12,7 @@ import { errorMessage, post } from '../lib/api';
 import { Logo } from '../components/Logo';
 import { CoverArt } from '../components/CoverArt';
 import { EditProfileModal } from '../components/EditProfileModal';
-import { ListForLine, WishlistCover } from '../components/WishlistCard';
+import { ListForLine, WishlistCover, WishlistListThumb } from '../components/WishlistCard';
 import { CollectionBadge } from '../components/ItemVisuals';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { SiteFooter } from '../components/SiteFooter';
@@ -155,9 +155,7 @@ export default function PublicProfile() {
                       listsView === 'list' ? (
                         <article key={w.shareToken} className="item-row wl-row" aria-label={w.title}>
                           <Link to={`/s/${w.shareToken}`} className="item-card-hit" aria-label={`Open ${w.title}`} />
-                          <div className="item-row-thumb wl-row-thumb" style={{ ['--wl-accent' as string]: w.accentColor }} aria-hidden>
-                            <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} />
-                          </div>
+                          <WishlistListThumb title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} />
                           <div className="item-row-main">
                             <strong className="truncate">{w.title}</strong>
                             <span className="row text-sm muted" style={{ gap: 8, minWidth: 0, flexWrap: 'wrap' }}>

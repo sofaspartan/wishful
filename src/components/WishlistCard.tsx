@@ -49,6 +49,35 @@ export function WishlistCover({
   );
 }
 
+/** Compact list-row mark — same treatment as the home dashboard rows. */
+export function WishlistListThumb({
+  title,
+  coverImage,
+  coverArt,
+  accentColor,
+  previewImages = [],
+}: {
+  title: string;
+  coverImage: string | null;
+  coverArt?: CoverArtValue | null;
+  accentColor: string;
+  previewImages?: string[];
+}) {
+  const art = !coverImage ? coverArt : null;
+  const image = coverImage ?? (art ? null : previewImages[0]) ?? null;
+  return (
+    <span className="mini-cover" style={{ background: image || art ? 'var(--surface-sunken)' : accentColor }} aria-hidden>
+      {image ? (
+        <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" />
+      ) : art ? (
+        <CoverArt art={art} size="sm" />
+      ) : (
+        title.trim()[0]?.toUpperCase() ?? '•'
+      )}
+    </span>
+  );
+}
+
 type ListPeople = Array<Pick<ListPerson, 'name' | 'avatarUrl'> & { userId?: string | null; username?: string | null }>;
 type Maker = Pick<PublicUser, 'displayName' | 'avatarUrl'> & { username?: string | null; id?: string };
 
@@ -278,9 +307,13 @@ export function WishlistCard({ wishlist: w, menu, dragHandle, showOwner, view = 
       <article className="item-row wl-row" aria-label={w.title}>
         <Link to={href} className="item-card-hit" aria-label={`Open ${w.title}`} />
         {dragHandle && <div style={{ position: 'relative', zIndex: 2 }}>{dragHandle}</div>}
-        <div className="item-row-thumb wl-row-thumb" style={{ ['--wl-accent' as string]: w.accentColor }} aria-hidden>
-          <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} previewImages={w.previewImages} />
-        </div>
+        <WishlistListThumb
+          title={w.title}
+          coverImage={w.coverImage}
+          coverArt={w.coverArt}
+          accentColor={w.accentColor}
+          previewImages={w.previewImages}
+        />
         <div className="item-row-main">
           <strong className="truncate">{w.title}</strong>
           <span className="row text-sm muted" style={{ gap: 8, minWidth: 0, flexWrap: 'wrap' }}>

@@ -67,12 +67,9 @@ export function BoxCard({ box, menu, view = 'grid' }: { box: BoxSummary; menu?: 
     return (
       <article className="item-row wl-row" aria-label={box.name}>
         <Link to={`/app/boxes/${box.id}`} className="item-card-hit" aria-label={`Open ${boxDisplayName(box)}`} />
-        <div className="item-row-thumb wl-row-thumb box-row-thumb" style={{ ['--box-color' as string]: box.color }} aria-hidden>
-          <div className="wl-cover">
-            <CoverArt art={box.coverArt} />
-          </div>
-          <span className="box-stripe" />
-        </div>
+        <span className="mini-cover" style={{ background: 'var(--surface-sunken)' }} aria-hidden>
+          <CoverArt art={box.coverArt} size="sm" />
+        </span>
         <div className="item-row-main">
           <strong className="truncate">{box.name}</strong>
           <span className="row text-sm muted" style={{ gap: 8, minWidth: 0, flexWrap: 'wrap' }}>

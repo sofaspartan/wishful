@@ -12,8 +12,7 @@ import { effectivePrice } from '../components/ItemForm';
 import { CloudBank } from '../components/Cloud';
 import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from '../components/ItemIllustrations';
 import { SkyArt } from '../components/SkyArt';
-import { CoverArt } from '../components/CoverArt';
-import { WishlistCard } from '../components/WishlistCard';
+import { WishlistCard, WishlistListThumb } from '../components/WishlistCard';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/misc';
@@ -362,19 +361,15 @@ function QuickAction({ art, title, hint, onClick, tone }: { art: ReactElement; t
 }
 
 function WishlistRow({ wishlist: w }: { wishlist: WishlistSummary }) {
-  const art = !w.coverImage ? w.coverArt : null;
-  const image = w.coverImage ?? (art ? null : w.previewImages[0]) ?? null;
   return (
     <Link to={`/app/lists/${w.id}`} className="tile-row">
-      <span className="mini-cover" style={{ background: image || art ? 'var(--surface-sunken)' : w.accentColor }} aria-hidden>
-        {image ? (
-          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" />
-        ) : art ? (
-          <CoverArt art={art} size="sm" />
-        ) : (
-          (w.title.trim()[0]?.toUpperCase() ?? '•')
-        )}
-      </span>
+      <WishlistListThumb
+        title={w.title}
+        coverImage={w.coverImage}
+        coverArt={w.coverArt}
+        accentColor={w.accentColor}
+        previewImages={w.previewImages}
+      />
       <span style={{ minWidth: 0, flex: 1 }}>
         <strong className="truncate" style={{ display: 'block', fontWeight: 600 }}>
           {w.title}
