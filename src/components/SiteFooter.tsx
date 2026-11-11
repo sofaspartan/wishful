@@ -133,6 +133,7 @@ export function SiteFooter({ coverArt = null }: { coverArt?: CoverArtValue | nul
           <Link to="/extension">Browser extension</Link>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
+          <Link to="/pricing">Mock pricing</Link>
         </nav>
         <span>
           © {new Date().getFullYear()} {brand.name}

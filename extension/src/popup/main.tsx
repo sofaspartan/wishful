@@ -7,10 +7,8 @@ import { applyBrand } from '../../../src/config/applyBrand';
 import { Popup } from './Popup';
 
 applyBrand();
-const dark = window.matchMedia('(prefers-color-scheme: dark)');
-const applyTheme = () => (document.documentElement.dataset.theme = dark.matches ? 'dark' : 'light');
-applyTheme();
-dark.addEventListener('change', applyTheme);
+// Popup is always Wishful’s light sky theme (matches the site’s cloud look).
+document.documentElement.dataset.theme = 'light';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

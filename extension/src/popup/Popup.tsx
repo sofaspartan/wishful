@@ -4,6 +4,7 @@ import type { ExtensionSession } from '../../../shared/types';
 import { CURRENCIES, LIMITS } from '../../../shared/constants';
 import { parsePrice } from '../../../shared/metadata';
 import { brand } from '../../../src/config/brand';
+import { CloudBank } from '../../../src/components/Cloud';
 import { COVER_ICON_ART } from '../../../src/components/CoverArt';
 import { LogoMark } from '../../../src/components/Logo';
 import { ApiError, SITE_URL, api } from '../api';
@@ -154,12 +155,17 @@ export function Popup() {
 
       {session && (
         <footer className="popup-footer">
-          <span>
-            Signed in as <strong>{session.user.displayName}</strong>
-          </span>
-          <button type="button" className="popup-text-btn" onClick={() => void disconnect()}>
-            Disconnect
-          </button>
+          <div className="popup-footer-sky" aria-hidden>
+            <CloudBank className="popup-footer-bank" />
+          </div>
+          <div className="popup-footer-inner">
+            <span>
+              Signed in as <strong>{session.user.displayName}</strong>
+            </span>
+            <button type="button" className="popup-text-btn" onClick={() => void disconnect()}>
+              Disconnect
+            </button>
+          </div>
         </footer>
       )}
     </div>

@@ -14,7 +14,7 @@ body {
   font-size: 14px;
   line-height: 1.45;
   color: var(--ink);
-  background: var(--bg);
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg));
   -webkit-font-smoothing: antialiased;
 }
 button,
@@ -599,14 +599,55 @@ textarea.input {
 }
 
 .popup-footer {
+  position: relative;
+  margin-top: auto;
+  overflow: hidden;
+  --cloud-bank-h: 36px;
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--accent) 8%, var(--tint-base)) 55%, var(--hero-bg) 100%);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 14%, var(--border));
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.popup-footer-sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.popup-footer-bank {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--cloud-bank-h);
+  width: 100%;
+  display: block;
+}
+.popup-footer-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--accent) 18%, var(--tint-base));
+}
+.popup-footer-bank .cloud-bank-front {
+  fill: var(--cloud-fill);
+}
+.popup-footer-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 14px;
-  border-top: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--muted);
+  padding: 10px 14px calc(8px + var(--cloud-bank-h) * 0.35);
+  background: color-mix(in srgb, var(--cloud-fill) 72%, transparent);
+}
+.popup-footer .popup-text-btn {
+  color: var(--accent-ink);
+}
+.popup-footer .popup-text-btn:hover {
+  color: var(--ink);
+}
+
+/* Compact CloudBank SVG used in the footer */
+.cloud-bank {
+  overflow: visible;
 }
 
 /* List cover backdrops, matching .cover-bg-* in the app */
