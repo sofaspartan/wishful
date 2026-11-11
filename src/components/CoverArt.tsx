@@ -669,10 +669,11 @@ function Decor({ backdrop }: { backdrop: CoverBackdrop }) {
   return (
     <div className="cover-decor">
       {backdrop === 'sunset' && <span className="cover-piece cover-sun" style={at(256, 128, { width: u(44) })} />}
+      {/* Default: both sides (mobile title cards center the avatar). Desktop title cards shift cloud-a right via CSS. */}
       {CLOUDY.includes(backdrop) && (
         <>
           <CloudPiece x={30} y={86} w={44} className="cover-cloud-a" />
-          <CloudPiece x={290} y={70} w={34} className="cover-cloud-b" />
+          <CloudPiece x={292} y={68} w={34} className="cover-cloud-b" />
         </>
       )}
       {backdrop === 'spooky' && (

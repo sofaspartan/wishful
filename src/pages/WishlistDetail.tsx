@@ -282,7 +282,7 @@ function WishlistView({ detail }: { detail: Detail }) {
     try {
       await del(`/api/wishlists/${w.id}/collaborators/${me.id}`);
       invalidate([]);
-      navigate('/app/shared');
+      navigate('/app/lists?status=shared');
       toast.success('You left the wishlist');
     } catch (err) {
       toast.error(errorMessage(err));
@@ -366,8 +366,8 @@ function WishlistView({ detail }: { detail: Detail }) {
 
   return (
     <div className="page">
-      <Link to={isOwner ? '/app/lists' : '/app/shared'} className="section-link" style={{ marginLeft: 0, marginBottom: 'var(--s-3)' }}>
-        <ArrowLeft size={14} /> {isOwner ? 'My Lists' : 'Shared With Me'}
+      <Link to={isOwner ? '/app/lists' : '/app/lists?status=shared'} className="section-link" style={{ marginLeft: 0, marginBottom: 'var(--s-3)' }}>
+        <ArrowLeft size={14} /> {isOwner ? 'My Lists' : 'Shared'}
       </Link>
 
       <header

@@ -21,6 +21,8 @@ import { CloudBank } from '../components/Cloud';
 import { CoverArt, CoverAvatar, suggestCoverArt } from '../components/CoverArt';
 import { CollectionStats } from '../components/CollectionStats';
 import { PrioritySections } from '../components/PrioritySections';
+import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
+import { useLocalPref } from '../lib/prefs';
 import { Button } from '../components/ui/Button';
 import { Field, FormError } from '../components/ui/Field';
 import { Avatar, AvatarStack, EmptyState } from '../components/ui/misc';
@@ -251,6 +253,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
   const [params, setParams] = useSearchParams();
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('order');
+  const [itemsView, setItemsView] = useLocalPref<CardListView>('public.itemsView', 'grid', CARD_LIST_VIEWS);
   const [tick, setTick] = useState(0);
   const refreshMine = () => setTick((t) => t + 1);
 
@@ -313,6 +316,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
   const card = (e: PublicEntry) => (
     <ItemCard
       item={e.item}
+      view={itemsView}
       priority={showPriority ? e.priority : null}
       owned={collection ? e.item.owned : null}
       status={badge(e)}
@@ -510,6 +514,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
               <option value="price_asc">Price: low to high</option>
               <option value="price_desc">Price: high to low</option>
             </select>
+            <ViewToggle value={itemsView} onChange={setItemsView} labels="grid" />
           </div>
         )}
 
@@ -522,9 +527,9 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
             No items match this filter.
           </EmptyState>
         ) : grouped ? (
-          <PrioritySections rows={shown} idOf={(e) => e.id} priorityOf={(e) => e.priority} view="grid" renderCard={card} />
+          <PrioritySections rows={shown} idOf={(e) => e.id} priorityOf={(e) => e.priority} view={itemsView} renderCard={card} />
         ) : (
-          <div className="grid-items">
+          <div className={itemsView === 'grid' ? 'grid-items' : 'list-items'}>
             {shown.map((e) => (
               <div key={e.id} style={{ minWidth: 0 }}>
                 {card(e)}

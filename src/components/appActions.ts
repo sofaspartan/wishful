@@ -28,6 +28,7 @@ export interface CreateListOptions {
 export interface AppActions {
   openAddItem: (opts?: AddItemOptions) => void;
   openCreateWishlist: (opts?: CreateListOptions) => void;
+  openCreateBox: () => void;
   openSearch: () => void;
 }
 

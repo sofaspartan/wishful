@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, Library, Plus } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Archive, Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { WishlistSummary } from '../../shared/types';
-import { keys, useWishlists } from '../lib/queries';
+import { keys, useSharedWishlists, useWishlists } from '../lib/queries';
 import { errorMessage, put } from '../lib/api';
 import { useLocalPref } from '../lib/prefs';
 import { useAppActions } from '../components/appActions';
+import { CreateMenu } from '../components/CreateMenu';
+import { SharedListsPanel } from '../components/SharedListsPanel';
 import { WishlistCard, WishlistCardSkeleton } from '../components/WishlistCard';
 import { WishlistCardMenu } from '../components/WishlistMenu';
 import { DragHandle, SortableList } from '../components/Sortable';
+import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/misc';
 import { SkyArt } from '../components/SkyArt';
@@ -17,8 +21,8 @@ import { useToast } from '../components/ui/Toast';
 
 const SORTS = ['custom', 'updated', 'date', 'name'] as const;
 type Sort = (typeof SORTS)[number];
-const KIND_FILTERS = ['all', 'wishlist', 'collection'] as const;
-type KindFilter = (typeof KIND_FILTERS)[number];
+type KindFilter = 'wishlist' | 'collection';
+type StatusTab = 'active' | 'archived' | 'shared';
 
 function sortLists(lists: WishlistSummary[], sort: Sort): WishlistSummary[] {
   if (sort === 'custom') return lists;
@@ -29,34 +33,51 @@ function sortLists(lists: WishlistSummary[], sort: Sort): WishlistSummary[] {
   return copy;
 }
 
+function statusFromParams(value: string | null): StatusTab {
+  if (value === 'archived' || value === 'shared') return value;
+  return 'active';
+}
+
 export default function Wishlists() {
   const { data: lists, isLoading } = useWishlists();
+  const { data: shared = [] } = useSharedWishlists();
   const { openCreateWishlist } = useAppActions();
   const qc = useQueryClient();
   const toast = useToast();
-  const [tab, setTab] = useState<'active' | 'archived'>('active');
+  const [params, setParams] = useSearchParams();
+  const kind: KindFilter = params.get('kind') === 'collection' ? 'collection' : 'wishlist';
+  const tab = statusFromParams(params.get('status'));
   const [sort, setSort] = useLocalPref<Sort>('lists.sort', 'custom', SORTS);
-  const [kind, setKind] = useLocalPref<KindFilter>('lists.kind', 'all', KIND_FILTERS);
+  const [view, setView] = useLocalPref<CardListView>('lists.view', 'grid', CARD_LIST_VIEWS);
   const [order, setOrder] = useState<string[] | null>(null);
 
-  useEffect(() => setOrder(null), [lists]);
+  useEffect(() => setOrder(null), [lists, kind]);
+
+  const setTab = (next: StatusTab) => {
+    const updated = new URLSearchParams(params);
+    if (next === 'active') updated.delete('status');
+    else updated.set('status', next);
+    setParams(updated, { replace: true });
+  };
 
   const all = useMemo(() => lists ?? [], [lists]);
   const active = all.filter((w) => !w.archivedAt);
   const archived = all.filter((w) => w.archivedAt);
   const byId = useMemo(() => new Map(all.map((w) => [w.id, w])), [all]);
 
-  const ofKind = (w: WishlistSummary) => kind === 'all' || w.kind === kind;
+  const ofKind = (w: WishlistSummary) => w.kind === kind;
   const shown = (tab === 'active' ? active : archived).filter(ofKind);
   const sorted = sortLists(shown, sort);
-  const activeIds = order ?? active.map((w) => w.id);
-  // Reordering works on the full list, so it's only offered when nothing is filtered out.
-  const canDrag = tab === 'active' && sort === 'custom' && kind === 'all' && active.length > 1;
+  const kindActiveIds = active.filter(ofKind).map((w) => w.id);
+  const activeIds = order ?? kindActiveIds;
+  const canDrag = tab === 'active' && sort === 'custom' && kindActiveIds.length > 1 && view === 'grid';
   const collectionsOnly = kind === 'collection';
+  const sharedCount = shared.filter((w) => !w.archivedAt && w.kind === kind).length;
 
   const reorder = async (ids: string[]) => {
     setOrder(ids);
-    const full = [...ids, ...archived.map((w) => w.id)];
+    const otherActive = active.filter((w) => w.kind !== kind).map((w) => w.id);
+    const full = kind === 'wishlist' ? [...ids, ...otherActive, ...archived.map((w) => w.id)] : [...otherActive, ...ids, ...archived.map((w) => w.id)];
     qc.setQueryData<WishlistSummary[]>(keys.wishlists, (prev) => (prev ? full.map((id) => prev.find((w) => w.id === id)!).filter(Boolean) : prev));
     try {
       await put('/api/wishlists/order', { ids: full });
@@ -71,16 +92,15 @@ export default function Wishlists() {
       <ListsSwitch />
       <div className="page-header">
         <div>
-          <h1 className="page-title display">My Lists</h1>
-          <p className="page-subtitle">Wishlists for the things you want, collections for the things you already have.</p>
+          <h1 className="page-title display">{collectionsOnly ? 'My Collections' : 'My Wishlists'}</h1>
+          <p className="page-subtitle">
+            {collectionsOnly
+              ? 'A record of the things you already have — vinyl, sneakers, books, plants.'
+              : 'Lists for birthdays, holidays, and everything you’re hoping for.'}
+          </p>
         </div>
         <div className="page-actions">
-          <Button icon={<Library size={16} />} onClick={() => openCreateWishlist({ kind: 'collection' })}>
-            New collection
-          </Button>
-          <Button variant="primary" icon={<Plus size={17} />} onClick={() => openCreateWishlist()}>
-            New wishlist
-          </Button>
+          <CreateMenu />
         </div>
       </div>
 
@@ -92,27 +112,30 @@ export default function Wishlists() {
           <button type="button" role="tab" aria-selected={tab === 'archived'} onClick={() => setTab('archived')}>
             Archived <span className="faint">{archived.filter(ofKind).length}</span>
           </button>
+          <button type="button" role="tab" aria-selected={tab === 'shared'} onClick={() => setTab('shared')}>
+            Shared <span className="faint">{sharedCount}</span>
+          </button>
         </div>
-        <div className="segmented" role="group" aria-label="Show">
-          {KIND_FILTERS.map((k) => (
-            <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
-              {k === 'all' ? 'All' : k === 'wishlist' ? 'Wishlists' : 'Collections'}
-            </button>
-          ))}
+        <div className="row" style={{ gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+          {tab !== 'shared' && (
+            <label className="row text-sm muted" style={{ gap: 8 }}>
+              <span className="hide-xs">Sort</span>
+              <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort lists">
+                <option value="custom">Custom order</option>
+                <option value="updated">Recently updated</option>
+                <option value="date">Upcoming date</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
+          )}
+          <ViewToggle value={view} onChange={setView} />
         </div>
-        <label className="row text-sm muted" style={{ gap: 8, marginLeft: 'auto' }}>
-          <span className="hide-xs">Sort</span>
-          <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort lists">
-            <option value="custom">Custom order</option>
-            <option value="updated">Recently updated</option>
-            <option value="date">Upcoming date</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
       </div>
 
-      {isLoading ? (
-        <div className="grid-lists">
+      {tab === 'shared' ? (
+        <SharedListsPanel kind={kind} view={view} />
+      ) : isLoading ? (
+        <div className={view === 'grid' ? 'grid-lists' : 'list-items'}>
           {Array.from({ length: 3 }, (_, i) => (
             <WishlistCardSkeleton key={i} />
           ))}
@@ -159,17 +182,21 @@ export default function Wishlists() {
           renderItem={(id, handle) => {
             const w = byId.get(id);
             if (!w) return null;
-            return <WishlistCard wishlist={w} menu={<WishlistCardMenu wishlist={w} />} dragHandle={<DragHandle handle={handle} label={`Reorder ${w.title}`} />} />;
+            return <WishlistCard wishlist={w} view={view} menu={<WishlistCardMenu wishlist={w} />} dragHandle={<DragHandle handle={handle} label={`Reorder ${w.title}`} />} />;
           }}
         />
       ) : (
-        <div className="grid-lists">
+        <div className={view === 'grid' ? 'grid-lists' : 'list-items'}>
           {sorted.map((w) => (
-            <WishlistCard key={w.id} wishlist={w} menu={<WishlistCardMenu wishlist={w} />} />
+            <WishlistCard key={w.id} wishlist={w} view={view} menu={<WishlistCardMenu wishlist={w} />} />
           ))}
         </div>
       )}
-      {canDrag && <p className="faint text-xs" style={{ marginTop: 'var(--s-4)' }}>Tip: drag the handle on a card to change the order.</p>}
+      {canDrag && (
+        <p className="faint text-xs" style={{ marginTop: 'var(--s-4)' }}>
+          Tip: drag the handle on a card to change the order.
+        </p>
+      )}
       <div style={{ height: 'var(--s-12)' }} />
     </div>
   );

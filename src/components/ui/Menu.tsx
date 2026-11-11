@@ -19,7 +19,7 @@ interface MenuProps {
   children: ReactNode;
   buttonClassName?: string;
   buttonContent?: ReactNode;
-  align?: 'left' | 'right';
+  align?: 'left' | 'right' | 'center';
   className?: string;
 }
 
@@ -46,7 +46,7 @@ export function Menu({ label, icon, children, buttonClassName = 'btn btn-ghost b
     const m = menuRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let left = align === 'right' ? t.right - m.width : t.left;
+    let left = align === 'right' ? t.right - m.width : align === 'center' ? t.left + t.width / 2 - m.width / 2 : t.left;
     left = Math.max(8, Math.min(left, vw - m.width - 8));
     let top = t.bottom + 6;
     if (top + m.height > vh - 8 && t.top - m.height - 6 > 8) top = t.top - m.height - 6;
@@ -106,7 +106,7 @@ export function Menu({ label, icon, children, buttonClassName = 'btn btn-ghost b
         ref={triggerRef}
         type="button"
         className={buttonClassName}
-        aria-label={buttonContent ? undefined : label}
+        aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? id : undefined}

@@ -7,6 +7,8 @@ import { del, errorMessage } from '../lib/api';
 import { countdownLabel, formatDate } from '../lib/format';
 import { ListForLine, WishlistCover } from '../components/WishlistCard';
 import { CollectionBadge, VisibilityBadge } from '../components/ItemVisuals';
+import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
+import { useLocalPref } from '../lib/prefs';
 import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
 import { Menu, MenuItem } from '../components/ui/Menu';
 import { useToast } from '../components/ui/Toast';
@@ -18,6 +20,7 @@ export default function FriendProfile() {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const toast = useToast();
+  const [listsView, setListsView] = useLocalPref<CardListView>('friends.profileListsView', 'grid', CARD_LIST_VIEWS);
 
   const unfriend = async () => {
     if (!data) return;
@@ -75,33 +78,59 @@ export default function FriendProfile() {
           <section className="section">
             <div className="section-header">
               <h2 className="section-title">Lists</h2>
+              {data.wishlists.length > 0 && <ViewToggle value={listsView} onChange={setListsView} />}
             </div>
             {data.wishlists.length ? (
-              <div className="grid-lists">
-                {data.wishlists.map((w) => (
-                  <article key={w.id} className="wl-card">
-                    <Link to={`/s/${w.shareToken}`} className="wl-card-link" aria-label={`Open ${w.title}`} />
-                    <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} />
-                    <div className="wl-body">
-                      <h3 className="wl-title truncate">{w.title}</h3>
-                      {w.recipients.length > 0 && <ListForLine people={w.recipients} maker={w.madeBy} />}
-                      {w.description && <p className="wl-desc clamp-2">{w.description}</p>}
-                      <div className="wl-meta">
-                        <VisibilityBadge visibility={w.visibility} outline />
-                        {w.kind === 'collection' && <CollectionBadge outline />}
-                        <span>
-                          <Gift size={13} aria-hidden /> {w.itemCount} item{w.itemCount === 1 ? '' : 's'}
-                        </span>
-                        {w.eventDate && (
-                          <span>
-                            <CalendarDays size={13} aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
-                            {countdownLabel(w.eventDate)}
-                          </span>
-                        )}
+              <div className={listsView === 'grid' ? 'grid-lists' : 'list-items'}>
+                {data.wishlists.map((w) =>
+                  listsView === 'list' ? (
+                    <article key={w.id} className="item-row wl-row" aria-label={w.title}>
+                      <Link to={`/s/${w.shareToken}`} className="item-card-hit" aria-label={`Open ${w.title}`} />
+                      <div className="item-row-thumb wl-row-thumb" style={{ ['--wl-accent' as string]: w.accentColor }} aria-hidden>
+                        <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} />
                       </div>
-                    </div>
-                  </article>
-                ))}
+                      <div className="item-row-main">
+                        <strong className="truncate">{w.title}</strong>
+                        <span className="row text-sm muted" style={{ gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+                          <VisibilityBadge visibility={w.visibility} outline />
+                          {w.kind === 'collection' && <CollectionBadge outline />}
+                          <span>
+                            <Gift size={13} aria-hidden /> {w.itemCount} item{w.itemCount === 1 ? '' : 's'}
+                          </span>
+                          {w.eventDate && (
+                            <span>
+                              <CalendarDays size={13} aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
+                              {countdownLabel(w.eventDate)}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </article>
+                  ) : (
+                    <article key={w.id} className="wl-card">
+                      <Link to={`/s/${w.shareToken}`} className="wl-card-link" aria-label={`Open ${w.title}`} />
+                      <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} />
+                      <div className="wl-body">
+                        <h3 className="wl-title truncate">{w.title}</h3>
+                        {w.recipients.length > 0 && <ListForLine people={w.recipients} maker={w.madeBy} />}
+                        {w.description && <p className="wl-desc clamp-2">{w.description}</p>}
+                        <div className="wl-meta">
+                          <VisibilityBadge visibility={w.visibility} outline />
+                          {w.kind === 'collection' && <CollectionBadge outline />}
+                          <span>
+                            <Gift size={13} aria-hidden /> {w.itemCount} item{w.itemCount === 1 ? '' : 's'}
+                          </span>
+                          {w.eventDate && (
+                            <span>
+                              <CalendarDays size={13} aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
+                              {countdownLabel(w.eventDate)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  ),
+                )}
               </div>
             ) : (
               <EmptyState icon={<Gift size={22} />} title="Nothing shared yet">

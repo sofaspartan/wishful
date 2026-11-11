@@ -244,14 +244,63 @@ interface Props {
   menu?: ReactNode;
   dragHandle?: ReactNode;
   showOwner?: boolean;
+  /** Card (default) or compact list row. */
+  view?: 'grid' | 'list';
+  /** Override the open link (e.g. public share URL). */
+  to?: string;
 }
 
-export function WishlistCard({ wishlist: w, menu, dragHandle, showOwner }: Props) {
+export function WishlistCard({ wishlist: w, menu, dragHandle, showOwner, view = 'grid', to }: Props) {
   const { data: me } = useMe();
   const days = daysUntil(w.eventDate);
+  const href = to ?? `/app/lists/${w.id}`;
+  const metaBits = (
+    <>
+      <span>
+        <Package size={13} aria-hidden /> {w.itemCount} item{w.itemCount === 1 ? '' : 's'}
+      </span>
+      {w.eventDate && (
+        <span title={formatDate(w.eventDate)} style={days !== null && days >= 0 && days <= 14 ? { color: 'var(--accent-ink)', fontWeight: 600 } : undefined}>
+          <CalendarDays size={13} aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
+          {countdownLabel(w.eventDate)}
+        </span>
+      )}
+      {w.collaboratorCount > 0 && w.role === 'owner' && (
+        <span>
+          <Users size={13} aria-hidden /> {w.collaboratorCount}
+        </span>
+      )}
+    </>
+  );
+
+  if (view === 'list') {
+    return (
+      <article className="item-row wl-row" aria-label={w.title}>
+        <Link to={href} className="item-card-hit" aria-label={`Open ${w.title}`} />
+        {dragHandle && <div style={{ position: 'relative', zIndex: 2 }}>{dragHandle}</div>}
+        <div className="item-row-thumb wl-row-thumb" style={{ ['--wl-accent' as string]: w.accentColor }} aria-hidden>
+          <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} previewImages={w.previewImages} />
+        </div>
+        <div className="item-row-main">
+          <strong className="truncate">{w.title}</strong>
+          <span className="row text-sm muted" style={{ gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+            {w.kind === 'collection' && <CollectionBadge />}
+            {w.role !== 'owner' && <span className="badge">{w.role === 'editor' ? 'Editor' : 'Viewer'}</span>}
+            {w.archivedAt && <span className="badge">Archived</span>}
+            {metaBits}
+          </span>
+        </div>
+        <div className="item-row-side" style={{ position: 'relative', zIndex: 2 }}>
+          <span className="muted text-xs hide-xs">Updated {relativeTime(w.updatedAt)}</span>
+          {menu}
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article className="wl-card" aria-label={w.title}>
-      <Link to={`/app/lists/${w.id}`} className="wl-card-link" aria-label={`Open ${w.title}`} />
+      <Link to={href} className="wl-card-link" aria-label={`Open ${w.title}`} />
       <div style={{ position: 'relative' }}>
         <WishlistCover title={w.title} coverImage={w.coverImage} coverArt={w.coverArt} accentColor={w.accentColor} previewImages={w.previewImages} />
         <div className="wl-card-badges">
@@ -275,20 +324,7 @@ export function WishlistCard({ wishlist: w, menu, dragHandle, showOwner }: Props
         )}
         {w.description && <p className="wl-desc clamp-2">{w.description}</p>}
         <div className="wl-meta">
-          <span>
-            <Package size={13} aria-hidden /> {w.itemCount} item{w.itemCount === 1 ? '' : 's'}
-          </span>
-          {w.eventDate && (
-            <span title={formatDate(w.eventDate)} style={days !== null && days >= 0 && days <= 14 ? { color: 'var(--accent-ink)', fontWeight: 600 } : undefined}>
-              <CalendarDays size={13} aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
-              {countdownLabel(w.eventDate)}
-            </span>
-          )}
-          {w.collaboratorCount > 0 && w.role === 'owner' && (
-            <span>
-              <Users size={13} aria-hidden /> {w.collaboratorCount}
-            </span>
-          )}
+          {metaBits}
           <span style={{ marginLeft: 'auto' }}>Updated {relativeTime(w.updatedAt)}</span>
         </div>
       </div>

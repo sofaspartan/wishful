@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Gift, House, List, LogOut, Package, Plus, Search, Settings, User, UserRoundPlus, Users } from 'lucide-react';
+import { Bookmark, Gift, House, List, LogOut, Menu as MenuIcon, Moon, Search, Settings, Sun, User, UserRoundPlus } from 'lucide-react';
 import { useFriends, useMe, useWishlists } from '../lib/queries';
 import { post } from '../lib/api';
+import { setTheme, useTheme } from '../lib/theme';
 import { Logo } from './Logo';
 import { CloudBank } from './Cloud';
 import { CoverArt } from './CoverArt';
 import { Avatar } from './ui/misc';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
-import { Button } from './ui/Button';
 import { AppActionsContext, type AddItemOptions, type AppActions, type CreateListOptions } from './appActions';
 import { AddItemModal } from './AddItemModal';
+import { BoxFormModal } from './BoxFormModal';
+import { CreateMenu } from './CreateMenu';
 import { WishlistFormModal } from './WishlistFormModal';
 import { SearchPalette } from './SearchPalette';
 import { NotificationsButton } from './NotificationsButton';
@@ -22,16 +24,14 @@ const NAV = [
   { to: '/app/lists', label: 'My Lists', short: 'Lists', icon: List },
   { to: '/app/items', label: 'Saved Items', short: 'Saved', icon: Bookmark },
   { to: '/app/friends', label: 'Friends', icon: UserRoundPlus },
-  { to: '/app/shared', label: 'Shared With Me', short: 'Shared', icon: Users },
 ];
-
-/** Boxes get their own sidebar link; on phones they sit behind the Lists tab. */
-const SIDEBAR_NAV = [...NAV.slice(0, 2), { to: '/app/boxes', label: 'Boxes', icon: Package }, ...NAV.slice(2)];
 
 export function AppLayout() {
   const { data: user } = useMe();
   const { data: wishlists } = useWishlists();
   const { data: friends } = useFriends();
+  const theme = useTheme();
+  const dark = theme === 'dark';
   const requestCount = friends?.incoming.length ?? 0;
   const badgeFor = (to: string) =>
     to === '/app/friends' && requestCount > 0 ? (
@@ -44,6 +44,7 @@ export function AppLayout() {
   const qc = useQueryClient();
   const [addItem, setAddItem] = useState<AddItemOptions | null>(null);
   const [createList, setCreateList] = useState<CreateListOptions | null>(null);
+  const [createBox, setCreateBox] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -68,6 +69,7 @@ export function AppLayout() {
     () => ({
       openAddItem: (opts) => setAddItem(opts ?? {}),
       openCreateWishlist: (opts) => setCreateList(opts ?? {}),
+      openCreateBox: () => setCreateBox(true),
       openSearch: () => setSearchOpen(true),
     }),
     [],
@@ -106,12 +108,17 @@ export function AppLayout() {
           <div className="sidebar-brand">
             <Logo to="/app" />
           </div>
-          <Button variant="primary" icon={<Plus size={17} />} onClick={() => actions.openAddItem()} block>
-            Add item
-          </Button>
+          <CreateMenu variant="add" block align="left" />
           <nav className="sidebar-nav" aria-label="Main" style={{ marginTop: 12 }}>
-            {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
-              <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+            {NAV.map(({ to, label, icon: Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  `nav-link${isActive || (to === '/app/lists' && pathname.startsWith('/app/boxes')) ? ' active' : ''}`
+                }
+              >
                 <Icon size={18} aria-hidden />
                 {label}
                 {badgeFor(to)}
@@ -120,10 +127,6 @@ export function AppLayout() {
             <NavLink to="/app/gifts" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               <Gift size={18} aria-hidden />
               Gift ideas
-            </NavLink>
-            <NavLink to="/app/settings" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <Settings size={18} aria-hidden />
-              Settings
             </NavLink>
           </nav>
           {recentLists.length > 0 && (
@@ -178,18 +181,26 @@ export function AppLayout() {
               <kbd>⌘K</kbd>
             </button>
             <div className="spacer" />
-            <Button variant="ghost" iconOnly className="search-icon-btn" aria-label="Search" onClick={() => setSearchOpen(true)} icon={<Search size={19} />} />
-            <NavLink to="/app/gifts" className={({ isActive }) => `btn btn-ghost btn-icon hide-desktop${isActive ? ' active' : ''}`} aria-label="Gift ideas" title="Gift ideas">
-              <Gift size={19} aria-hidden />
-            </NavLink>
-            <NotificationsButton />
-            <ThemeToggle className="hide-mobile" />
-            <div className="hide-desktop">
-              <Menu label="Account menu" buttonClassName="btn btn-ghost btn-icon" buttonContent={<Avatar name={user.displayName} src={user.avatarUrl} size={30} />}>
+            <div className="hide-mobile row" style={{ gap: 'var(--s-1)' }}>
+              <NotificationsButton />
+              <ThemeToggle />
+            </div>
+            <div className="hide-desktop topbar-mobile-actions">
+              <NotificationsButton />
+              <Menu label="Menu" buttonClassName="btn btn-ghost btn-icon" buttonContent={<MenuIcon size={20} aria-hidden />}>
+                <MenuItem icon={<Search size={16} />} onSelect={() => setSearchOpen(true)}>
+                  Search
+                </MenuItem>
+                <MenuItem icon={<Gift size={16} />} onSelect={() => navigate('/app/gifts')}>
+                  Gift ideas
+                </MenuItem>
+                <MenuItem icon={dark ? <Sun size={16} /> : <Moon size={16} />} onSelect={() => setTheme(dark ? 'light' : 'dark')}>
+                  {dark ? 'Light mode' : 'Dark mode'}
+                </MenuItem>
+                <MenuSeparator />
                 {userMenuItems}
               </Menu>
             </div>
-            <ThemeToggle className="hide-desktop" />
           </header>
           <main id="main" className="app-main" tabIndex={-1}>
             <Outlet />
@@ -208,11 +219,7 @@ export function AppLayout() {
               {short ?? label}
             </NavLink>
           ))}
-          <button type="button" className="bottom-add" onClick={() => actions.openAddItem()} aria-label="Add item">
-            <span>
-              <Plus size={22} />
-            </span>
-          </button>
+          <CreateMenu variant="fab" />
           {NAV.slice(2).map(({ to, short, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
               <span className="bottom-icon">
@@ -235,6 +242,14 @@ export function AppLayout() {
           setCreateList(null);
           if (cb) cb(w);
           else navigate(`/app/lists/${w.id}`);
+        }}
+      />
+      <BoxFormModal
+        open={createBox}
+        onClose={() => setCreateBox(false)}
+        onSaved={(box) => {
+          setCreateBox(false);
+          navigate(`/app/boxes/${box.id}`);
         }}
       />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />

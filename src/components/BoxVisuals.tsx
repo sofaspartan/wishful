@@ -61,11 +61,44 @@ export const thingCount = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
 type BoxCardFields = Pick<BoxSummary, 'name' | 'number' | 'color' | 'coverArt' | 'fragile' | 'access' | 'location' | 'room'>;
 
-export function BoxCard({ box, menu }: { box: BoxSummary; menu?: ReactNode }) {
+export function BoxCard({ box, menu, view = 'grid' }: { box: BoxSummary; menu?: ReactNode; view?: 'grid' | 'list' }) {
+  const things = box.itemCount + box.lineCount;
+  if (view === 'list') {
+    return (
+      <article className="item-row wl-row" aria-label={box.name}>
+        <Link to={`/app/boxes/${box.id}`} className="item-card-hit" aria-label={`Open ${boxDisplayName(box)}`} />
+        <div className="item-row-thumb wl-row-thumb box-row-thumb" style={{ ['--box-color' as string]: box.color }} aria-hidden>
+          <div className="wl-cover">
+            <CoverArt art={box.coverArt} />
+          </div>
+          <span className="box-stripe" />
+        </div>
+        <div className="item-row-main">
+          <strong className="truncate">{box.name}</strong>
+          <span className="row text-sm muted" style={{ gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+            <BoxNumberBadge box={box} />
+            <span>
+              <Package size={13} aria-hidden /> {thingCount(things)}
+            </span>
+            {box.location && (
+              <span className="truncate">
+                <MapPin size={13} aria-hidden /> {box.location}
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="item-row-side" style={{ position: 'relative', zIndex: 2 }}>
+          <span className="muted text-xs hide-xs">Updated {relativeTime(box.updatedAt)}</span>
+          {menu}
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article className="wl-card box-card" aria-label={box.name}>
       <Link to={`/app/boxes/${box.id}`} className="wl-card-link" aria-label={`Open ${boxDisplayName(box)}`} />
-      <BoxCardFace box={box} things={box.itemCount + box.lineCount} updatedAt={box.updatedAt} menu={menu} />
+      <BoxCardFace box={box} things={things} updatedAt={box.updatedAt} menu={menu} />
     </article>
   );
 }

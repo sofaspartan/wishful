@@ -5,13 +5,15 @@ import type { BoxSummary } from '../../shared/types';
 import { useBoxes, useItems } from '../lib/queries';
 import { useLocalPref } from '../lib/prefs';
 import { BoxCard, boxDisplayName } from '../components/BoxVisuals';
-import { BoxFormModal } from '../components/BoxFormModal';
+import { CreateMenu } from '../components/CreateMenu';
 import { ListsSwitch } from '../components/ListsSwitch';
 import { WishlistCardSkeleton } from '../components/WishlistCard';
+import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { ItemImage } from '../components/ItemVisuals';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/misc';
 import { SkyArt } from '../components/SkyArt';
+import { useAppActions } from '../components/appActions';
 
 const SORTS = ['number', 'name', 'updated', 'location'] as const;
 type Sort = (typeof SORTS)[number];
@@ -31,8 +33,9 @@ export default function Boxes() {
   const q = query.trim().toLowerCase();
   const { data: itemData } = useItems(Boolean(q));
   const [sort, setSort] = useLocalPref<Sort>('boxes.sort', 'number', SORTS);
-  const [creating, setCreating] = useState(false);
+  const [view, setView] = useLocalPref<CardListView>('boxes.view', 'grid', CARD_LIST_VIEWS);
   const navigate = useNavigate();
+  const { openCreateBox } = useAppActions();
 
   const all = useMemo(() => boxes ?? [], [boxes]);
   const byId = useMemo(() => new Map(all.map((b) => [b.id, b])), [all]);
@@ -62,9 +65,7 @@ export default function Boxes() {
               <Printer size={16} aria-hidden /> Print labels
             </Link>
           )}
-          <Button variant="primary" icon={<Plus size={17} />} onClick={() => setCreating(true)}>
-            New box
-          </Button>
+          <CreateMenu />
         </div>
       </div>
 
@@ -81,15 +82,18 @@ export default function Boxes() {
               aria-label="Find a thing or a box"
             />
           </div>
-          <label className="row text-sm muted" style={{ gap: 8, marginLeft: 'auto' }}>
-            <span className="hide-xs">Sort</span>
-            <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort boxes">
-              <option value="number">Box number</option>
-              <option value="name">Name</option>
-              <option value="location">Where it’s kept</option>
-              <option value="updated">Recently updated</option>
-            </select>
-          </label>
+          <div className="row" style={{ gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+            <label className="row text-sm muted" style={{ gap: 8 }}>
+              <span className="hide-xs">Sort</span>
+              <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort boxes">
+                <option value="number">Box number</option>
+                <option value="name">Name</option>
+                <option value="location">Where it’s kept</option>
+                <option value="updated">Recently updated</option>
+              </select>
+            </label>
+            <ViewToggle value={view} onChange={setView} />
+          </div>
         </div>
       )}
 
@@ -126,7 +130,7 @@ export default function Boxes() {
       )}
 
       {isLoading ? (
-        <div className="grid-lists">
+        <div className={view === 'grid' ? 'grid-lists' : 'list-items'}>
           {Array.from({ length: 3 }, (_, i) => (
             <WishlistCardSkeleton key={i} />
           ))}
@@ -136,7 +140,7 @@ export default function Boxes() {
           art={<SkyArt scene="boxes" />}
           title="No boxes yet"
           action={
-            <Button variant="primary" icon={<Plus size={16} />} onClick={() => setCreating(true)}>
+            <Button variant="primary" icon={<Plus size={16} />} onClick={() => openCreateBox()}>
               Make your first box
             </Button>
           }
@@ -152,23 +156,14 @@ export default function Boxes() {
       ) : (
         <>
           {q && foundItems.length > 0 && <h2 className="section-label">Boxes</h2>}
-          <div className="grid-lists">
+          <div className={view === 'grid' ? 'grid-lists' : 'list-items'}>
             {shown.map((b) => (
-              <BoxCard key={b.id} box={b} />
+              <BoxCard key={b.id} box={b} view={view} />
             ))}
           </div>
         </>
       )}
       <div style={{ height: 'var(--s-12)' }} />
-
-      <BoxFormModal
-        open={creating}
-        onClose={() => setCreating(false)}
-        onSaved={(box) => {
-          setCreating(false);
-          navigate(`/app/boxes/${box.id}`);
-        }}
-      />
     </div>
   );
 }

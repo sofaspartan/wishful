@@ -5,6 +5,7 @@ import type { Item, WishlistSummary } from '../../shared/types';
 import { joinNames } from '../../shared/constants';
 import { useItems, useMe, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
 import { countdownLabel, daysUntil, formatDate, formatPrice, greeting, parseDateOnly, relativeTime } from '../lib/format';
+import { useLocalPref } from '../lib/prefs';
 import { useAppActions } from '../components/appActions';
 import { ItemImage } from '../components/ItemVisuals';
 import { effectivePrice } from '../components/ItemForm';
@@ -12,6 +13,8 @@ import { CloudBank } from '../components/Cloud';
 import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from '../components/ItemIllustrations';
 import { SkyArt } from '../components/SkyArt';
 import { CoverArt } from '../components/CoverArt';
+import { WishlistCard } from '../components/WishlistCard';
+import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/misc';
 
@@ -29,6 +32,7 @@ export default function Home() {
   const { data: notifications = [] } = useNotifications();
   const { openAddItem, openCreateWishlist } = useAppActions();
   const navigate = useNavigate();
+  const [listsView, setListsView] = useLocalPref<CardListView>('home.listsView', 'grid', CARD_LIST_VIEWS);
 
   const active = useMemo(() => (lists ?? []).filter((w) => !w.archivedAt), [lists]);
   const wishlists = active.filter((w) => w.kind !== 'collection');
@@ -128,6 +132,8 @@ export default function Home() {
           icon={<Gift size={15} />}
           lists={wishlists}
           loading={listsLoading}
+          view={listsView}
+          onViewChange={setListsView}
           empty={
             <EmptyState
               art={<SkyArt scene="wishlist" />}
@@ -148,6 +154,8 @@ export default function Home() {
           icon={<Library size={15} />}
           lists={collections}
           loading={listsLoading}
+          view={listsView}
+          onViewChange={setListsView}
           empty={
             <EmptyState
               tone="blush"
@@ -278,6 +286,8 @@ function ListTile({
   loading,
   empty,
   tone,
+  view,
+  onViewChange,
 }: {
   title: string;
   icon: ReactNode;
@@ -285,10 +295,28 @@ function ListTile({
   loading: boolean;
   empty: ReactNode;
   tone?: 'blush';
+  view: CardListView;
+  onViewChange: (v: CardListView) => void;
 }) {
+  const shown = lists.slice(0, LIST_ROWS);
   return (
     <section className={`tile span-2 tile-flush${tone ? ` tile-${tone}` : ''}`}>
-      <TileHeader title={title} icon={icon} to={lists.length ? '/app/lists' : undefined} linkLabel={lists.length > LIST_ROWS ? `All ${lists.length}` : 'View all'} />
+      <div className="tile-header">
+        {icon && (
+          <span className="tile-header-icon" aria-hidden>
+            {icon}
+          </span>
+        )}
+        <h2 className="tile-title">{title}</h2>
+        <div className="row" style={{ gap: 8, marginLeft: 'auto' }}>
+          {lists.length > 0 && <ViewToggle value={view} onChange={onViewChange} />}
+          {lists.length > 0 && (
+            <Link to="/app/lists" className="section-link">
+              {lists.length > LIST_ROWS ? `All ${lists.length}` : 'View all'} <ArrowRight size={14} />
+            </Link>
+          )}
+        </div>
+      </div>
       {loading ? (
         <div className="tile-rows">
           {Array.from({ length: 3 }, (_, i) => (
@@ -299,11 +327,19 @@ function ListTile({
           ))}
         </div>
       ) : lists.length ? (
-        <div className="tile-rows">
-          {lists.slice(0, LIST_ROWS).map((w) => (
-            <WishlistRow key={w.id} wishlist={w} />
-          ))}
-        </div>
+        view === 'grid' ? (
+          <div className="home-list-grid">
+            {shown.map((w) => (
+              <WishlistCard key={w.id} wishlist={w} />
+            ))}
+          </div>
+        ) : (
+          <div className="tile-rows">
+            {shown.map((w) => (
+              <WishlistRow key={w.id} wishlist={w} />
+            ))}
+          </div>
+        )
       ) : (
         empty
       )}

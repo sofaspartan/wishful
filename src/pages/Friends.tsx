@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronRight, Copy, Eye, Inbox, Search, Send, UserRoundPlus, Users, X } from 'lucide-react';
+import { Check, ChevronRight, Copy, Eye, Inbox, LayoutGrid, Rows3, Search, Send, UserRoundPlus, Users, X } from 'lucide-react';
 import type { FriendsOverview, PeopleSearchHit, ProfileVisibility, SelfUser } from '../../shared/types';
 import { PROFILE_VISIBILITY_LABELS, isDiscoverableProfile } from '../../shared/constants';
 import { keys, useFriends, useMe } from '../lib/queries';
 import { del, errorMessage, fieldErrors, get, post } from '../lib/api';
 import { formatDate, relativeTime } from '../lib/format';
+import { useLocalPref } from '../lib/prefs';
 import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 import { Avatar, EmptyState, PageLoader } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
 import { Cloud } from '../components/Cloud';
@@ -16,11 +18,13 @@ import { SkyArt } from '../components/SkyArt';
 
 type RequestResult = { status: 'requested' | 'already_requested' | 'accepted'; overview: FriendsOverview };
 type Tab = 'search' | 'friends';
+type PeopleView = 'grid' | 'list';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'search', label: 'Search' },
   { id: 'friends', label: 'Your friends' },
 ];
+const PEOPLE_VIEWS = ['grid', 'list'] as const;
 
 function selfHit(me: SelfUser): PeopleSearchHit | null {
   const visibility = me.profileVisibility;
@@ -47,6 +51,8 @@ export default function Friends() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PeopleSearchHit[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [peopleView, setPeopleView] = useLocalPref<PeopleView>('friends.searchView', 'grid', PEOPLE_VIEWS);
 
   const setTab = (next: Tab) => setParams(next === 'search' ? {} : { tab: next }, { replace: true });
 
@@ -102,12 +108,19 @@ export default function Friends() {
       else if (res.status === 'already_requested') toast.info(`You've already sent ${name} a request`);
       else toast.success(`Friend request sent to ${name}`);
       setHandle('');
+      setManualOpen(false);
       setTab('friends');
     } catch (err) {
       setError(fieldErrors(err).username ?? errorMessage(err));
     } finally {
       setSending(false);
     }
+  };
+
+  const closeManual = () => {
+    setManualOpen(false);
+    setError(null);
+    setHandle('');
   };
 
   const requestFromSearch = async (hit: PeopleSearchHit) => {
@@ -191,56 +204,75 @@ export default function Friends() {
         <section className="section" aria-label="Search for people">
           <div className="people-search stack" style={{ gap: 'var(--s-6)' }}>
             <div className="stack" style={{ gap: 'var(--s-3)' }}>
-              <div className="input-group">
-                <Search size={16} aria-hidden className="people-search-icon" />
-                <input
-                  className="input"
-                  placeholder="Search by username"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  aria-label="Search for people"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-              </div>
-              <p className="field-hint">
-                Public and friends profiles show up here. Private accounts won’t appear — use their exact handle below if you know it.
-              </p>
-            </div>
-
-            <form className="sky-form" onSubmit={sendByHandle} style={{ margin: 0 }}>
-              <span className="field-label">Or add by handle</span>
-              <div className="sky-form-row">
-                <span className="sky-form-at" aria-hidden>
-                  @
-                </span>
-                <input
-                  className="input"
-                  placeholder="username"
-                  value={handle}
-                  onChange={(e) => setHandle(e.target.value)}
-                  aria-label="Friend's username"
-                  aria-invalid={error ? true : undefined}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-                <Button type="submit" variant="primary" icon={<UserRoundPlus size={16} />} loading={sending} disabled={handle.trim().replace(/^@/, '').length < 3}>
-                  Add
+              <div className="people-search-bar">
+                <div className="input-group">
+                  <Search size={16} aria-hidden className="people-search-icon" />
+                  <input
+                    className="input"
+                    placeholder="Search by username"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    aria-label="Search for people"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  icon={<UserRoundPlus size={16} />}
+                  onClick={() => {
+                    setError(null);
+                    setManualOpen(true);
+                  }}
+                >
+                  Add manually
                 </Button>
               </div>
-              {error && <span className="field-error">{error}</span>}
-            </form>
+              <p className="field-hint">
+                Public and friends profiles show up here. Private accounts won’t appear in search — use Add manually if you know their handle.
+              </p>
+            </div>
 
             {searching && <p className="muted text-sm">Searching…</p>}
 
             {displayed && !searching && (
               displayed.length ? (
-                <div className="list-items list-items-sky">
-                  {displayed.map((hit) => (
-                    <PersonRow key={hit.user.id} hit={hit} busy={busy} onAdd={() => requestFromSearch(hit)} onAccept={() => act(`accept:${hit.user.id}`, () => post(`/api/friends/requests/${hit.user.id}/accept`), `You and ${hit.user.displayName} are now friends`)} />
-                  ))}
+                <div className="stack" style={{ gap: 'var(--s-3)' }}>
+                  <div className="people-results-toolbar">
+                    <span className="muted text-sm">
+                      {displayed.length} {displayed.length === 1 ? 'person' : 'people'}
+                    </span>
+                    <div className="segmented" role="group" aria-label="View">
+                      <button type="button" aria-pressed={peopleView === 'grid'} onClick={() => setPeopleView('grid')} title="Card view">
+                        <LayoutGrid size={16} aria-hidden />
+                        <span className="sr-only">Card view</span>
+                      </button>
+                      <button type="button" aria-pressed={peopleView === 'list'} onClick={() => setPeopleView('list')} title="List view">
+                        <Rows3 size={16} aria-hidden />
+                        <span className="sr-only">List view</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className={peopleView === 'grid' ? 'friend-grid' : 'list-items list-items-sky'}>
+                    {displayed.map((hit) => (
+                      <PersonResult
+                        key={hit.user.id}
+                        hit={hit}
+                        view={peopleView}
+                        busy={busy}
+                        onAdd={() => requestFromSearch(hit)}
+                        onAccept={() =>
+                          act(
+                            `accept:${hit.user.id}`,
+                            () => post(`/api/friends/requests/${hit.user.id}/accept`),
+                            `You and ${hit.user.displayName} are now friends`,
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
               ) : query.trim().replace(/^@/, '').length >= 2 ? (
                 <p className="muted text-sm">No discoverable profiles match “{query.trim()}”.</p>
@@ -395,58 +427,165 @@ export default function Friends() {
         </>
       )}
       <div style={{ height: 'var(--s-12)' }} />
+
+      <Modal
+        open={manualOpen}
+        onClose={closeManual}
+        title="Add by username"
+        subtitle="Works for private accounts too — enter their exact Wishful handle."
+        size="sm"
+        footer={
+          <>
+            <Button type="button" onClick={closeManual}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="friends-manual-add"
+              variant="primary"
+              icon={<UserRoundPlus size={16} />}
+              loading={sending}
+              disabled={handle.trim().replace(/^@/, '').length < 3}
+            >
+              Send request
+            </Button>
+          </>
+        }
+      >
+        <form id="friends-manual-add" className="stack" onSubmit={sendByHandle}>
+          <label className="field">
+            <span className="field-label">Username</span>
+            <div className="input-group">
+              <span className="sky-form-at" aria-hidden>
+                @
+              </span>
+              <input
+                className="input"
+                placeholder="username"
+                value={handle}
+                onChange={(e) => setHandle(e.target.value)}
+                aria-invalid={error ? true : undefined}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                data-autofocus
+              />
+            </div>
+            {error && <span className="field-error">{error}</span>}
+          </label>
+        </form>
+      </Modal>
     </div>
   );
 }
 
-function PersonRow({
+function PersonAction({
   hit,
   busy,
   onAdd,
   onAccept,
+  compact,
 }: {
   hit: PeopleSearchHit;
   busy: string | null;
   onAdd: () => void;
   onAccept: () => void;
+  compact?: boolean;
+}) {
+  const { user, relationship } = hit;
+  if (relationship === 'self') {
+    return (
+      <Link to={`/u/${user.username}`} className={`btn btn-sm${compact ? '' : ' btn-primary'}`}>
+        View profile
+      </Link>
+    );
+  }
+  if (relationship === 'friends') {
+    return (
+      <Link to={`/app/friends/${user.id}`} className="btn btn-sm">
+        Friends
+      </Link>
+    );
+  }
+  if (relationship === 'outgoing') {
+    return <span className="badge badge-outline">Request sent</span>;
+  }
+  if (relationship === 'incoming') {
+    return (
+      <Button size="sm" variant="primary" icon={<Check size={14} />} loading={busy === `accept:${user.id}`} onClick={onAccept}>
+        Accept
+      </Button>
+    );
+  }
+  return (
+    <Button size="sm" variant="primary" icon={<UserRoundPlus size={14} />} loading={busy === `search:${user.id}`} onClick={onAdd}>
+      Add
+    </Button>
+  );
+}
+
+function PersonResult({
+  hit,
+  view,
+  busy,
+  onAdd,
+  onAccept,
+}: {
+  hit: PeopleSearchHit;
+  view: PeopleView;
+  busy: string | null;
+  onAdd: () => void;
+  onAccept: () => void;
 }) {
   const { user, relationship, profileVisibility } = hit;
+  const title = relationship === 'self' ? 'Me' : user.displayName;
+  const meta = (
+    <>
+      @{user.username} · {PROFILE_VISIBILITY_LABELS[profileVisibility as ProfileVisibility]}
+      {relationship === 'self' ? ' · how others find you' : ''}
+    </>
+  );
+
+  if (view === 'list') {
+    return (
+      <div className={['item-row', relationship === 'self' && 'people-row-me'].filter(Boolean).join(' ')}>
+        <Link to={`/u/${user.username}`} className="item-row-avatar-link" aria-label={`Open @${user.username}`}>
+          <Avatar name={user.displayName} src={user.avatarUrl} size={40} />
+        </Link>
+        <div className="item-row-main">
+          <strong className="truncate">
+            {title}
+            {relationship === 'self' && <span className="people-me-badge">You</span>}
+          </strong>
+          <span className="muted text-xs truncate">{meta}</span>
+        </div>
+        <div className="item-row-side">
+          <PersonAction hit={hit} busy={busy} onAdd={onAdd} onAccept={onAccept} compact />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={['item-row', relationship === 'self' && 'people-row-me'].filter(Boolean).join(' ')}>
-      <Link to={`/u/${user.username}`} className="item-row-avatar-link" aria-label={`Open @${user.username}`}>
-        <Avatar name={user.displayName} src={user.avatarUrl} size={40} />
+    <article className={['friend-card', 'people-card', relationship === 'self' && 'people-card-me'].filter(Boolean).join(' ')}>
+      <div className="friend-card-sky" aria-hidden>
+        <Cloud className="friend-card-cloud friend-card-cloud-1" />
+        <Cloud className="friend-card-cloud friend-card-cloud-2" />
+      </div>
+      <Link to={`/u/${user.username}`} className="people-card-avatar" aria-label={`Open @${user.username}`}>
+        <Avatar name={user.displayName} src={user.avatarUrl} size={64} />
       </Link>
-      <div className="item-row-main">
+      <div className="friend-card-body">
         <strong className="truncate">
-          {relationship === 'self' ? 'Me' : user.displayName}
+          {title}
           {relationship === 'self' && <span className="people-me-badge">You</span>}
         </strong>
-        <span className="muted text-xs truncate">
-          @{user.username} · {PROFILE_VISIBILITY_LABELS[profileVisibility as ProfileVisibility]}
-          {relationship === 'self' ? ' · how others find you' : ''}
-        </span>
+        <span className="muted text-xs truncate">@{user.username}</span>
+        <span className="friend-card-since">{PROFILE_VISIBILITY_LABELS[profileVisibility as ProfileVisibility]}{relationship === 'self' ? ' · how others find you' : ''}</span>
       </div>
-      <div className="item-row-side">
-        {relationship === 'self' ? (
-          <Link to={`/u/${user.username}`} className="btn btn-sm">
-            View profile
-          </Link>
-        ) : relationship === 'friends' ? (
-          <Link to={`/app/friends/${user.id}`} className="btn btn-sm">
-            Friends
-          </Link>
-        ) : relationship === 'outgoing' ? (
-          <span className="badge badge-outline">Request sent</span>
-        ) : relationship === 'incoming' ? (
-          <Button size="sm" variant="primary" icon={<Check size={14} />} loading={busy === `accept:${user.id}`} onClick={onAccept}>
-            Accept
-          </Button>
-        ) : (
-          <Button size="sm" variant="primary" icon={<UserRoundPlus size={14} />} loading={busy === `search:${user.id}`} onClick={onAdd}>
-            Add
-          </Button>
-        )}
+      <div className="people-card-action">
+        <PersonAction hit={hit} busy={busy} onAdd={onAdd} onAccept={onAccept} />
       </div>
-    </div>
+    </article>
   );
 }

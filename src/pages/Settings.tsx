@@ -327,7 +327,7 @@ function ProfileSection({ me }: { me: SelfUser }) {
           )}
         </div>
       </div>
-      <div>
+      <div className="sticky-actions">
         <Button type="submit" variant="primary" loading={busy} disabled={uploading}>
           Save profile
         </Button>
@@ -405,7 +405,7 @@ function PrivacySection({ me }: { me: SelfUser }) {
           </Field>
         </div>
       </div>
-      <div>
+      <div className="sticky-actions">
         <Button variant="primary" onClick={save} loading={busy}>
           Save defaults
         </Button>

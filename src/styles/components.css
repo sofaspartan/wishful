@@ -239,7 +239,7 @@
 }
 @media (min-width: 560px) {
   .form-grid.cols-2 {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
   .form-grid.cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -394,6 +394,9 @@
   gap: 2px;
   max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
   scrollbar-width: none;
 }
 .segmented::-webkit-scrollbar {
@@ -436,9 +439,13 @@
 /* Tabs (underline) */
 .tabs {
   display: flex;
+  flex-wrap: nowrap;
   gap: var(--s-5);
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
   scrollbar-width: none;
 }
 .tabs::-webkit-scrollbar {
@@ -866,6 +873,7 @@
   align-items: flex-start;
   gap: var(--s-3);
   padding: var(--s-6) var(--s-5) var(--s-3);
+  flex-shrink: 0;
 }
 @media (min-width: 640px) {
   .modal-header {
@@ -909,6 +917,10 @@
   border-top: 1px solid var(--border);
   background: var(--surface);
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 @media (min-width: 640px) {
   .modal-footer {
@@ -952,6 +964,37 @@
 }
 .editor .cover-backdrops {
   grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+/* Editor sheets stay single-column until the side-by-side desktop layout; resetting
+   span-2 avoids an implicit second track that was crushing Name / Location. */
+@media (max-width: 899px) {
+  .editor-panel {
+    gap: var(--s-5);
+  }
+  .editor-panel .form-grid.cols-2,
+  .editor-panel .form-grid.cols-3 {
+    grid-template-columns: 1fr;
+  }
+  .editor-panel .form-grid .span-2 {
+    grid-column: auto;
+  }
+  .editor .cover-backdrops {
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: var(--s-2);
+  }
+  .editor-panel .avatar-edit {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .editor-panel .segmented {
+    width: 100%;
+  }
+  .editor-panel .switch-row {
+    gap: var(--s-3);
+  }
+  .profile-editor-preview {
+    min-height: 200px;
+  }
 }
 .editor-tab-alert {
   width: 7px;

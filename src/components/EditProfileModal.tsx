@@ -208,10 +208,10 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
         <Field label="About you" optional error={errors.bio} className="span-2" hint="Shown on your profile.">
           <textarea className="textarea" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={LIMITS.bio} placeholder="A little about you, sizes, favourite colours…" />
         </Field>
-        <Field label="Location" optional error={errors.location} hint="Leave blank to hide it.">
+        <Field label="Location" optional error={errors.location} className="span-2" hint="Leave blank to hide it.">
           <input className="input" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={LIMITS.location} placeholder="Brooklyn, NY" />
         </Field>
-        <div className="field">
+        <div className="field span-2">
           <SwitchRow title="Show my age" description="Uses your birth year so it stays accurate." checked={showAge} onChange={setShowAge} />
           {showAge && (
             <Field label="Birth year" error={errors.birthYear} hint={previewAge != null ? `Shown as ${previewAge}` : undefined}>
