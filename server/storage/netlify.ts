@@ -1,4 +1,4 @@
-import { getStore, type Store } from '@netlify/blobs';
+import { getStore } from '@netlify/blobs';
 import type { BinaryStore, JsonStore, StorageDriver, WriteOptions } from './types';
 
 function conditions(options?: WriteOptions) {
@@ -11,17 +11,14 @@ function conditions(options?: WriteOptions) {
  * Netlify Blobs driver. Stores are site-wide (not deploy-scoped) and use
  * strong consistency so reads always observe the latest write — required for
  * the ETag-based optimistic concurrency used throughout the data layer.
+ *
+ * `getStore` must run on every operation. Netlify injects a short-lived token
+ * via `NETLIFY_BLOBS_CONTEXT` on each function invocation; caching the Store
+ * across warm instances keeps the cold-start token and eventually fails with
+ * `BlobsInternalError: Failed to decode token: Token expired`.
  */
 export function createNetlifyDriver(): StorageDriver {
-  const cache = new Map<string, Store>();
-  const store = (name: string) => {
-    let s = cache.get(name);
-    if (!s) {
-      s = getStore({ name, consistency: 'strong' });
-      cache.set(name, s);
-    }
-    return s;
-  };
+  const store = (name: string) => getStore({ name, consistency: 'strong' });
 
   return {
     name: 'netlify',
