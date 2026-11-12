@@ -6,7 +6,7 @@ import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 
 interface SiteNavProps {
-  current?: 'home' | 'gifts';
+  current?: 'home' | 'gifts' | 'knowledge';
   /** Where to land after logging in or signing up. */
   next?: string;
 }
@@ -24,6 +24,9 @@ export function SiteNav({ current, next }: SiteNavProps) {
         </Link>
         <Link to={me ? '/app/gifts' : '/gifts'} className="btn btn-ghost" aria-current={current === 'gifts' ? 'page' : undefined}>
           Gift ideas
+        </Link>
+        <Link to="/knowledge" className="btn btn-ghost" aria-current={current === 'knowledge' ? 'page' : undefined}>
+          Knowledge base
         </Link>
       </nav>
       <div className="spacer" />

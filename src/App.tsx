@@ -24,6 +24,7 @@ const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
+const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
 const MockPricing = lazy(() => import('./pages/MockPricing'));
 const ExtensionConnect = lazy(() => import('./pages/ExtensionConnect'));
 const ExtensionPage = lazy(() => import('./pages/ExtensionPage'));
@@ -97,6 +98,8 @@ export function App() {
           <Route path="/b/:code" element={<BoxScan />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/knowledge" element={<KnowledgeBase />} />
+          <Route path="/knowledge/:slug" element={<KnowledgeBase />} />
           <Route path="/pricing" element={<MockPricing />} />
           <Route path="/extension" element={<ExtensionPage />} />
           <Route

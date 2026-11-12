@@ -130,6 +130,7 @@ export function SiteFooter({ coverArt = null }: { coverArt?: CoverArtValue | nul
         <span className="spacer" />
         <nav className="legal-links" aria-label="More">
           <Link to="/gifts">Gift ideas</Link>
+          <Link to="/knowledge">Knowledge base</Link>
           <Link to="/extension">Browser extension</Link>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>

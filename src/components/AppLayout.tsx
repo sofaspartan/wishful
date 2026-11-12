@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Gift, House, List, LogOut, Menu as MenuIcon, Moon, Search, Settings, Sun, User, UserRoundPlus } from 'lucide-react';
+import { Bookmark, BookOpen, Gift, House, List, LogOut, Menu as MenuIcon, Moon, Search, Settings, Sun, User, UserRoundPlus } from 'lucide-react';
 import { useFriends, useMe, useWishlists } from '../lib/queries';
 import { post } from '../lib/api';
 import { setTheme, useTheme } from '../lib/theme';
@@ -97,6 +97,9 @@ export function AppLayout() {
           View profile
         </MenuItem>
       )}
+      <MenuItem icon={<BookOpen size={16} />} onSelect={() => navigate('/knowledge')}>
+        Knowledge base
+      </MenuItem>
       <MenuSeparator />
       <MenuItem icon={<LogOut size={16} />} onSelect={logout}>
         Log out
