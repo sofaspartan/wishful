@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import type { Item, Priority, PublicItem } from '../../shared/types';
 import { ACQUIRED_VIA_LABELS, CONDITION_LABELS, ITEM_TYPE_LABELS } from '../../shared/constants';
 import { formatDate, formatPrice, hostname } from '../lib/format';
@@ -114,56 +114,65 @@ export function ItemDetailModal({ item, onClose, priority, entryNote, children, 
   const link = item.externalUrl || item.metadata.bookingUrl || null;
 
   return (
-    <Modal open onClose={onClose} title={item.title} size="lg" footer={footer}>
-      <div className="detail-grid">
-        <DetailMedia item={item} />
-        <div className="stack">
-          <div className="row-wrap">
-            <span className="badge badge-outline">
-              <ItemTypeIcon type={item.type} size={12} /> {ITEM_TYPE_LABELS[item.type]}
-            </span>
-            {priority && <PriorityBadge priority={priority} />}
-            {badges}
-          </div>
-          {price && (
-            <div className="display" style={{ fontSize: 'var(--text-2xl)' }}>
-              {item.type === 'idea' ? '~' : ''}
-              {price}
-            </div>
-          )}
-          {link && (
-            <a className="btn btn-primary" href={link} target="_blank" rel="noopener noreferrer nofollow" style={{ alignSelf: 'flex-start' }}>
-              <ExternalLink size={16} aria-hidden /> {item.type === 'experience' && !item.externalUrl ? 'Booking page' : `View on ${hostname(link) || 'site'}`}
-            </a>
-          )}
-          {entryNote && <div className="owner-note">{entryNote}</div>}
-          {item.description && (
-            <p className="text-sm" style={{ whiteSpace: 'pre-line', color: 'var(--ink-2)' }}>
-              {item.description}
-            </p>
-          )}
-          <ItemFacts item={item} />
-          <OwnershipFacts item={item} />
-          {item.tags.length > 0 && (
-            <div className="row-wrap">
-              {item.tags.map((t) => (
-                <span key={t} className="tag">
-                  #{t}
+    <Modal open onClose={onClose} title={item.title} size="lg" bare className="item-detail-modal">
+      <div className="item-detail">
+        <button type="button" className="btn btn-ghost btn-icon btn-sm item-detail-close" onClick={onClose} aria-label="Close">
+          <X size={18} aria-hidden />
+        </button>
+        <div className="detail-grid">
+          <DetailMedia item={item} />
+          <div className="detail-panel">
+            <div className="detail-panel-scroll stack">
+              <h2 className="detail-title display">{item.title}</h2>
+              <div className="row-wrap">
+                <span className="badge badge-outline">
+                  <ItemTypeIcon type={item.type} size={12} /> {ITEM_TYPE_LABELS[item.type]}
                 </span>
-              ))}
-            </div>
-          )}
-          {notes && (
-            <div className="card" style={{ padding: 'var(--s-3) var(--s-4)', background: 'var(--surface-2)' }}>
-              <div className="section-label" style={{ marginBottom: 4 }}>
-                Private notes
+                {priority && <PriorityBadge priority={priority} />}
+                {badges}
               </div>
-              <p className="text-sm" style={{ whiteSpace: 'pre-line' }}>
-                {notes}
-              </p>
+              {price && (
+                <div className="display" style={{ fontSize: 'var(--text-2xl)' }}>
+                  {item.type === 'idea' ? '~' : ''}
+                  {price}
+                </div>
+              )}
+              {link && (
+                <a className="btn btn-primary" href={link} target="_blank" rel="noopener noreferrer nofollow" style={{ alignSelf: 'flex-start' }}>
+                  <ExternalLink size={16} aria-hidden /> {item.type === 'experience' && !item.externalUrl ? 'Booking page' : `View on ${hostname(link) || 'site'}`}
+                </a>
+              )}
+              {entryNote && <div className="owner-note">{entryNote}</div>}
+              {item.description && (
+                <p className="text-sm" style={{ whiteSpace: 'pre-line', color: 'var(--ink-2)' }}>
+                  {item.description}
+                </p>
+              )}
+              <ItemFacts item={item} />
+              <OwnershipFacts item={item} />
+              {item.tags.length > 0 && (
+                <div className="row-wrap">
+                  {item.tags.map((t) => (
+                    <span key={t} className="tag">
+                      #{t}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {notes && (
+                <div className="card" style={{ padding: 'var(--s-3) var(--s-4)', background: 'var(--surface-2)' }}>
+                  <div className="section-label" style={{ marginBottom: 4 }}>
+                    Private notes
+                  </div>
+                  <p className="text-sm" style={{ whiteSpace: 'pre-line' }}>
+                    {notes}
+                  </p>
+                </div>
+              )}
+              {children}
             </div>
-          )}
-          {children}
+            {footer ? <div className="detail-actions">{footer}</div> : null}
+          </div>
         </div>
       </div>
     </Modal>
