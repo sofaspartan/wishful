@@ -15,6 +15,7 @@ import { DragHandle, SortableList } from '../components/Sortable';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/misc';
+import { PageSky } from '../components/PageSky';
 import { SkyArt } from '../components/SkyArt';
 import { ListsSwitch } from '../components/ListsSwitch';
 import { useToast } from '../components/ui/Toast';
@@ -90,22 +91,24 @@ export default function Wishlists() {
   return (
     <div className="page">
       <ListsSwitch />
-      <div className="page-header">
-        <div>
-          <h1 className="page-title display">{collectionsOnly ? 'My Collections' : 'My Wishlists'}</h1>
-          <p className="page-subtitle">
-            {collectionsOnly
-              ? 'A record of the things you already have — vinyl, sneakers, books, plants.'
-              : 'Lists for birthdays, holidays, and everything you’re hoping for.'}
-          </p>
-        </div>
-        <div className="page-actions">
+      <PageSky
+        eyebrow={collectionsOnly ? 'Collections' : 'Wishlists'}
+        title={collectionsOnly ? 'My Collections' : 'My Wishlists'}
+        subtitle={
+          collectionsOnly
+            ? 'A record of the things you already have — vinyl, sneakers, books, plants.'
+            : 'Lists for birthdays, holidays, and everything you’re hoping for.'
+        }
+        art={<SkyArt scene={collectionsOnly ? 'collection' : 'wishlist'} />}
+        tone={collectionsOnly ? 'blush' : undefined}
+      >
+        <div className="page-sky-actions">
           <CreateMenu />
         </div>
-      </div>
+      </PageSky>
 
       <div className="toolbar">
-        <div className="tabs" role="tablist" aria-label="List status" style={{ borderBottom: 0 }}>
+        <div className="segmented" role="tablist" aria-label="List status">
           <button type="button" role="tab" aria-selected={tab === 'active'} onClick={() => setTab('active')}>
             Active <span className="faint">{active.filter(ofKind).length}</span>
           </button>

@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bell, CalendarDays, Inbox, Pencil, Tag, UserCheck, UserPlus, Users } from 'lucide-react';
+import { Bell, CalendarDays, Inbox, LifeBuoy, Pencil, Tag, UserCheck, UserPlus, Users } from 'lucide-react';
 import type { AppNotification, NotificationType } from '../../shared/types';
-import { keys, useNotifications } from '../lib/queries';
+import { keys, useMe, useNotifications } from '../lib/queries';
 import { post } from '../lib/api';
 import { relativeTime } from '../lib/format';
 import { Popover } from './ui/Popover';
@@ -18,10 +18,12 @@ const ICONS: Record<NotificationType, typeof Bell> = {
 };
 
 export function NotificationsButton() {
+  const { data: me } = useMe();
   const { data: notifications = [] } = useNotifications();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const unread = notifications.filter((n) => !n.readAt).length;
+  const needsRecovery = Boolean(me && !me.recoveryCodeCreatedAt);
+  const unread = notifications.filter((n) => !n.readAt).length + (needsRecovery ? 1 : 0);
 
   const markRead = async (body: { ids?: string[]; all?: boolean }) => {
     const res = await post<{ notifications: AppNotification[] }>('/api/notifications/read', body).catch(() => null);
@@ -44,14 +46,30 @@ export function NotificationsButton() {
           <div className="notif-head">
             <strong>Notifications</strong>
             <div className="spacer" />
-            {unread > 0 && (
+            {notifications.some((n) => !n.readAt) && (
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => markRead({ all: true })}>
                 Mark all read
               </button>
             )}
           </div>
           <div className="notif-list">
-            {notifications.length === 0 ? (
+            {needsRecovery && (
+              <button
+                type="button"
+                className="notif-item unread notif-alert"
+                onClick={() => {
+                  close();
+                  navigate('/app/settings?tab=account');
+                }}
+              >
+                <LifeBuoy size={16} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block' }}>Set up a recovery code</span>
+                  <span className="faint text-xs">So you can get back in if you forget your password</span>
+                </span>
+              </button>
+            )}
+            {notifications.length === 0 && !needsRecovery ? (
               <div className="stack-sm" style={{ alignItems: 'center', padding: '32px 16px', textAlign: 'center' }}>
                 <Inbox size={22} className="faint" aria-hidden />
                 <p className="muted text-sm">You're all caught up. We'll let you know when someone shares a list with you or an occasion is coming up.</p>

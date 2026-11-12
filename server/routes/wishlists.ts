@@ -43,6 +43,7 @@ import {
 import { addEntry, getItem, noteCollaboratorEdit, removeEntry, syncedItemConflict } from '../domain/items';
 import { getClaimsDoc, giftSide, ownerClaimViews, ownerClearClaim } from '../domain/claims';
 import { areFriends } from '../domain/friends';
+import { resolveRecipientCircleIds } from '../domain/circle';
 import { BRAND_NAME } from '../brand';
 
 /** Serialize a wishlist for an in-app viewer according to their role. */
@@ -84,13 +85,20 @@ async function buildDetail(w: WishlistRecord, role: AccessRole, viewerId: string
 }
 
 type RecipientsInput = WishlistCreateInput['recipients'];
+type ResolvedRecipients = Array<{
+  name: string;
+  avatarUrl: string | null;
+  userId: string | null;
+  canEdit?: boolean;
+  circlePersonId: string | null;
+}>;
 
 /**
  * Check who a list may be made for before anything is saved. Each linked
  * account must be one of the owner's friends (re-saving an existing link is
  * fine even if the friendship has since ended). Returns the friends to link.
  */
-async function recipientTargets(owner: UserRecord, input: RecipientsInput, current: WishlistRecord | null): Promise<Map<string, UserRecord>> {
+async function recipientTargets(owner: UserRecord, input: RecipientsInput | ResolvedRecipients, current: WishlistRecord | null): Promise<Map<string, UserRecord>> {
   const targets = new Map<string, UserRecord>();
   for (const [i, person] of (input ?? []).entries()) {
     const userId = person.userId;
@@ -111,7 +119,7 @@ async function recipientTargets(owner: UserRecord, input: RecipientsInput, curre
 async function applyRecipients(
   w: WishlistRecord,
   owner: UserRecord,
-  input: RecipientsInput,
+  input: ResolvedRecipients | undefined,
   targets: Map<string, UserRecord>,
   includeOwner?: boolean,
 ): Promise<WishlistRecord> {
@@ -119,7 +127,12 @@ async function applyRecipients(
   const previousIds = (w.recipients ?? []).flatMap((r) => (r.userId ? [r.userId] : []));
   let updated = await mutateWishlist(w.id, (d) => {
     if (input !== undefined) {
-      d.recipients = input.map((p) => ({ name: p.name, avatarUrl: p.avatarUrl ?? null, userId: p.userId ?? null }));
+      d.recipients = input.map((p) => ({
+        name: p.name,
+        avatarUrl: p.avatarUrl ?? null,
+        userId: p.userId ?? null,
+        ...(p.circlePersonId ? { circlePersonId: p.circlePersonId } : {}),
+      }));
     }
     const others = d.recipients ?? [];
     if (includeOwner !== undefined) d.includeOwner = Boolean(includeOwner && others.length);
@@ -198,8 +211,9 @@ export function registerWishlistRoutes(router: Router) {
   router.post('/api/wishlists', async (ctx) => {
     const user = await requireUser(ctx);
     const input = await readJson(ctx.req, wishlistCreateSchema);
-    const targets = await recipientTargets(user, input.recipients, null);
-    const w = await applyRecipients(await createWishlist(user, input), user, input.recipients, targets, input.includeOwner);
+    const recipients = input.recipients ? await resolveRecipientCircleIds(user.id, input.recipients) : undefined;
+    const targets = await recipientTargets(user, recipients ?? input.recipients, null);
+    const w = await applyRecipients(await createWishlist(user, input), user, recipients, targets, input.includeOwner);
     return json({ wishlist: toWishlistDto(w, 'owner') }, 201);
   });
 
@@ -226,7 +240,8 @@ export function registerWishlistRoutes(router: Router) {
     const user = await requireUser(ctx);
     const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'owner');
     const input = await readJson(ctx.req, wishlistUpdateSchema);
-    const targets = await recipientTargets(user, input.recipients, wishlist);
+    const recipients = input.recipients ? await resolveRecipientCircleIds(user.id, input.recipients) : undefined;
+    const targets = await recipientTargets(user, recipients ?? input.recipients, wishlist);
     let updated = await mutateWishlist(wishlist.id, (w) => {
       if (input.title !== undefined) w.title = input.title;
       if (input.description !== undefined) w.description = input.description;
@@ -244,7 +259,7 @@ export function registerWishlistRoutes(router: Router) {
       if (input.archived !== undefined) w.archivedAt = input.archived ? (w.archivedAt ?? nowIso()) : null;
       applyCollectionRules(w);
     });
-    updated = await applyRecipients(updated, user, input.recipients, targets, input.includeOwner);
+    updated = await applyRecipients(updated, user, recipients, targets, input.includeOwner);
     // A list that becomes shareable needs a link.
     if (updated.visibility !== 'private' && !updated.shareToken) updated = await regenerateShareToken(updated);
     return json(await buildDetail(updated, 'owner', user.id));

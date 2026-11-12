@@ -1,4 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+type PrefListener = (value: string) => void;
+const prefListeners = new Map<string, Set<PrefListener>>();
+
+function notifyPref(storageKey: string, value: string) {
+  const set = prefListeners.get(storageKey);
+  if (!set) return;
+  for (const listener of set) listener(value);
+}
 
 /** Small interface preferences (view mode etc.) persisted in localStorage. Never user data. */
 export function useLocalPref<T extends string>(key: string, fallback: T, allowed: readonly T[]): [T, (v: T) => void] {
@@ -11,6 +20,23 @@ export function useLocalPref<T extends string>(key: string, fallback: T, allowed
       return fallback;
     }
   });
+
+  useEffect(() => {
+    const listener: PrefListener = (next) => {
+      if (allowed.includes(next as T)) setValue(next as T);
+    };
+    let set = prefListeners.get(storageKey);
+    if (!set) {
+      set = new Set();
+      prefListeners.set(storageKey, set);
+    }
+    set.add(listener);
+    return () => {
+      set!.delete(listener);
+      if (set!.size === 0) prefListeners.delete(storageKey);
+    };
+  }, [storageKey, allowed]);
+
   const update = useCallback(
     (v: T) => {
       setValue(v);
@@ -19,6 +45,7 @@ export function useLocalPref<T extends string>(key: string, fallback: T, allowed
       } catch {
         /* ignore */
       }
+      notifyPref(storageKey, v);
     },
     [storageKey],
   );

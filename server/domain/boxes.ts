@@ -95,6 +95,7 @@ export async function createBox(owner: UserRecord, input: BoxCreateInput): Promi
     code: await createCode(id),
     access: input.access ?? 'link',
     showPrices: input.showPrices ?? false,
+    archivedAt: null,
     lastScannedAt: null,
     createdAt: stamp,
     updatedAt: stamp,
@@ -121,6 +122,7 @@ export function updateBox(box: BoxRecord, input: BoxUpdateInput): Promise<BoxRec
     if (input.access !== undefined) b.access = input.access;
     if (input.showPrices !== undefined) b.showPrices = input.showPrices;
     if (input.lines !== undefined) b.lines = cleanLines(input.lines);
+    if (input.archived !== undefined) b.archivedAt = input.archived ? (b.archivedAt ?? nowIso()) : null;
   });
 }
 
@@ -166,6 +168,7 @@ export async function summarizeBoxes(boxes: BoxRecord[]): Promise<BoxSummary[]> 
   const images = new Map(items.map((i) => [i.id, i.imageUrl]));
   return boxes.map(({ itemIds, lines, notes: _notes, ...rest }) => ({
     ...rest,
+    archivedAt: rest.archivedAt ?? null,
     itemCount: itemIds.length,
     lineCount: lines.length,
     lineTexts: lines.map((l) => l.text),
@@ -177,7 +180,7 @@ export async function summarizeBoxes(boxes: BoxRecord[]): Promise<BoxSummary[]> 
 }
 
 export async function boxDetail(box: BoxRecord): Promise<BoxDetail> {
-  return { box, items: await packedItems(box) };
+  return { box: { ...box, archivedAt: box.archivedAt ?? null }, items: await packedItems(box) };
 }
 
 /**
@@ -230,6 +233,7 @@ export async function resolveBoxCode(raw: string): Promise<BoxRecord> {
   if (!record || record.revokedAt) throw notFound(CODE_NOT_FOUND);
   const box = await getBox(record.boxId);
   if (!box || box.code !== code) throw notFound(CODE_NOT_FOUND);
+  if (box.archivedAt) throw notFound('This box is archived, so its label is paused.');
   return box;
 }
 

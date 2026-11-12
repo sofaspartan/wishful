@@ -4,7 +4,7 @@ import { buttonClass } from './ui/Button';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 
 type Props = {
-  /** Primary “New” on list pages, sidebar “Add”, or the mobile bottom FAB. */
+  /** Primary “Add” on list pages, sidebar “Add”, or the mobile bottom FAB. */
   variant?: 'new' | 'add' | 'fab';
   /** Stretch to the sidebar width. */
   block?: boolean;
@@ -19,7 +19,7 @@ export function CreateMenu({ variant = 'new', block, align }: Props) {
 
   return (
     <Menu
-      label={fab ? 'Add' : add ? 'Add' : 'Create new'}
+      label="Add"
       align={align ?? (fab ? 'center' : add ? 'left' : 'right')}
       buttonClassName={fab ? 'bottom-add' : buttonClass({ variant: 'primary', block })}
       buttonContent={
@@ -30,7 +30,7 @@ export function CreateMenu({ variant = 'new', block, align }: Props) {
         ) : (
           <>
             <Plus size={17} aria-hidden />
-            <span>{add ? 'Add' : 'New'}</span>
+            <span>Add</span>
             <ChevronDown size={15} aria-hidden style={{ marginLeft: 2, opacity: 0.85 }} />
           </>
         )

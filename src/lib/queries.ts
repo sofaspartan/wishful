@@ -9,6 +9,7 @@ import type {
   PlayshelfStatus,
   ExtensionConnection,
   FriendProfileView,
+  CirclePerson,
   FriendsOverview,
   Item,
   Priority,
@@ -32,6 +33,7 @@ export const keys = {
   profile: (username: string) => ['profile', username] as const,
   friends: ['friends'] as const,
   friend: (id: string) => ['friend', id] as const,
+  circle: ['circle'] as const,
   extensionConnections: ['extension-connections'] as const,
   brickfolio: ['integrations', 'brickfolio'] as const,
   playshelf: ['integrations', 'playshelf'] as const,
@@ -117,6 +119,14 @@ export function useFriends(enabled = true) {
     queryFn: () => get<FriendsOverview>('/api/friends'),
     enabled,
     refetchInterval: 60_000,
+  });
+}
+
+export function useCircle(enabled = true) {
+  return useQuery({
+    queryKey: keys.circle,
+    queryFn: () => get<{ people: CirclePerson[] }>('/api/circle').then((r) => r.people),
+    enabled,
   });
 }
 

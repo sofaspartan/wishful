@@ -2,6 +2,8 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
   Download,
   EyeOff,
@@ -33,6 +35,7 @@ import { EditItemModal } from '../components/EditItemModal';
 import { CoverArt, CoverAvatar } from '../components/CoverArt';
 import { BoxFormModal } from '../components/BoxFormModal';
 import { BoxCodeDialog, PackItemsDialog, PutInBoxDialog } from '../components/BoxDialogs';
+import { useBoxActions } from '../components/BoxMenu';
 import { BoxNumberBadge, FragileBadge, OwnerOnlyBadge, thingCount } from '../components/BoxVisuals';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { Button } from '../components/ui/Button';
@@ -74,8 +77,9 @@ function BoxView({ detail }: { detail: Detail }) {
   const invalidate = useInvalidate();
   const toast = useToast();
   const confirm = useConfirm();
+  const boxActions = useBoxActions();
   const [params, setParams] = useSearchParams();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(Boolean(params.get('edit')));
   const [packing, setPacking] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [moving, setMoving] = useState<Item | null>(null);
@@ -162,6 +166,7 @@ function BoxView({ detail }: { detail: Detail }) {
               <span className="badge badge-outline">{facts}</span>
               {box.fragile && <FragileBadge outline />}
               {box.access === 'owner' && <OwnerOnlyBadge outline />}
+              {box.archivedAt && <span className="badge">Archived</span>}
             </div>
             <h1 className="wl-hero-title display">{box.name}</h1>
             <div className="row-wrap text-sm muted" style={{ gap: 'var(--s-4)' }}>
@@ -184,22 +189,37 @@ function BoxView({ detail }: { detail: Detail }) {
               )}
             </div>
             <div className="wl-hero-actions">
-              <Button variant="primary" icon={<PackagePlus size={17} />} onClick={() => setPacking(true)}>
-                Pack items
-              </Button>
-              <Link to={`/app/boxes/labels?ids=${box.id}`} className="btn">
-                <Printer size={16} aria-hidden /> Print label
-              </Link>
-              <Button icon={<QrIcon size={16} />} onClick={() => setShowCode(true)}>
-                QR code
-              </Button>
+              {!box.archivedAt && (
+                <>
+                  <Button variant="primary" icon={<PackagePlus size={17} />} onClick={() => setPacking(true)}>
+                    Pack items
+                  </Button>
+                  <Link to={`/app/boxes/labels?ids=${box.id}`} className="btn">
+                    <Printer size={16} aria-hidden /> Print label
+                  </Link>
+                  <Button icon={<QrIcon size={16} />} onClick={() => setShowCode(true)}>
+                    QR code
+                  </Button>
+                </>
+              )}
               <Menu label="More box actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
                 <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditing(true)}>
                   Edit details
                 </MenuItem>
-                <MenuItem icon={<Download size={16} />} onSelect={() => window.open(`/og/box/${box.id}.png`, '_blank', 'noopener')}>
-                  Label as an image
-                </MenuItem>
+                {!box.archivedAt && (
+                  <MenuItem icon={<Download size={16} />} onSelect={() => window.open(`/og/box/${box.id}.png`, '_blank', 'noopener')}>
+                    Label as an image
+                  </MenuItem>
+                )}
+                {box.archivedAt ? (
+                  <MenuItem icon={<ArchiveRestore size={16} />} onSelect={() => boxActions.setArchived(box, false)}>
+                    Restore
+                  </MenuItem>
+                ) : (
+                  <MenuItem icon={<Archive size={16} />} onSelect={() => boxActions.setArchived(box, true)}>
+                    Archive
+                  </MenuItem>
+                )}
                 <MenuSeparator />
                 <MenuItem icon={<Trash2 size={16} />} danger onSelect={remove}>
                   Delete box
@@ -209,6 +229,16 @@ function BoxView({ detail }: { detail: Detail }) {
           </div>
         </div>
       </header>
+
+      {box.archivedAt && (
+        <div className="notice">
+          <Archive size={18} aria-hidden />
+          <div style={{ flex: 1 }}>This box is archived. Its QR label is paused and it’s hidden from your active boxes.</div>
+          <Button size="sm" onClick={() => boxActions.setArchived(box, false)}>
+            Restore
+          </Button>
+        </div>
+      )}
 
       {box.notes && (
         <div className="notice">

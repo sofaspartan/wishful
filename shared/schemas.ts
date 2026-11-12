@@ -16,6 +16,7 @@ import {
   COVER_BACKDROPS,
   COVER_FRAME_FILLS,
   COVER_FRAME_SHAPES,
+  CIRCLE_KINDS,
   COVER_ICONS,
   ITEM_ORDERS,
   ITEM_TYPES,
@@ -325,6 +326,11 @@ const wishlistFields = {
         avatarUrl: optionalImageUrlSchema.optional(),
         userId: idSchema.nullable().optional(),
         canEdit: z.boolean().optional(),
+        /** Reuse / keep in sync with a My Circle entry. */
+        circlePersonId: idSchema.nullable().optional(),
+        /** When true and no `circlePersonId`, save this person into My Circle on create/update. */
+        saveToCircle: z.boolean().optional(),
+        circleKind: z.enum(CIRCLE_KINDS).optional(),
       }),
     )
     .max(LIMITS.recipients, `A list can be for up to ${LIMITS.recipients} people`)
@@ -401,7 +407,11 @@ const boxFields = {
 };
 
 export const boxCreateSchema = z.object(boxFields);
-export const boxUpdateSchema = z.object({ ...boxFields, name: boxFields.name.optional() });
+export const boxUpdateSchema = z.object({
+  ...boxFields,
+  name: boxFields.name.optional(),
+  archived: z.boolean().optional(),
+});
 
 /** Pack items into a box, or take them out of whatever box they're in (`boxId: null`). */
 export const boxItemsSchema = z.object({ itemIds: z.array(idSchema).min(1).max(MAX_BOX_ITEMS), boxId: idSchema.nullable() });
@@ -466,6 +476,30 @@ export const notificationsReadSchema = z.object({
   ids: z.array(z.string().max(64)).max(200).optional(),
   all: z.boolean().optional(),
 });
+
+export const circleKindSchema = z.enum(CIRCLE_KINDS);
+
+export const circleCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Enter a name').max(60, 'Keep it under 60 characters'),
+  avatarUrl: optionalImageUrlSchema.optional(),
+  kind: circleKindSchema.optional(),
+  note: z.string().trim().max(LIMITS.circleNote, `Keep it under ${LIMITS.circleNote} characters`).optional(),
+});
+
+export const circleUpdateSchema = z.object({
+  name: z.string().trim().min(1, 'Enter a name').max(60, 'Keep it under 60 characters').optional(),
+  avatarUrl: optionalImageUrlSchema.optional(),
+  kind: circleKindSchema.optional(),
+  note: z.string().trim().max(LIMITS.circleNote, `Keep it under ${LIMITS.circleNote} characters`).optional(),
+});
+
+/** Link a My Circle person to a Wishful account (by friend id or username). */
+export const circleLinkSchema = z
+  .object({
+    userId: idSchema.optional(),
+    username: usernameSchema.optional(),
+  })
+  .refine((v) => Boolean(v.userId || v.username), { message: 'Choose someone to link.', path: ['username'] });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ItemCreateInput = z.infer<typeof itemCreateSchema>;

@@ -3,7 +3,7 @@
  * hashes, claim token hashes) and must be mapped through the serializers in
  * `server/serialize.ts` before being returned to any client.
  */
-import type { Box, ClaimStatus, CoverArt, Item, ListKind, PledgeRole, ProfileVisibility, SyncResult, UserPreferences, Wishlist } from '../shared/types';
+import type { Box, CircleKind, ClaimStatus, CoverArt, Item, ListKind, PledgeRole, ProfileVisibility, SyncResult, UserPreferences, Wishlist } from '../shared/types';
 
 export interface UserRecord {
   id: string;
@@ -144,6 +144,23 @@ export interface FriendshipRecord {
 /** Ids of everyone a user has a friendship record with, for listing only. */
 export interface FriendIndex {
   ids: string[];
+}
+
+/** One saved person or pet in the owner's My Circle book. */
+export interface CirclePersonRecord {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  kind: CircleKind;
+  note: string;
+  userId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Private My Circle book for one account (`circle/{userId}`). */
+export interface CircleDoc {
+  people: CirclePersonRecord[];
 }
 
 /** One connected browser extension. The bearer token is `wfx_{userId}.{secret}`; only SHA-256 of the secret is kept. */

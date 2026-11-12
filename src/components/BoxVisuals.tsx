@@ -59,7 +59,9 @@ export function OwnerOnlyBadge({ outline }: { outline?: boolean }) {
 
 export const thingCount = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
-type BoxCardFields = Pick<BoxSummary, 'name' | 'number' | 'color' | 'coverArt' | 'fragile' | 'access' | 'location' | 'room'>;
+type BoxCardFields = Pick<BoxSummary, 'name' | 'number' | 'color' | 'coverArt' | 'fragile' | 'access' | 'location' | 'room'> & {
+  archivedAt?: string | null;
+};
 
 export function BoxCard({ box, menu, view = 'grid' }: { box: BoxSummary; menu?: ReactNode; view?: 'grid' | 'list' }) {
   const things = box.itemCount + box.lineCount;
@@ -82,6 +84,7 @@ export function BoxCard({ box, menu, view = 'grid' }: { box: BoxSummary; menu?: 
                 <MapPin size={13} aria-hidden /> {box.location}
               </span>
             )}
+            {box.archivedAt && <span className="badge">Archived</span>}
           </span>
         </div>
         <div className="item-row-side" style={{ position: 'relative', zIndex: 2 }}>
@@ -121,6 +124,7 @@ function BoxCardFace({ box, things, updatedAt, menu }: { box: BoxCardFields; thi
           <BoxNumberBadge box={box} />
           {box.fragile && <FragileBadge />}
           {box.access === 'owner' && <OwnerOnlyBadge />}
+          {box.archivedAt && <span className="badge">Archived</span>}
         </div>
         {menu && <div className="wl-card-menu row">{menu}</div>}
       </div>

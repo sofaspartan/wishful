@@ -4,6 +4,7 @@ import { initials } from '../../lib/format';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { CloudBank } from '../Cloud';
+import { ErrorSplash } from '../ErrorSplash';
 
 export function Avatar({ name, src, size = 32 }: { name: string; src?: string | null; size?: number }) {
   return (
@@ -51,8 +52,8 @@ interface EmptyStateProps {
   children?: ReactNode;
   action?: ReactNode;
   className?: string;
-  /** Colour coding for the sky: blue (default) for wishlists, blush for collections. */
-  tone?: 'blush';
+  /** Colour coding for the sky: blue (default) for wishlists, blush for collections, kraft for boxes. */
+  tone?: 'blush' | 'kraft';
 }
 
 export function EmptyState({ icon, art, title, children, action, className, tone }: EmptyStateProps) {
@@ -203,22 +204,19 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <div className="error-page">
-        <div className="stack" style={{ alignItems: 'center', maxWidth: 420 }}>
-          <div className="display" style={{ fontSize: '2.4rem' }}>
-            Something went wrong
-          </div>
-          <p className="muted">An unexpected error occurred while showing this page. Your data is safe.</p>
-          <div className="row">
+      <ErrorSplash
+        kind="crash"
+        actions={
+          <>
             <Button variant="primary" onClick={() => window.location.reload()}>
               Reload page
             </Button>
             <a className="btn" href="/app">
               Go home
             </a>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
     );
   }
 }

@@ -3,7 +3,8 @@ import { Check, FileText, Palette, Shapes, Users } from 'lucide-react';
 import { VISIBILITIES, type CoverArt, type ListKind, type Visibility, type Wishlist } from '../../shared/types';
 import { ACCENT_COLORS, SUGGESTED_OCCASIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS, peopleForList, possessiveNames } from '../../shared/constants';
 import { wishlistCreateSchema, zodFieldErrors } from '../../shared/schemas';
-import { useFriends, useMe, useInvalidate } from '../lib/queries';
+import { useQueryClient } from '@tanstack/react-query';
+import { keys, useCircle, useFriends, useMe, useInvalidate } from '../lib/queries';
 import { errorMessage, fieldErrors, patch, post } from '../lib/api';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
@@ -32,7 +33,14 @@ function recipientDrafts(wishlist: Wishlist | undefined): RecipientDraft[] {
   const people = wishlist?.recipients ?? [];
   if (!people.length) return [newRecipientDraft()];
   return people.map((r) =>
-    newRecipientDraft({ name: r.name, avatarUrl: r.avatarUrl, userId: r.userId, canEdit: wishlist!.collaborators.some((c) => c.userId === r.userId && c.role === 'editor') }),
+    newRecipientDraft({
+      name: r.name,
+      avatarUrl: r.avatarUrl,
+      userId: r.userId,
+      circlePersonId: r.circlePersonId ?? null,
+      saveToCircle: false,
+      canEdit: wishlist!.collaborators.some((c) => c.userId === r.userId && c.role === 'editor'),
+    }),
   );
 }
 
@@ -53,7 +61,9 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
   const noun = collection ? 'collection' : 'wishlist';
   const { data: me } = useMe();
   const { data: friendsOverview } = useFriends(open);
+  const { data: circle = [] } = useCircle(open);
   const invalidate = useInvalidate();
+  const qc = useQueryClient();
   const toast = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -120,7 +130,17 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
     const who =
       forOthers || wishlist?.recipients?.length || wishlist?.includeOwner
         ? {
-            recipients: forOthers ? recipients.map(({ name, avatarUrl, userId, canEdit }) => ({ name, avatarUrl, userId, canEdit })) : [],
+            recipients: forOthers
+              ? recipients.map(({ name, avatarUrl, userId, canEdit, circlePersonId, saveToCircle, circleKind }) => ({
+                  name,
+                  avatarUrl,
+                  userId,
+                  canEdit,
+                  circlePersonId,
+                  saveToCircle: !circlePersonId && saveToCircle,
+                  circleKind: !circlePersonId && saveToCircle ? circleKind : undefined,
+                }))
+              : [],
             includeOwner: forWhom === 'both',
             // Only linked friends can be kept from seeing reservations; otherwise leave Surprise Mode as it is.
             ...(forOthers && linkedRecipients(recipients).length && !collection ? { surpriseMode: surprise } : {}),
@@ -143,6 +163,9 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
         ? (await patch<{ wishlist: Wishlist }>(`/api/wishlists/${wishlist.id}`, body)).wishlist
         : (await post<{ wishlist: Wishlist }>('/api/wishlists', { ...body, kind })).wishlist;
       invalidate(wishlist ? [wishlist.id] : []);
+      if (forOthers && recipients.some((p) => !p.circlePersonId && p.saveToCircle)) {
+        void qc.invalidateQueries({ queryKey: keys.circle });
+      }
       toast.success(wishlist ? `${collection ? 'Collection' : 'Wishlist'} updated` : `Created “${saved.title}”`);
       onSaved(saved);
     } catch (err) {
@@ -288,6 +311,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
               value={recipients}
               onChange={setRecipients}
               friends={friends}
+              circle={circle}
               surprise={collection ? undefined : { value: surprise, onChange: setSurprise }}
               noun={noun}
               errors={errors}

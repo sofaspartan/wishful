@@ -478,6 +478,28 @@ export interface ListRecipient {
   avatarUrl: string | null;
   /** The friend's account the list is shared with. They're also on `collaborators` while linked. */
   userId: string | null;
+  /** Optional My Circle entry this recipient was picked from or saved as. */
+  circlePersonId?: string | null;
+}
+
+/** Saved people and pets in My Circle — reusable across lists. */
+export const CIRCLE_KINDS = ['person', 'pet'] as const;
+export type CircleKind = (typeof CIRCLE_KINDS)[number];
+
+export interface CirclePerson {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  kind: CircleKind;
+  note: string;
+  /** Linked Wishful account, when associated. */
+  userId: string | null;
+  /** Present when `userId` is set — for profile links. */
+  username?: string | null;
+  /** Present when `userId` is set. */
+  displayName?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** Who a list is for, as shown to viewers. */
@@ -741,6 +763,8 @@ export interface Box {
   access: BoxAccess;
   /** Prices are hidden from people who scan the code unless this is on. */
   showPrices: boolean;
+  /** When set, the box is archived — hidden from Active and its QR link is paused. */
+  archivedAt: string | null;
   lastScannedAt: string | null;
   createdAt: string;
   updatedAt: string;

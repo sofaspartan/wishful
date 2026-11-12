@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, LayoutGrid, ListChecks, MoreHorizontal, Package, PartyPopper, Pencil, Plus, Rows3, Search, Trash2 } from 'lucide-react';
-import { ITEM_TYPES, type Item, type ItemType, type Priority } from '../../shared/types';
-import { ITEM_TYPE_LABELS, PRIORITY_LABELS, PRIORITY_RANK } from '../../shared/constants';
+import { Check, ListChecks, MoreHorizontal, Package, PartyPopper, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import type { Item, Priority } from '../../shared/types';
+import { PRIORITY_LABELS, PRIORITY_RANK } from '../../shared/constants';
 import { useItems, useWishlists, useInvalidate } from '../lib/queries';
 import { del, errorMessage } from '../lib/api';
 import { useLocalPref } from '../lib/prefs';
@@ -14,8 +14,10 @@ import { ItemListsDialog } from '../components/ItemListsDialog';
 import { GotItDialog } from '../components/GotItDialog';
 import { BoxChip, useBoxMap } from '../components/BoxVisuals';
 import { PutInBoxDialog } from '../components/BoxDialogs';
+import { PageSky } from '../components/PageSky';
 import { SkyArt } from '../components/SkyArt';
 import { effectivePrice } from '../components/ItemForm';
+import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { Button } from '../components/ui/Button';
 import { EmptyState, useConfirm } from '../components/ui/misc';
@@ -23,7 +25,6 @@ import { useToast } from '../components/ui/Toast';
 
 const SORTS = ['newest', 'oldest', 'priority', 'price_asc', 'price_desc', 'name'] as const;
 type Sort = (typeof SORTS)[number];
-const VIEWS = ['grid', 'list'] as const;
 type ListFilter = 'all' | 'unlisted' | 'listed' | 'owned' | 'wanted' | string;
 const RESERVED_FILTERS = ['all', 'unlisted', 'listed', 'owned', 'wanted', 'boxed', 'unboxed'];
 
@@ -36,10 +37,9 @@ export default function SavedItems() {
   const confirm = useConfirm();
   const [params, setParams] = useSearchParams();
 
-  const [view, setView] = useLocalPref('items.view', 'grid', VIEWS);
+  const [view, setView] = useLocalPref<CardListView>('items.view', 'grid', CARD_LIST_VIEWS);
   const [sort, setSort] = useLocalPref<Sort>('items.sort', 'newest', SORTS);
   const [query, setQuery] = useState('');
-  const [type, setType] = useState<ItemType | 'all'>('all');
   const [category, setCategory] = useState('all');
   const [priority, setPriority] = useState<Priority | 'all'>('all');
   const [listFilter, setListFilter] = useState<ListFilter>('all');
@@ -54,12 +54,10 @@ export default function SavedItems() {
   const priorities = useMemo(() => data?.priorities ?? {}, [data]);
   const listById = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists]);
   const categories = useMemo(() => [...new Set(items.map((i) => i.category).filter(Boolean))].sort(), [items]);
-  const typesPresent = useMemo(() => new Set(items.map((i) => i.type)), [items]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = items.filter((i) => {
-      if (type !== 'all' && i.type !== type) return false;
       if (category !== 'all' && i.category !== category) return false;
       if (priority !== 'all' && priorities[i.id] !== priority) return false;
       if (listFilter === 'unlisted' && i.wishlistIds.length > 0) return false;
@@ -84,7 +82,7 @@ export default function SavedItems() {
       name: (a, b) => a.title.localeCompare(b.title),
     };
     return list.sort(sorters[sort]);
-  }, [items, query, type, category, priority, listFilter, sort, priorities]);
+  }, [items, query, category, priority, listFilter, sort, priorities]);
 
   const openId = params.get('item');
   const openItem = openId ? items.find((i) => i.id === openId) ?? null : null;
@@ -115,10 +113,9 @@ export default function SavedItems() {
     }
   };
 
-  const filtersActive = query || type !== 'all' || category !== 'all' || priority !== 'all' || listFilter !== 'all';
+  const filtersActive = query || category !== 'all' || priority !== 'all' || listFilter !== 'all';
   const clearFilters = () => {
     setQuery('');
-    setType('all');
     setCategory('all');
     setPriority('all');
     setListFilter('all');
@@ -169,73 +166,72 @@ export default function SavedItems() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title display">Saved Items</h1>
-          <p className="page-subtitle">Everything you've saved — things you want and things you have, on a list or not. Edit once, updated everywhere.</p>
-        </div>
-        <div className="page-actions">
+      <PageSky
+        eyebrow="Items"
+        title="Saved Items"
+        subtitle="Everything you’ve saved — things you want and things you have, on a list or not. Edit once, updated everywhere."
+        art={<SkyArt scene="items" />}
+      >
+        <div className="page-sky-actions">
           <Button variant="primary" icon={<Plus size={17} />} onClick={() => openAddItem()}>
             Add item
           </Button>
         </div>
-      </div>
+      </PageSky>
 
-      {items.length > 0 && (
-        <>
-          <div className="filter-row" role="group" aria-label="Filter by type">
-            <button type="button" className="chip" aria-pressed={type === 'all'} onClick={() => setType('all')}>
-              All <span style={{ opacity: 0.6 }}>{items.length}</span>
-            </button>
-            {ITEM_TYPES.filter((t) => typesPresent.has(t)).map((t) => (
-              <button key={t} type="button" className="chip" aria-pressed={type === t} onClick={() => setType(t)}>
-                {ITEM_TYPE_LABELS[t]}
-              </button>
-            ))}
-          </div>
-          <div className="toolbar">
-            <div className="input-group">
-              <Search size={16} aria-hidden />
-              <input className="input" type="search" placeholder="Search saved items" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search saved items" />
-            </div>
-            <select className="select" value={listFilter} onChange={(e) => setListFilter(e.target.value)} aria-label="Filter by list">
-              <option value="all">All items</option>
-              <option value="wanted">Things I want</option>
-              <option value="owned">Things I have</option>
-              <option value="unlisted">Not on any list</option>
-              <option value="listed">On a list</option>
-              {boxById.size > 0 && (
-                <>
-                  <option value="boxed">Packed in a box</option>
-                  <option value="unboxed">Not in a box</option>
-                </>
-              )}
-              {lists.length > 0 && (
-                <optgroup label="On list">
-                  {lists.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.title}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-            {categories.length > 0 && (
-              <select className="select" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filter by category">
-                <option value="all">All categories</option>
-                {categories.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
+      <div className="toolbar">
+        <div className="input-group" style={{ flex: '1 1 220px', maxWidth: 360 }}>
+          <Search size={16} aria-hidden />
+          <input
+            className="input"
+            type="search"
+            placeholder="Search saved items"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search saved items"
+          />
+        </div>
+        <div className="row" style={{ gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+          <select className="select" value={listFilter} onChange={(e) => setListFilter(e.target.value)} aria-label="Filter by list">
+            <option value="all">All items</option>
+            <option value="wanted">Things I want</option>
+            <option value="owned">Things I have</option>
+            <option value="unlisted">Not on any list</option>
+            <option value="listed">On a list</option>
+            {boxById.size > 0 && (
+              <>
+                <option value="boxed">Packed in a box</option>
+                <option value="unboxed">Not in a box</option>
+              </>
             )}
-            <select className="select" value={priority} onChange={(e) => setPriority(e.target.value as Priority | 'all')} aria-label="Filter by priority">
-              <option value="all">Any priority</option>
-              {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
-                <option key={p} value={p}>
-                  {PRIORITY_LABELS[p]}
-                </option>
+            {lists.length > 0 && (
+              <optgroup label="On list">
+                {lists.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.title}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+          {categories.length > 0 && (
+            <select className="select" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filter by category">
+              <option value="all">All categories</option>
+              {categories.map((c) => (
+                <option key={c}>{c}</option>
               ))}
             </select>
+          )}
+          <select className="select" value={priority} onChange={(e) => setPriority(e.target.value as Priority | 'all')} aria-label="Filter by priority">
+            <option value="all">Any priority</option>
+            {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
+              <option key={p} value={p}>
+                {PRIORITY_LABELS[p]}
+              </option>
+            ))}
+          </select>
+          <label className="row text-sm muted" style={{ gap: 8 }}>
+            <span className="hide-xs">Sort</span>
             <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort items">
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
@@ -244,22 +240,13 @@ export default function SavedItems() {
               <option value="price_desc">Price: high to low</option>
               <option value="name">Name</option>
             </select>
-            <div className="segmented" role="group" aria-label="View">
-              <button type="button" aria-pressed={view === 'grid'} onClick={() => setView('grid')} title="Grid view">
-                <LayoutGrid size={16} aria-hidden />
-                <span className="sr-only">Grid view</span>
-              </button>
-              <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')} title="List view">
-                <Rows3 size={16} aria-hidden />
-                <span className="sr-only">List view</span>
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+          </label>
+          <ViewToggle value={view} onChange={setView} labels="grid" />
+        </div>
+      </div>
 
       {isLoading ? (
-        <div className="grid-items">
+        <div className={view === 'grid' ? 'grid-items' : 'list-items'}>
           {Array.from({ length: 6 }, (_, i) => (
             <ItemCardSkeleton key={i} />
           ))}

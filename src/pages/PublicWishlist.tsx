@@ -443,40 +443,45 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
               photo={w.coverImage}
             />
             <div className="wl-hero-main">
-              <Popover
-                label="People on this list"
-                buttonClassName="public-byline public-byline-btn"
-                buttonContent={
-                  <>
-                    <AvatarStack people={people} size={26} max={4} />
-                    <span className="truncate">
-                      {possessiveNames(listNames(view))} {collection ? 'collection' : 'wishlist'}
-                      {forOthers && <span className="public-byline-by"> · made by {givenName(owner.displayName)}</span>}
-                    </span>
-                  </>
-                }
-                className="list-people-menu"
-              >
-                {(close) => <ListPeopleLinks maker={owner} people={forOthers ? view.recipients : []} meId={me?.id} close={close} />}
-              </Popover>
               <h1 className="wl-hero-title display">{w.title}</h1>
               {w.description && (
                 <p className="muted" style={{ maxWidth: 640, whiteSpace: 'pre-line' }}>
                   {w.description}
                 </p>
               )}
-              <div className="row-wrap">
-                {w.eventDate && (
-                  <span className="badge badge-outline">
-                    <CalendarDays aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
-                    {formatDate(w.eventDate, { month: 'long', day: 'numeric', year: 'numeric' })}
-                    {days && days !== 'Passed' && !/\d{4}/.test(days) ? ` · ${days}` : ''}
-                  </span>
-                )}
-                {!w.eventDate && w.occasion && <span className="badge badge-outline">{w.occasion}</span>}
-                {collection && <CollectionBadge outline />}
-                <span className="badge badge-outline">
-                  <Gift aria-hidden /> {thingCount} {collection ? (thingCount === 1 ? 'thing' : 'things') : thingCount === 1 ? 'item' : 'items'}
+              {(w.eventDate || w.occasion || collection) && (
+                <div className="row-wrap">
+                  {w.eventDate && (
+                    <span className="badge badge-outline">
+                      <CalendarDays aria-hidden /> {w.occasion ? `${w.occasion} · ` : ''}
+                      {formatDate(w.eventDate, { month: 'long', day: 'numeric', year: 'numeric' })}
+                      {days && days !== 'Passed' && !/\d{4}/.test(days) ? ` · ${days}` : ''}
+                    </span>
+                  )}
+                  {!w.eventDate && w.occasion && <span className="badge badge-outline">{w.occasion}</span>}
+                  {collection && <CollectionBadge outline />}
+                </div>
+              )}
+              <div className="public-hero-meta">
+                <Popover
+                  label="People on this list"
+                  buttonClassName="public-byline public-byline-btn"
+                  buttonContent={
+                    <>
+                      <AvatarStack people={people} size={22} max={4} />
+                      <span className="truncate">
+                        {possessiveNames(listNames(view))} {collection ? 'collection' : 'wishlist'}
+                        {forOthers && <span className="public-byline-by"> · made by {givenName(owner.displayName)}</span>}
+                      </span>
+                    </>
+                  }
+                  className="list-people-menu"
+                >
+                  {(close) => <ListPeopleLinks maker={owner} people={forOthers ? view.recipients : []} meId={me?.id} close={close} />}
+                </Popover>
+                <span className="public-byline public-item-count">
+                  <Gift size={14} aria-hidden />
+                  {thingCount} {collection ? (thingCount === 1 ? 'thing' : 'things') : thingCount === 1 ? 'item' : 'items'}
                 </span>
               </div>
             </div>

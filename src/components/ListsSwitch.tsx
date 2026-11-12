@@ -19,7 +19,7 @@ export function ListsSwitch() {
       <Link to={`/app/lists?kind=collection${statusQuery}`} aria-current={onLists && kind === 'collection' ? 'page' : undefined}>
         <Library size={15} aria-hidden /> Collections
       </Link>
-      <Link to="/app/boxes" aria-current={onBoxes ? 'page' : undefined}>
+      <Link to={statusQuery ? `/app/boxes?status=${status}` : '/app/boxes'} aria-current={onBoxes ? 'page' : undefined}>
         <Package size={15} aria-hidden /> Boxes
       </Link>
     </nav>

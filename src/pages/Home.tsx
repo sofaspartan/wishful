@@ -1,6 +1,6 @@
 import { useMemo, type ReactElement, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Bell, CalendarHeart, Gift, Library, LifeBuoy, Plus, Sparkles } from 'lucide-react';
+import { ArrowRight, Bell, CalendarHeart, Gift, Library, Plus, Sparkles, Zap } from 'lucide-react';
 import type { Item, WishlistSummary } from '../../shared/types';
 import { joinNames } from '../../shared/constants';
 import { useItems, useMe, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
@@ -106,25 +106,20 @@ export default function Home() {
           <CloudBank className="tile-sky-bank" />
         </section>
 
-        {me && !me.recoveryCodeCreatedAt && (
-          <section className="tile span-4 recovery-nudge">
+        <section className="tile span-4 tile-flush quick-actions-tile">
+          <div className="tile-header">
             <span className="tile-header-icon" aria-hidden>
-              <LifeBuoy size={15} />
+              <Zap size={14} />
             </span>
-            <div className="recovery-nudge-copy">
-              <strong>Set up a recovery code</strong>
-              <span className="muted text-sm">It’s how you get back into your account if you ever forget your password.</span>
-            </div>
-            <Link to="/app/settings?tab=account" className="btn btn-sm">
-              Set it up
-            </Link>
-          </section>
-        )}
-
-        <QuickAction art={FEATURE_ILLUSTRATIONS.store} title="Paste a link" hint="From any online store" onClick={() => openAddItem({ mode: 'link' })} />
-        <QuickAction art={FEATURE_ILLUSTRATIONS.idea} title="Write an idea" hint="Experiences, wishes" onClick={() => openAddItem({ mode: 'idea' })} />
-        <QuickAction art={ILLUSTRATED_ITEMS[0].art} title="Upload a photo" hint="Snap it, save it" onClick={() => openAddItem({ mode: 'upload' })} />
-        <QuickAction art={FEATURE_ILLUSTRATIONS.collection} title="Start a collection" hint="Things you already have" onClick={newCollection} tone="blush" />
+            <h2 className="tile-title">Quick actions</h2>
+          </div>
+          <div className="quick-actions-grid">
+            <QuickAction art={FEATURE_ILLUSTRATIONS.store} title="Paste a link" hint="From any online store" onClick={() => openAddItem({ mode: 'link' })} />
+            <QuickAction art={FEATURE_ILLUSTRATIONS.idea} title="Write an idea" hint="Experiences, wishes" onClick={() => openAddItem({ mode: 'idea' })} />
+            <QuickAction art={ILLUSTRATED_ITEMS[0].art} title="Upload a photo" hint="Snap it, save it" onClick={() => openAddItem({ mode: 'upload' })} />
+            <QuickAction art={FEATURE_ILLUSTRATIONS.collection} title="Start a collection" hint="Things you already have" onClick={newCollection} tone="blush" />
+          </div>
+        </section>
 
         <ListTile
           title="Wishlists"
@@ -298,8 +293,9 @@ function ListTile({
   onViewChange: (v: CardListView) => void;
 }) {
   const shown = lists.slice(0, LIST_ROWS);
+  const hasLists = lists.length > 0;
   return (
-    <section className={`tile span-2 tile-flush${tone ? ` tile-${tone}` : ''}`}>
+    <section className={`tile span-2 tile-flush tile-list-sky${tone ? ` tile-${tone}` : ''}`}>
       <div className="tile-header">
         {icon && (
           <span className="tile-header-icon" aria-hidden>
@@ -307,48 +303,55 @@ function ListTile({
           </span>
         )}
         <h2 className="tile-title">{title}</h2>
-        <div className="row" style={{ gap: 8, marginLeft: 'auto' }}>
-          {lists.length > 0 && <ViewToggle value={view} onChange={onViewChange} />}
-          {lists.length > 0 && (
-            <Link to="/app/lists" className="section-link">
-              {lists.length > LIST_ROWS ? `All ${lists.length}` : 'View all'} <ArrowRight size={14} />
-            </Link>
-          )}
-        </div>
+        {hasLists && (
+          <div className="row" style={{ gap: 8, marginLeft: 'auto' }}>
+            <ViewToggle value={view} onChange={onViewChange} />
+          </div>
+        )}
       </div>
-      {loading ? (
-        <div className="tile-rows">
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="tile-row" aria-hidden>
-              <div className="skeleton mini-cover" />
-              <div className="skeleton" style={{ height: 14, width: '50%' }} />
-            </div>
-          ))}
-        </div>
-      ) : lists.length ? (
-        view === 'grid' ? (
-          <div className="home-list-grid">
-            {shown.map((w) => (
-              <WishlistCard key={w.id} wishlist={w} />
-            ))}
-          </div>
-        ) : (
+      <div className="tile-list-body">
+        {loading ? (
           <div className="tile-rows">
-            {shown.map((w) => (
-              <WishlistRow key={w.id} wishlist={w} />
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className="tile-row" aria-hidden>
+                <div className="skeleton mini-cover" />
+                <div className="skeleton" style={{ height: 14, width: '50%' }} />
+              </div>
             ))}
           </div>
-        )
-      ) : (
-        empty
+        ) : hasLists ? (
+          view === 'grid' ? (
+            <div className="home-list-grid">
+              {shown.map((w) => (
+                <WishlistCard key={w.id} wishlist={w} />
+              ))}
+            </div>
+          ) : (
+            <div className="tile-rows">
+              {shown.map((w) => (
+                <WishlistRow key={w.id} wishlist={w} />
+              ))}
+            </div>
+          )
+        ) : (
+          empty
+        )}
+      </div>
+      {hasLists && (
+        <div className="tile-list-footer">
+          <Link to="/app/lists" className="btn btn-sm">
+            {lists.length > LIST_ROWS ? `View all ${lists.length}` : 'View all'} <ArrowRight size={14} aria-hidden />
+          </Link>
+        </div>
       )}
+      <CloudBank className="tile-list-bank" />
     </section>
   );
 }
 
 function QuickAction({ art, title, hint, onClick, tone }: { art: ReactElement; title: string; hint: string; onClick: () => void; tone?: 'blush' }) {
   return (
-    <button type="button" className={`tile quick-action${tone ? ` tile-${tone}` : ''}`} onClick={onClick}>
+    <button type="button" className={`quick-action${tone ? ` quick-action-blush` : ''}`} onClick={onClick}>
       <span className="art-icon" aria-hidden>
         {art}
       </span>

@@ -64,6 +64,7 @@ export const isLocalDev = () => getDriver().name !== 'netlify';
  *   gift-cache     {sha256(store|query|price|page)} → one store's page of gift search results
  *   boxes          {boxId}                        → BoxRecord (storage box; contents in itemIds + lines)
  *   box-codes      {code}                         → BoxCodeRecord (the printed QR code → box)
+ *   circle         {userId}                       → CircleDoc (My Circle people & pets)
  */
 export const COLLECTIONS = [
   'users',
@@ -87,6 +88,7 @@ export const COLLECTIONS = [
   'gift-cache',
   'boxes',
   'box-codes',
+  'circle',
 ] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 

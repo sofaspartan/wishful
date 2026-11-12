@@ -17,7 +17,9 @@ import { CreateMenu } from './CreateMenu';
 import { WishlistFormModal } from './WishlistFormModal';
 import { SearchPalette } from './SearchPalette';
 import { NotificationsButton } from './NotificationsButton';
+import { DashboardScenePicker } from './DashboardScenePicker';
 import { ThemeToggle } from './ThemeToggle';
+import { useDashboardScene } from '../lib/dashboardScene';
 
 const NAV = [
   { to: '/app', label: 'Home', icon: House, end: true },
@@ -32,6 +34,7 @@ export function AppLayout() {
   const { data: friends } = useFriends();
   const theme = useTheme();
   const dark = theme === 'dark';
+  const [dashboardScene] = useDashboardScene();
   const requestCount = friends?.incoming.length ?? 0;
   const badgeFor = (to: string) =>
     to === '/app/friends' && requestCount > 0 ? (
@@ -170,7 +173,7 @@ export function AppLayout() {
           <CloudBank className="sidebar-bank" />
         </aside>
 
-        <div style={{ minWidth: 0 }}>
+        <div className="app-column" data-dashboard-scene={dashboardScene}>
           <header className={`topbar${scrolled ? ' scrolled' : ''}`}>
             <div className="topbar-brand">
               <Logo to="/app" size={28} />
@@ -182,10 +185,12 @@ export function AppLayout() {
             </button>
             <div className="spacer" />
             <div className="hide-mobile row" style={{ gap: 'var(--s-1)' }}>
+              <DashboardScenePicker />
               <NotificationsButton />
               <ThemeToggle />
             </div>
             <div className="hide-desktop topbar-mobile-actions">
+              <DashboardScenePicker />
               <NotificationsButton />
               <Menu label="Menu" buttonClassName="btn btn-ghost btn-icon" buttonContent={<MenuIcon size={20} aria-hidden />}>
                 <MenuItem icon={<Search size={16} />} onSelect={() => setSearchOpen(true)}>

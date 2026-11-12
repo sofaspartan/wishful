@@ -62,6 +62,12 @@
   --blush-soft: #fce9e4;
   --blush-bg: color-mix(in srgb, var(--blush) 13%, var(--tint-base));
 
+  /* Boxes are colour-coded kraft (cardboard / packing tan) — a bit richer so it reads against the page */
+  --kraft: #b88958;
+  --kraft-ink: #7a552e;
+  --kraft-soft: #f0e2d0;
+  --kraft-bg: color-mix(in srgb, var(--kraft) 24%, var(--tint-base));
+
   /* Radii */
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -167,6 +173,12 @@
   --blush: #f08d75;
   --blush-ink: #f6ad99;
   --blush-soft: #3a2224;
+  --blush-bg: color-mix(in srgb, var(--blush) 16%, var(--tint-base));
+
+  --kraft: #c99a6b;
+  --kraft-ink: #e8c9a0;
+  --kraft-soft: #3a2e22;
+  --kraft-bg: color-mix(in srgb, var(--kraft) 26%, var(--tint-base));
 
   --shadow-md: 0 10px 28px -8px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-lg: 0 18px 44px -12px rgba(0, 0, 0, 0.65);

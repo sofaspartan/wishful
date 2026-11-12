@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronRight, Copy, Eye, Inbox, LayoutGrid, Rows3, Search, Send, UserRoundPlus, Users, X } from 'lucide-react';
+import { Check, ChevronRight, Copy, Eye, Inbox, Plus, Search, Send, UserRound, UserRoundPlus, Users, X } from 'lucide-react';
 import type { FriendsOverview, PeopleSearchHit, ProfileVisibility, SelfUser } from '../../shared/types';
 import { PROFILE_VISIBILITY_LABELS, isDiscoverableProfile } from '../../shared/constants';
-import { keys, useFriends, useMe } from '../lib/queries';
+import { keys, useCircle, useFriends, useMe } from '../lib/queries';
 import { del, errorMessage, fieldErrors, get, post } from '../lib/api';
 import { formatDate, relativeTime } from '../lib/format';
 import { useLocalPref } from '../lib/prefs';
@@ -15,17 +15,39 @@ import { useToast } from '../components/ui/Toast';
 import { Cloud } from '../components/Cloud';
 import { PageSky } from '../components/PageSky';
 import { SkyArt } from '../components/SkyArt';
+import { MyCirclePanel } from '../components/MyCirclePanel';
+import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 
 type RequestResult = { status: 'requested' | 'already_requested' | 'accepted'; overview: FriendsOverview };
-type Tab = 'search' | 'friends';
-type PeopleView = 'grid' | 'list';
+type Tab = 'search' | 'friends' | 'circle';
+type PeopleView = CardListView;
 
-const TABS: Array<{ id: Tab; label: string }> = [
-  { id: 'search', label: 'Search' },
-  { id: 'friends', label: 'Your friends' },
+const TABS: Array<{ id: Tab; label: string; icon: typeof Search }> = [
+  { id: 'search', label: 'Search', icon: Search },
+  { id: 'friends', label: 'Your friends', icon: Users },
+  { id: 'circle', label: 'My Circle', icon: UserRound },
 ];
-const PEOPLE_VIEWS = ['grid', 'list'] as const;
 
+const TAB_SKY: Record<Tab, { eyebrow: string; title: string; subtitle: string; scene: 'friends' | 'search' | 'invite' }> = {
+  search: {
+    eyebrow: 'Search',
+    title: 'Find people',
+    subtitle: 'Search Wishful by username, send a friend request, or add someone manually with their exact handle.',
+    scene: 'search',
+  },
+  friends: {
+    eyebrow: 'Friends',
+    title: 'Your friends',
+    subtitle: 'Accept requests, browse friends, and open the lists they share with you.',
+    scene: 'friends',
+  },
+  circle: {
+    eyebrow: 'Circle',
+    title: 'My Circle',
+    subtitle: 'Save household, family, friends, and pets — even if they aren’t on Wishful — then reuse them on lists.',
+    scene: 'invite',
+  },
+};
 function selfHit(me: SelfUser): PeopleSearchHit | null {
   const visibility = me.profileVisibility;
   if (!isDiscoverableProfile(visibility)) return null;
@@ -39,10 +61,12 @@ function selfHit(me: SelfUser): PeopleSearchHit | null {
 export default function Friends() {
   const { data: me } = useMe();
   const { data, isLoading } = useFriends();
+  const { data: circle, isLoading: circleLoading } = useCircle();
   const qc = useQueryClient();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
-  const tab: Tab = params.get('tab') === 'friends' ? 'friends' : 'search';
+  const rawTab = params.get('tab');
+  const tab: Tab = rawTab === 'friends' || rawTab === 'circle' ? rawTab : 'search';
   const [handle, setHandle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -52,7 +76,10 @@ export default function Friends() {
   const [results, setResults] = useState<PeopleSearchHit[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [peopleView, setPeopleView] = useLocalPref<PeopleView>('friends.searchView', 'grid', PEOPLE_VIEWS);
+  const [circleAddTick, setCircleAddTick] = useState(0);
+  const [friendsQuery, setFriendsQuery] = useState('');
+  const [peopleView, setPeopleView] = useLocalPref<PeopleView>('friends.searchView', 'grid', CARD_LIST_VIEWS);
+  const [friendsView, setFriendsView] = useLocalPref<PeopleView>('friends.friendsView', 'grid', CARD_LIST_VIEWS);
 
   const setTab = (next: Tab) => setParams(next === 'search' ? {} : { tab: next }, { replace: true });
 
@@ -167,16 +194,27 @@ export default function Friends() {
   };
 
   const incoming = data?.incoming.length ?? 0;
+  const sky = TAB_SKY[tab];
 
   return (
     <div className="page">
-      <PageSky
-        eyebrow="Friends"
-        title="Your people"
-        subtitle="Find people on Wishful, send a friend request, and browse the lists they share with you."
-        art={<SkyArt scene="friends" />}
-      >
-        {me && (
+      <nav className="segmented lists-switch friends-switch" aria-label="Friends sections">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button key={t.id} type="button" aria-current={tab === t.id ? 'page' : undefined} onClick={() => setTab(t.id)}>
+              <Icon size={15} aria-hidden />
+              {t.label}
+              {t.id === 'friends' && incoming > 0 && <span className="nav-badge">{incoming}</span>}
+              {t.id === 'friends' && !incoming && data && data.friends.length > 0 && <span className="faint">{data.friends.length}</span>}
+              {t.id === 'circle' && circle && circle.length > 0 && <span className="faint">{circle.length}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      <PageSky eyebrow={sky.eyebrow} title={sky.title} subtitle={sky.subtitle} art={<SkyArt scene={sky.scene} />}>
+        {me && tab === 'search' && (
           <div className="sky-handle">
             <span>Your username</span>
             <code>@{me.username}</code>
@@ -186,21 +224,36 @@ export default function Friends() {
             </button>
           </div>
         )}
+        <div className="page-sky-actions">
+          {tab === 'search' && (
+            <Button
+              type="button"
+              variant="primary"
+              icon={<UserRoundPlus size={16} />}
+              onClick={() => {
+                setError(null);
+                setManualOpen(true);
+              }}
+            >
+              Add manually
+            </Button>
+          )}
+          {tab === 'friends' && (
+            <Button type="button" variant="primary" icon={<Search size={16} />} onClick={() => setTab('search')}>
+              Find people
+            </Button>
+          )}
+          {tab === 'circle' && (
+            <Button type="button" variant="primary" icon={<Plus size={16} />} onClick={() => setCircleAddTick((n) => n + 1)}>
+              Add
+            </Button>
+          )}
+        </div>
       </PageSky>
 
-      <div className="toolbar">
-        <div className="tabs" role="tablist" aria-label="Friends sections" style={{ borderBottom: 0 }}>
-          {TABS.map((t) => (
-            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>
-              {t.label}
-              {t.id === 'friends' && data && data.friends.length > 0 && <span className="faint">{data.friends.length}</span>}
-              {t.id === 'friends' && incoming > 0 && <span className="nav-badge">{incoming}</span>}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {tab === 'search' ? (
+      {tab === 'circle' ? (
+        <MyCirclePanel people={circle} loading={circleLoading} friends={data?.friends ?? []} openAddTick={circleAddTick} />
+      ) : tab === 'search' ? (
         <section className="section" aria-label="Search for people">
           <div className="people-search stack" style={{ gap: 'var(--s-6)' }}>
             <div className="stack" style={{ gap: 'var(--s-3)' }}>
@@ -218,61 +271,39 @@ export default function Friends() {
                     spellCheck={false}
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant="primary"
-                  icon={<UserRoundPlus size={16} />}
-                  onClick={() => {
-                    setError(null);
-                    setManualOpen(true);
-                  }}
-                >
-                  Add manually
-                </Button>
+                <ViewToggle value={peopleView} onChange={setPeopleView} />
               </div>
               <p className="field-hint">
                 Public and friends profiles show up here. Private accounts won’t appear in search — use Add manually if you know their handle.
               </p>
+              {(searching || displayed) && (
+                <p className="muted text-sm">
+                  {searching
+                    ? 'Searching…'
+                    : `${displayed!.length} ${displayed!.length === 1 ? 'person' : 'people'}`}
+                </p>
+              )}
             </div>
-
-            {searching && <p className="muted text-sm">Searching…</p>}
 
             {displayed && !searching && (
               displayed.length ? (
-                <div className="stack" style={{ gap: 'var(--s-3)' }}>
-                  <div className="people-results-toolbar">
-                    <span className="muted text-sm">
-                      {displayed.length} {displayed.length === 1 ? 'person' : 'people'}
-                    </span>
-                    <div className="segmented" role="group" aria-label="View">
-                      <button type="button" aria-pressed={peopleView === 'grid'} onClick={() => setPeopleView('grid')} title="Card view">
-                        <LayoutGrid size={16} aria-hidden />
-                        <span className="sr-only">Card view</span>
-                      </button>
-                      <button type="button" aria-pressed={peopleView === 'list'} onClick={() => setPeopleView('list')} title="List view">
-                        <Rows3 size={16} aria-hidden />
-                        <span className="sr-only">List view</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div className={peopleView === 'grid' ? 'friend-grid' : 'list-items list-items-sky'}>
-                    {displayed.map((hit) => (
-                      <PersonResult
-                        key={hit.user.id}
-                        hit={hit}
-                        view={peopleView}
-                        busy={busy}
-                        onAdd={() => requestFromSearch(hit)}
-                        onAccept={() =>
-                          act(
-                            `accept:${hit.user.id}`,
-                            () => post(`/api/friends/requests/${hit.user.id}/accept`),
-                            `You and ${hit.user.displayName} are now friends`,
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
+                <div className={peopleView === 'grid' ? 'friend-grid' : 'list-items list-items-sky'}>
+                  {displayed.map((hit) => (
+                    <PersonResult
+                      key={hit.user.id}
+                      hit={hit}
+                      view={peopleView}
+                      busy={busy}
+                      onAdd={() => requestFromSearch(hit)}
+                      onAccept={() =>
+                        act(
+                          `accept:${hit.user.id}`,
+                          () => post(`/api/friends/requests/${hit.user.id}/accept`),
+                          `You and ${hit.user.displayName} are now friends`,
+                        )
+                      }
+                    />
+                  ))}
                 </div>
               ) : query.trim().replace(/^@/, '').length >= 2 ? (
                 <p className="muted text-sm">No discoverable profiles match “{query.trim()}”.</p>
@@ -337,48 +368,98 @@ export default function Friends() {
             </section>
           )}
 
-          <section className="section">
-            <div className="section-header">
-              <span className="tile-header-icon" aria-hidden>
-                <Users size={14} />
-              </span>
-              <h2 className="section-title">Your friends</h2>
-              {data.friends.length > 0 && <span className="muted text-sm">{data.friends.length}</span>}
-            </div>
-            {data.friends.length ? (
-              <div className="friend-grid">
-                {data.friends.map(({ user, since }) => (
-                  <article className="friend-card" key={user.id}>
-                    <Link to={`/app/friends/${user.id}`} className="item-card-hit" aria-label={`See ${user.displayName}'s wishlists`} />
-                    <div className="friend-card-sky" aria-hidden>
-                      <Cloud className="friend-card-cloud friend-card-cloud-1" />
-                      <Cloud className="friend-card-cloud friend-card-cloud-2" />
-                    </div>
-                    <Avatar name={user.displayName} src={user.avatarUrl} size={64} />
-                    <div className="friend-card-body">
-                      <strong className="truncate">{user.displayName}</strong>
-                      <span className="muted text-xs truncate">@{user.username}</span>
-                      <span className="friend-card-since">Friends since {formatDate(since, { month: 'short', year: 'numeric' })}</span>
-                    </div>
-                    <span className="friend-card-cta">
-                      See their lists <ChevronRight size={14} aria-hidden />
-                    </span>
-                  </article>
-                ))}
+          <section className="section" aria-label="Your friends">
+            <div className="toolbar" style={{ marginTop: 0, marginBottom: 'var(--s-4)' }}>
+              <div className="input-group" style={{ flex: '1 1 220px', maxWidth: 360 }}>
+                <Search size={16} aria-hidden />
+                <input
+                  className="input"
+                  type="search"
+                  placeholder="Search friends"
+                  value={friendsQuery}
+                  onChange={(e) => setFriendsQuery(e.target.value)}
+                  aria-label="Search friends"
+                />
               </div>
-            ) : (
-              <EmptyState
-                art={<SkyArt scene="invite" />}
-                title="No friends yet"
-                action={
-                  <Button variant="primary" onClick={() => setTab('search')}>
-                    Find people
-                  </Button>
-                }
-              >
-                Head to Search to find people, or add someone with their @username. Once they accept, their shared lists show up here.
-              </EmptyState>
-            )}
+              <div className="row" style={{ gap: 8, marginLeft: 'auto' }}>
+                <ViewToggle value={friendsView} onChange={setFriendsView} />
+              </div>
+            </div>
+            {(() => {
+              const fq = friendsQuery.trim().toLowerCase().replace(/^@/, '');
+              const friendsShown = fq
+                ? data.friends.filter(
+                    ({ user }) => user.displayName.toLowerCase().includes(fq) || user.username.toLowerCase().includes(fq),
+                  )
+                : data.friends;
+              if (!data.friends.length) {
+                return (
+                  <EmptyState
+                    art={<SkyArt scene="invite" />}
+                    title="No friends yet"
+                    action={
+                      <Button variant="primary" onClick={() => setTab('search')}>
+                        Find people
+                      </Button>
+                    }
+                  >
+                    Head to Search to find people, or add someone with their @username. Once they accept, their shared lists show up here.
+                  </EmptyState>
+                );
+              }
+              if (!friendsShown.length) {
+                return (
+                  <EmptyState icon={<Search size={22} />} title="No matching friends">
+                    Nobody matches “{friendsQuery.trim()}”.
+                  </EmptyState>
+                );
+              }
+              if (friendsView === 'list') {
+                return (
+                  <div className="list-items list-items-sky">
+                    {friendsShown.map(({ user, since }) => (
+                      <div className="item-row" key={user.id}>
+                        <Link to={`/app/friends/${user.id}`} className="item-card-hit" aria-label={`See ${user.displayName}'s wishlists`} />
+                        <Avatar name={user.displayName} src={user.avatarUrl} size={40} />
+                        <div className="item-row-main">
+                          <strong className="truncate">{user.displayName}</strong>
+                          <span className="muted text-xs truncate">
+                            @{user.username} · Friends since {formatDate(since, { month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="item-row-side">
+                          <span className="muted text-sm row" style={{ gap: 4 }}>
+                            See their lists <ChevronRight size={14} aria-hidden />
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+              return (
+                <div className="friend-grid">
+                  {friendsShown.map(({ user, since }) => (
+                    <article className="friend-card" key={user.id}>
+                      <Link to={`/app/friends/${user.id}`} className="item-card-hit" aria-label={`See ${user.displayName}'s wishlists`} />
+                      <div className="friend-card-sky" aria-hidden>
+                        <Cloud className="friend-card-cloud friend-card-cloud-1" />
+                        <Cloud className="friend-card-cloud friend-card-cloud-2" />
+                      </div>
+                      <Avatar name={user.displayName} src={user.avatarUrl} size={64} />
+                      <div className="friend-card-body">
+                        <strong className="truncate">{user.displayName}</strong>
+                        <span className="muted text-xs truncate">@{user.username}</span>
+                        <span className="friend-card-since">Friends since {formatDate(since, { month: 'short', year: 'numeric' })}</span>
+                      </div>
+                      <span className="friend-card-cta">
+                        See their lists <ChevronRight size={14} aria-hidden />
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              );
+            })()}
           </section>
 
           {data.outgoing.length > 0 && (

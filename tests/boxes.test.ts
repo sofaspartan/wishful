@@ -26,7 +26,16 @@ describe('boxes', () => {
   it('are numbered, get a code and sensible defaults, and can be edited', async () => {
     const { agent } = await signUp();
     const first = await createBox(agent);
-    expect(first).toMatchObject({ number: 1, material: 'cardboard', access: 'link', showPrices: false, fragile: false, itemIds: [], lines: [] });
+    expect(first).toMatchObject({
+      number: 1,
+      material: 'cardboard',
+      access: 'link',
+      showPrices: false,
+      fragile: false,
+      archivedAt: null,
+      itemIds: [],
+      lines: [],
+    });
     expect(isBoxCode(first.code)).toBe(true);
     expect(first.coverArt.icon).toBe('box');
 
@@ -181,6 +190,18 @@ describe('scanning a box', () => {
     expect(own.data.viewer.isOwner).toBe(true);
     expect(own.data.box).toMatchObject({ id: box.id, location: 'Storage unit 14' });
     expect((await agent.get(`/api/boxes/${box.id}`)).data.box.lastScannedAt).not.toBeNull();
+  });
+
+  it('can be archived — QR labels pause until restored', async () => {
+    const { agent } = await signUp();
+    const box = await createBox(agent);
+    const archived = await agent.patch(`/api/boxes/${box.id}`, { archived: true });
+    expect(archived.status).toBe(200);
+    expect(archived.data.box.archivedAt).toEqual(expect.any(String));
+    expect((await new Agent('198.51.100.10').get(`/api/public/boxes/${box.code}`)).status).toBe(404);
+    const restored = await agent.patch(`/api/boxes/${box.id}`, { archived: false });
+    expect(restored.data.box.archivedAt).toBeNull();
+    expect((await new Agent('198.51.100.10').get(`/api/public/boxes/${box.code}`)).status).toBe(200);
   });
 
   it('keeps owner-only boxes closed to everyone else', async () => {

@@ -199,6 +199,10 @@ export const LIMITS = {
   bulkItems: 25,
   /** People one list can be made for. */
   recipients: 6,
+  /** Saved people and pets in My Circle. */
+  circlePeople: 100,
+  /** Short note on a My Circle entry. */
+  circleNote: 200,
 } as const;
 
 /** "Ava", "Ava & Leo", "Ava, Leo & Mia". */

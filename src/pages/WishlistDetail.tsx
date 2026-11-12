@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   Package,
   PartyPopper,
+  ChevronDown,
   Pencil,
   Plus,
   RefreshCw,
@@ -65,7 +66,7 @@ import { DragHandle, SortableList } from '../components/Sortable';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { BoxChip, useBoxMap } from '../components/BoxVisuals';
 import { PutInBoxDialog } from '../components/BoxDialogs';
-import { Button } from '../components/ui/Button';
+import { Button, buttonClass } from '../components/ui/Button';
 import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
 
@@ -391,6 +392,38 @@ function WishlistView({ detail }: { detail: Detail }) {
             photo={w.coverImage}
           />
           <div className="wl-hero-main">
+          {(isOwner || (w.shareToken && w.visibility !== 'private')) && (
+            <div className="wl-hero-top">
+              {w.shareToken && w.visibility !== 'private' && (
+                <a
+                  className={buttonClass({ size: 'sm', iconOnly: true })}
+                  href={shareUrl(w.shareToken)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-tooltip="Open shared page"
+                  aria-label="Open shared page"
+                >
+                  <ExternalLink size={15} aria-hidden />
+                </a>
+              )}
+              {isOwner && !w.archivedAt && (
+                <Button
+                  size="sm"
+                  iconOnly
+                  icon={<Share2 size={15} />}
+                  onClick={() => setSharing(true)}
+                  data-tooltip="Share"
+                  aria-label="Share"
+                />
+              )}
+            </div>
+          )}
+          <h1 className="wl-hero-title display">{w.title}</h1>
+          {w.description && (
+            <p className="muted" style={{ maxWidth: 680, whiteSpace: 'pre-line' }}>
+              {w.description}
+            </p>
+          )}
           <div className="row-wrap">
             {isOwner ? <VisibilityBadge visibility={w.visibility} outline /> : <span className="badge badge-outline">{detail.role === 'editor' ? 'You can edit' : 'View only'}</span>}
             {collection && <CollectionBadge outline />}
@@ -406,12 +439,6 @@ function WishlistView({ detail }: { detail: Detail }) {
             )}
             {w.archivedAt && <span className="badge">Archived</span>}
           </div>
-          <h1 className="wl-hero-title display">{w.title}</h1>
-          {w.description && (
-            <p className="muted" style={{ maxWidth: 680, whiteSpace: 'pre-line' }}>
-              {w.description}
-            </p>
-          )}
           <div className="row-wrap text-sm muted" style={{ gap: 'var(--s-4)' }}>
             {(people.length > 0 || !isOwner) && (
               <ListForLine people={people} meId={me?.id} maker={isOwner ? null : detail.owner} avatarSize={22} />
@@ -438,49 +465,39 @@ function WishlistView({ detail }: { detail: Detail }) {
 
           <div className="wl-hero-actions">
             {canEdit && !w.archivedAt && (
-              <Button variant="primary" icon={<Plus size={17} />} onClick={addItem}>
-                Add item
-              </Button>
-            )}
-            {canEdit && !w.archivedAt && (
-              <Button icon={<ListPlus size={16} />} onClick={addSeveral} className="hide-xs">
-                Add several
-              </Button>
-            )}
-            {isOwner && !w.archivedAt && (
-              <Button icon={<Share2 size={16} />} onClick={() => setSharing(true)}>
-                Share
-              </Button>
-            )}
-            {isOwner && !collection && (
-              <Button icon={<Gift size={16} />} onClick={() => setGiftSettings(true)}>
-                <span className="hide-xs">Gift settings</span>
-                <span className="show-xs">Gifts</span>
-              </Button>
-            )}
-            {(isOwner || w.collaborators.length > 0) && (
-              <Button icon={<Users size={16} />} onClick={() => setCollaborators(true)} className="hide-xs">
-                Collaborators
-              </Button>
-            )}
-            {!isOwner && w.shareToken && w.visibility !== 'private' && (
-              <a className="btn" href={shareUrl(w.shareToken)} target="_blank" rel="noopener noreferrer">
-                <ExternalLink size={16} aria-hidden /> Shared page
-              </a>
+              <Menu
+                label="Add to list"
+                align="left"
+                buttonClassName={buttonClass({ variant: 'primary' })}
+                buttonContent={
+                  <>
+                    <Plus size={17} aria-hidden />
+                    <span>Add</span>
+                    <ChevronDown size={15} aria-hidden style={{ marginLeft: 2, opacity: 0.85 }} />
+                  </>
+                }
+              >
+                <MenuItem icon={<Plus size={16} />} onSelect={addItem}>
+                  Add item
+                </MenuItem>
+                <MenuItem icon={<ListPlus size={16} />} onSelect={addSeveral}>
+                  Add several
+                </MenuItem>
+              </Menu>
             )}
             {isOwner ? (
               <Menu label="More list actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
                 <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditingList(true)}>
                   Edit details
                 </MenuItem>
+                {!collection && (
+                  <MenuItem icon={<Gift size={16} />} onSelect={() => setGiftSettings(true)}>
+                    Gift settings
+                  </MenuItem>
+                )}
                 <MenuItem icon={<Users size={16} />} onSelect={() => setCollaborators(true)}>
                   Collaborators
                 </MenuItem>
-                {w.shareToken && w.visibility !== 'private' && (
-                  <MenuItem icon={<ExternalLink size={16} />} onSelect={() => window.open(shareUrl(w.shareToken!), '_blank', 'noopener')}>
-                    Open shared page
-                  </MenuItem>
-                )}
                 <MenuItem icon={<Copy size={16} />} onSelect={() => listActions.duplicate(w)}>
                   Duplicate
                 </MenuItem>
