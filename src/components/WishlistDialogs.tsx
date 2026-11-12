@@ -1,6 +1,24 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Check, Copy, ExternalLink, Gift, Link2, Lock, Mail, MessageCircle, RefreshCw, Share2, Trash2, UserPlus, Users } from 'lucide-react';
-import { VISIBILITIES, type Priority, type Visibility, type Wishlist, type WishlistDetail, type WishlistEntry, type WishlistSettings } from '../../shared/types';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { Banknote, Check, Copy, ExternalLink, Gift, Link2, Lock, Mail, MessageCircle, Palette, RefreshCw, Share2, Trash2, UserPlus, Users, Wallet } from 'lucide-react';
+import {
+  PAYMENT_PROVIDERS,
+  VISIBILITIES,
+  type CashFund,
+  type CashFundDisplayMode,
+  type CoverArt as CoverArtValue,
+  type CoverIcon,
+  type PaymentMethod,
+  type PaymentProvider,
+  type Priority,
+  type SelfUser,
+  type Visibility,
+  type Wishlist,
+  type WishlistDetail,
+  type WishlistEntry,
+  type WishlistSettings,
+} from '../../shared/types';
 import {
   PRIORITY_LABELS,
   PRIORITY_LAYOUTS,
@@ -12,14 +30,26 @@ import {
   priorityLayoutSettings,
   type PriorityLayout,
 } from '../../shared/constants';
-import { useInvalidate, useSharedWishlists, useWishlists } from '../lib/queries';
+import {
+  PAYMENT_PROVIDER_HINTS,
+  PAYMENT_PROVIDER_LABELS,
+  filterPaymentMethods,
+  isValidPaymentHandle,
+  normalizePaymentHandle,
+} from '../../shared/paymentLinks';
+import { keys, useInvalidate, useSharedWishlists, useWishlists } from '../lib/queries';
 import { del, errorMessage, fieldErrors, patch, post } from '../lib/api';
 import { shareUrl } from '../lib/prefs';
+import { DEFAULT_COVER_FRAME } from './CoverArt';
+import { CoverArtPicker } from './CoverArtPicker';
+import { CashFundDisplay } from './CashFund';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
+import { EditorLayout, PreviewBlock } from './ui/EditorLayout';
 import { Field, FormError, FormNote } from './ui/Field';
-import { Avatar, Segmented, SwitchRow, useConfirm } from './ui/misc';
+import { Avatar, Segmented, Switch, SwitchRow, useConfirm } from './ui/misc';
 import { useToast } from './ui/Toast';
+import { formatPrice } from '../lib/format';
 
 // ── Share ───────────────────────────────────────────────────────────────────
 
@@ -283,6 +313,380 @@ export function GiftSettingsDialog({ open, onClose, wishlist }: { open: boolean;
             ))}
           </select>
         </Field>
+      </div>
+    </Modal>
+  );
+}
+
+// ── Cash fund ───────────────────────────────────────────────────────────────
+
+const DEFAULT_CASH_FUND: CashFund = {
+  title: 'Cash fund',
+  note: '',
+  goalCents: null,
+  displayMode: 'banner',
+  providers: null,
+  icon: 'cash',
+};
+
+type CashFundTab = 'fund' | 'look' | 'pay';
+
+function cashIconArt(icon: CoverIcon): CoverArtValue {
+  return { icon, backdrop: 'sky', frame: DEFAULT_COVER_FRAME };
+}
+
+export function CashFundDialog({
+  open,
+  onClose,
+  wishlist,
+  paymentMethods,
+  raisedCents = null,
+}: {
+  open: boolean;
+  onClose: () => void;
+  wishlist: Wishlist;
+  paymentMethods: PaymentMethod[];
+  /** Current total for the live preview progress bar. */
+  raisedCents?: number | null;
+}) {
+  const invalidate = useInvalidate();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const existing = wishlist.cashFund ?? null;
+  const [tab, setTab] = useState<CashFundTab>('fund');
+  const [enabled, setEnabled] = useState(Boolean(existing));
+  const [title, setTitle] = useState(existing?.title ?? DEFAULT_CASH_FUND.title);
+  const [note, setNote] = useState(existing?.note ?? '');
+  const [goalDollars, setGoalDollars] = useState(existing?.goalCents != null ? String(existing.goalCents / 100) : '');
+  const [displayMode, setDisplayMode] = useState<CashFundDisplayMode>(existing?.displayMode ?? 'banner');
+  const [providers, setProviders] = useState<PaymentProvider[] | null>(existing?.providers ?? null);
+  const [icon, setIcon] = useState<CoverIcon>(existing?.icon ?? 'cash');
+  const [methods, setMethods] = useState<PaymentMethod[]>(paymentMethods);
+  const [setupFor, setSetupFor] = useState<PaymentProvider | null>(null);
+  const [setupHandle, setSetupHandle] = useState('');
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [setupBusy, setSetupBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const fund = wishlist.cashFund;
+    setTab('fund');
+    setEnabled(Boolean(fund));
+    setTitle(fund?.title ?? DEFAULT_CASH_FUND.title);
+    setNote(fund?.note ?? '');
+    setGoalDollars(fund?.goalCents != null ? String(fund.goalCents / 100) : '');
+    setDisplayMode(fund?.displayMode ?? 'banner');
+    setProviders(fund?.providers ?? null);
+    setIcon(fund?.icon ?? 'cash');
+    setMethods(paymentMethods);
+    setSetupFor(null);
+    setSetupHandle('');
+    setSetupError(null);
+    setError(null);
+  }, [open, wishlist.cashFund, paymentMethods]);
+
+  const goalCents = useMemo(() => {
+    if (!goalDollars.trim()) return null;
+    const n = Math.round(Number(goalDollars) * 100);
+    return Number.isFinite(n) && n >= 100 ? n : null;
+  }, [goalDollars]);
+
+  const previewMethods = useMemo(() => filterPaymentMethods(methods, providers), [methods, providers]);
+
+  const setProviderShown = (p: PaymentProvider, shown: boolean, fromMethods = methods) => {
+    const base = providers ?? fromMethods.map((m) => m.provider);
+    const next = shown ? (base.includes(p) ? base : [...base, p]) : base.filter((x) => x !== p);
+    const all = fromMethods.map((m) => m.provider);
+    setProviders(next.length === all.length ? null : next);
+  };
+
+  const savePayLink = async (provider: PaymentProvider) => {
+    const handle = normalizePaymentHandle(provider, setupHandle);
+    if (!handle) {
+      setSetupError('Enter your username.');
+      return;
+    }
+    if (!isValidPaymentHandle(provider, handle)) {
+      setSetupError('That doesn’t look like a valid handle.');
+      return;
+    }
+    setSetupBusy(true);
+    setSetupError(null);
+    try {
+      const nextMethods = PAYMENT_PROVIDERS.map((p) => {
+        if (p === provider) return { provider, handle };
+        return methods.find((m) => m.provider === p) ?? null;
+      }).filter(Boolean) as PaymentMethod[];
+      const { user } = await patch<{ user: SelfUser }>('/api/account/profile', { paymentMethods: nextMethods });
+      const saved = user.paymentMethods ?? nextMethods;
+      qc.setQueryData(keys.me, user);
+      setMethods(saved);
+      setProviderShown(provider, true, saved);
+      setSetupFor(null);
+      setSetupHandle('');
+      invalidate([wishlist.id]);
+      toast.success(`${PAYMENT_PROVIDER_LABELS[provider]} saved`);
+    } catch (err) {
+      setSetupError(errorMessage(err));
+    } finally {
+      setSetupBusy(false);
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      let cashFund: CashFund | null = null;
+      if (enabled) {
+        if (!methods.length) {
+          setError('Set up at least one pay link on the Pay links tab.');
+          setTab('pay');
+          setSaving(false);
+          return;
+        }
+        const goal = goalDollars.trim() ? Math.round(Number(goalDollars) * 100) : null;
+        if (goalDollars.trim() && (!Number.isFinite(goal) || (goal ?? 0) < 100)) {
+          setError('Goal must be at least $1, or leave it blank.');
+          setTab('fund');
+          setSaving(false);
+          return;
+        }
+        cashFund = {
+          title: title.trim() || 'Cash fund',
+          note: note.trim(),
+          goalCents: goal,
+          displayMode,
+          providers,
+          icon,
+        };
+      }
+      await patch(`/api/wishlists/${wishlist.id}`, { cashFund });
+      invalidate([wishlist.id]);
+      toast.success(enabled ? 'Cash fund saved' : 'Cash fund turned off');
+      onClose();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fundTab = (
+    <>
+      <SwitchRow
+        title="Enable cash fund"
+        description="Show a contribute option on your shared list."
+        checked={enabled}
+        onChange={setEnabled}
+      />
+      <Field label="Fund title">
+        <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Honeymoon fund" />
+      </Field>
+      <Field label="Note" optional>
+        <textarea className="textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Toward our trip…" />
+      </Field>
+      <Field
+        label="Goal amount"
+        optional
+        hint={
+          goalDollars.trim() && Number(goalDollars) > 0
+            ? `Shown as ${formatPrice(Number(goalDollars))}. Leave blank for an open fund.`
+            : 'Leave blank for an open fund with no target.'
+        }
+      >
+        <input
+          className="input"
+          type="number"
+          min={1}
+          step="1"
+          inputMode="decimal"
+          value={goalDollars}
+          onChange={(e) => setGoalDollars(e.target.value)}
+          placeholder="500"
+        />
+      </Field>
+    </>
+  );
+
+  const lookTab = (
+    <>
+      <Segmented<CashFundDisplayMode>
+        label="How it looks"
+        full
+        value={displayMode}
+        onChange={setDisplayMode}
+        options={[
+          { value: 'banner', label: 'Top banner' },
+          { value: 'card', label: 'In the item grid' },
+        ]}
+      />
+      <p className="muted text-sm" style={{ margin: 0 }}>
+        {displayMode === 'banner'
+          ? 'A full-width strip under the list header — great for a trip or registry goal.'
+          : 'Sits with your other wishlist items as a card.'}
+      </p>
+      <div className="stack" style={{ gap: 'var(--s-2)' }}>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--s-3)' }}>
+          <span className="field-label" style={{ margin: 0 }}>
+            Icon
+          </span>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setIcon('cash')} disabled={icon === 'cash'}>
+            Reset to cash dollar
+          </Button>
+        </div>
+        <p className="muted text-sm" style={{ margin: 0 }}>
+          Starts as a cash dollar — pick any cover icon to match the fund.
+        </p>
+        <CoverArtPicker value={cashIconArt(icon)} onChange={(art) => setIcon(art.icon)} part="icon" preview={false} />
+      </div>
+    </>
+  );
+
+  const payTab = (
+    <div className="stack">
+      <div>
+        <span className="field-label">Payment apps to show</span>
+        <p className="muted text-sm" style={{ margin: '4px 0 0' }}>
+          Guests pick from these when they contribute. You can also manage them in{' '}
+          <Link to="/app/settings?tab=pay-links">Settings → Pay links</Link>.
+        </p>
+      </div>
+      {!methods.length && (
+        <FormNote>Set up at least one app below so guests have a way to pay.</FormNote>
+      )}
+      <div className="cash-pay-list">
+        {PAYMENT_PROVIDERS.map((provider) => {
+          const method = methods.find((m) => m.provider === provider);
+          const label = PAYMENT_PROVIDER_LABELS[provider];
+          if (!method) {
+            const editing = setupFor === provider;
+            return (
+              <div key={provider} className={`cash-pay-row is-unset${editing ? ' is-editing' : ''}`}>
+                <div className="switch-row">
+                  <div className="switch-text">
+                    <strong>{label}</strong>
+                    <span>Not set up yet</span>
+                  </div>
+                  <div className="cash-pay-actions">
+                    {!editing && (
+                      <Button type="button" size="sm" onClick={() => { setSetupFor(provider); setSetupHandle(''); setSetupError(null); }}>
+                        Set up
+                      </Button>
+                    )}
+                    <Switch checked={false} onChange={() => undefined} label={label} disabled />
+                  </div>
+                </div>
+                {editing && (
+                  <div className="cash-pay-setup stack-sm">
+                    <Field label={label} hint={PAYMENT_PROVIDER_HINTS[provider]} error={setupError ?? undefined}>
+                      <input
+                        className="input"
+                        value={setupHandle}
+                        onChange={(e) => setSetupHandle(e.target.value)}
+                        placeholder={provider === 'cashapp' ? 'Cashtag' : 'username'}
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        maxLength={64}
+                        autoFocus
+                      />
+                    </Field>
+                    <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--s-2)' }}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setSetupFor(null);
+                          setSetupHandle('');
+                          setSetupError(null);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="button" size="sm" variant="primary" loading={setupBusy} onClick={() => void savePayLink(provider)}>
+                        Save &amp; show
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          const shown = (providers ?? methods.map((m) => m.provider)).includes(provider);
+          const handleLabel = provider === 'cashapp' ? `$${method.handle}` : `@${method.handle}`;
+          return (
+            <div key={provider} className="cash-pay-row">
+              <SwitchRow
+                title={label}
+                description={`${handleLabel} — ${shown ? 'shown to guests' : 'hidden from guests'}`}
+                checked={shown}
+                onChange={(v) => setProviderShown(provider, v)}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const preview = (
+    <PreviewBlock
+      caption={enabled ? (displayMode === 'banner' ? 'Banner on list' : 'Card in grid') : 'Preview (currently off)'}
+      className={displayMode === 'card' ? 'editor-preview-card' : 'editor-preview-page'}
+    >
+      <div className={`cash-fund-preview${!enabled ? ' cash-fund-preview-off' : ''}`} aria-hidden>
+        <CashFundDisplay
+          fund={{
+            title: title.trim() || 'Cash fund',
+            note: note.trim(),
+            goalCents,
+            raisedCents: raisedCents ?? (goalCents != null ? 0 : null),
+            paymentMethods: previewMethods,
+            icon,
+          }}
+          mode={displayMode}
+          canContribute={previewMethods.length > 0}
+          onContribute={() => undefined}
+        />
+      </div>
+    </PreviewBlock>
+  );
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Cash fund"
+      subtitle="Let people contribute via Venmo, Cash App, or PayPal. Payments happen in those apps — Wishful only tracks what givers say they sent."
+      size="xl"
+      className="editor-modal"
+      bodyClassName="editor-body"
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={save} loading={saving}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <div className="editor-form">
+        <EditorLayout<CashFundTab>
+          label="Cash fund settings"
+          active={tab}
+          onTabChange={setTab}
+          previewTabs={['fund', 'look']}
+          preview={preview}
+          alert={<FormError message={error} />}
+          tabs={[
+            { id: 'fund', label: 'Fund', icon: <Banknote size={16} aria-hidden />, content: fundTab },
+            { id: 'look', label: 'Look', icon: <Palette size={16} aria-hidden />, content: lookTab },
+            { id: 'pay', label: 'Pay links', icon: <Wallet size={16} aria-hidden />, content: payTab },
+          ]}
+        />
       </div>
     </Modal>
   );

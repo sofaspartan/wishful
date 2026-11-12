@@ -2,7 +2,7 @@
  * Builds the browser extension into extension/dist (or extension/dist-dev with --dev).
  *
  *   npm run extension:build          → talks to the live site (Netlify's URL when built there)
- *   npm run extension:dev            → talks to http://localhost:5173
+ *   npm run extension:dev            → talks to http://localhost:5174
  *   WISHFUL_URL=https://… npm run extension:build   → any other deployment
  *
  * The production build is also zipped into public/downloads/ so the site can
@@ -20,7 +20,7 @@ import { zipDirectory } from './zip.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dev = process.argv.includes('--dev');
-const siteUrl = (process.env.WISHFUL_URL || (dev ? 'http://localhost:5173' : process.env.URL || 'https://wishful-lists.netlify.app')).replace(/\/$/, '');
+const siteUrl = (process.env.WISHFUL_URL || (dev ? 'http://localhost:5174' : process.env.URL || 'https://wishful-lists.netlify.app')).replace(/\/$/, '');
 const site = new URL(siteUrl);
 const outDir = path.join(root, dev ? 'dist-dev' : 'dist');
 const define = { __WISHFUL_URL__: JSON.stringify(siteUrl) };

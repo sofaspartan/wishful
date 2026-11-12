@@ -30,7 +30,7 @@ export function appUrl(req?: Request): string {
   const configured = process.env.APP_URL || process.env.URL;
   if (configured) return configured.replace(/\/$/, '');
   if (req) return new URL(req.url).origin;
-  return 'http://localhost:5173';
+  return 'http://localhost:5174';
 }
 
 export function escapeHtml(value: string): string {

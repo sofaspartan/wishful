@@ -25,17 +25,18 @@
  * Claimants authenticate follow-up actions (release, mark purchased) with a
  * random bearer token returned once at claim time; only its SHA-256 is stored.
  */
-import type { OwnerClaimView, OwnerPledgeView } from '../../shared/types';
+import type { OwnerClaimView, OwnerContributionView, OwnerPledgeView } from '../../shared/types';
 import { isCollection } from '../../shared/constants';
+import { filterPaymentMethods } from '../../shared/paymentLinks';
 import type { z } from 'zod';
-import type { claimSchema, pledgeSchema } from '../../shared/schemas';
+import type { claimSchema, contributionSchema, pledgeSchema } from '../../shared/schemas';
 import { atomicUpdate, atomicUpdateExisting, db } from '../storage';
 import { HttpError, badRequest, conflict, forbidden, notFound } from '../http';
-import type { ClaimRecord, ClaimsDoc, GiftSide, PledgeRecord, WishlistRecord } from '../records';
+import type { ClaimRecord, ClaimsDoc, ContributionRecord, GiftSide, PledgeRecord, UserRecord, WishlistRecord } from '../records';
 import { newId, newToken, now, nowIso, safeEqual, sha256 } from '../util';
 import { accessRole, isListRecipient } from './wishlists';
 
-const emptyDoc = (wishlistId: string): ClaimsDoc => ({ wishlistId, claims: {}, pledges: {} });
+const emptyDoc = (wishlistId: string): ClaimsDoc => ({ wishlistId, claims: {}, pledges: {}, contributions: [] });
 
 /** Who Surprise Mode keeps gift activity from: the people a list is made for, or on your own list, you and your editors. */
 export const surprisedSide = (wishlist: WishlistRecord): GiftSide => (wishlist.recipients?.length ? 'recipient' : 'owner');
@@ -273,7 +274,7 @@ export function ownerClaimViews(
   wishlist: WishlistRecord,
   doc: ClaimsDoc,
   side: GiftSide,
-): { claims: OwnerClaimView[]; pledges: OwnerPledgeView[] } | null {
+): { claims: OwnerClaimView[]; pledges: OwnerPledgeView[]; contributions: OwnerContributionView[]; raisedCents: number } | null {
   if (activityHidden(wishlist, side)) return null;
   const entryIds = new Set(wishlist.entries.map((e) => e.id));
   const at = now();
@@ -299,5 +300,95 @@ export function ownerClaimViews(
       pledges.push({ entryId, name: p.name, message: p.message, role: p.role, createdAt: p.createdAt });
     }
   }
-  return { claims, pledges };
+  const contributions: OwnerContributionView[] = [];
+  let raisedCents = 0;
+  for (const c of doc.contributions ?? []) {
+    if (giftHidden(wishlist, c, side)) continue;
+    contributions.push({
+      id: c.id,
+      amountCents: c.amountCents,
+      name: c.name,
+      message: c.message,
+      provider: c.provider,
+      createdAt: c.createdAt,
+    });
+    raisedCents += c.amountCents;
+  }
+  return { claims, pledges, contributions, raisedCents };
+}
+
+function assertCashFundable(wishlist: WishlistRecord, owner: UserRecord, provider: ContributionRecord['provider']): void {
+  assertGiftable(wishlist);
+  if (!wishlist.cashFund) throw badRequest('This list doesn’t have a cash fund.');
+  const methods = filterPaymentMethods(owner.paymentMethods ?? [], wishlist.cashFund.providers);
+  if (!methods.some((m) => m.provider === provider)) {
+    throw badRequest('That payment app isn’t available for this fund.');
+  }
+}
+
+/** Record an honor-system cash contribution after the giver paid off-site. */
+export async function addContribution(
+  wishlist: WishlistRecord,
+  owner: UserRecord,
+  input: z.infer<typeof contributionSchema>,
+): Promise<{ contributionToken: string; contribution: ContributionRecord }> {
+  assertCashFundable(wishlist, owner, input.provider);
+  const contributionToken = newToken();
+  let contribution: ContributionRecord | null = null;
+  await atomicUpdate<ClaimsDoc>(db('claims'), wishlist.id, (current) => {
+    const doc = current ?? emptyDoc(wishlist.id);
+    const list = doc.contributions ?? [];
+    if (list.length >= 500) throw conflict('This cash fund has reached its contribution limit.');
+    contribution = {
+      id: newId(),
+      amountCents: input.amountCents,
+      name: input.name,
+      message: wishlist.settings.allowMessages ? (input.message ?? '') : '',
+      provider: input.provider,
+      tokenHash: sha256(contributionToken),
+      surprise: wishlist.surpriseMode,
+      surpriseFor: surprisedSide(wishlist),
+      createdAt: nowIso(),
+    };
+    doc.contributions = [...list, contribution];
+    return doc;
+  });
+  return { contributionToken, contribution: contribution! };
+}
+
+export async function withdrawContribution(wishlist: WishlistRecord, contributionToken: string): Promise<void> {
+  const tokenHash = sha256(contributionToken);
+  const doc = await atomicUpdateExisting<ClaimsDoc>(db('claims'), wishlist.id, (d) => {
+    const list = d.contributions ?? [];
+    const idx = list.findIndex((c) => safeEqual(c.tokenHash, tokenHash));
+    if (idx < 0) throw notFound('We couldn’t find your contribution.');
+    list.splice(idx, 1);
+    d.contributions = list;
+    return d;
+  });
+  if (!doc) throw notFound('We couldn’t find your contribution.');
+}
+
+/** Public contribution list for a viewer side; null when Surprise Mode hides activity. */
+export function publicContributions(
+  wishlist: WishlistRecord,
+  doc: ClaimsDoc,
+  side: GiftSide | null,
+): { contributions: Array<Omit<ContributionRecord, 'tokenHash' | 'surprise' | 'surpriseFor'>>; raisedCents: number } | null {
+  if (side && activityHidden(wishlist, side)) return null;
+  const contributions = [];
+  let raisedCents = 0;
+  for (const c of doc.contributions ?? []) {
+    if (side && giftHidden(wishlist, c, side)) continue;
+    contributions.push({
+      id: c.id,
+      amountCents: c.amountCents,
+      name: c.name,
+      message: c.message,
+      provider: c.provider,
+      createdAt: c.createdAt,
+    });
+    raisedCents += c.amountCents;
+  }
+  return { contributions, raisedCents };
 }

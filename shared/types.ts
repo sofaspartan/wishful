@@ -31,6 +31,51 @@ export type ClaimStatus = 'available' | 'reserved' | 'purchased';
 export const LIST_KINDS = ['wishlist', 'collection'] as const;
 export type ListKind = (typeof LIST_KINDS)[number];
 
+/** Peer-to-peer apps that support amount-prefilled pay links (no processor on Wishful). */
+export const PAYMENT_PROVIDERS = ['venmo', 'cashapp', 'paypal'] as const;
+export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
+
+export const CASH_FUND_DISPLAY_MODES = ['banner', 'card'] as const;
+export type CashFundDisplayMode = (typeof CASH_FUND_DISPLAY_MODES)[number];
+
+/** Owner's Venmo / Cash App / PayPal.Me handle for cash funds. */
+export interface PaymentMethod {
+  provider: PaymentProvider;
+  /** Username or cashtag without leading @ or $. */
+  handle: string;
+}
+
+/** Optional cash contribution fund on a wishlist (one per list). */
+export interface CashFund {
+  title: string;
+  note: string;
+  /** Fundraising goal in cents; null = open amount, no progress target. */
+  goalCents: number | null;
+  displayMode: CashFundDisplayMode;
+  /** Which of the owner's methods to offer; null means all configured methods. */
+  providers: PaymentProvider[] | null;
+  /** Avatar icon; defaults to cash dollar when missing. */
+  icon?: CoverIcon | null;
+}
+
+export interface PublicContribution {
+  id: string;
+  amountCents: number;
+  name: string;
+  message: string;
+  provider: PaymentProvider;
+  createdAt: string;
+}
+
+export interface OwnerContributionView {
+  id: string;
+  amountCents: number;
+  name: string;
+  message: string;
+  provider: PaymentProvider;
+  createdAt: string;
+}
+
 /** Illustrated cover graphics: a hand-drawn icon on a decorative backdrop, an alternative to a cover photo. */
 export const COVER_ICONS = [
   'wishlist',
@@ -159,6 +204,7 @@ export const COVER_ICONS = [
   'drawers',
   'archive-box',
   'duffel',
+  'cash',
 ] as const;
 export type CoverIcon = (typeof COVER_ICONS)[number];
 
@@ -328,6 +374,8 @@ export interface SelfUser extends PublicUser {
   location: string;
   /** Birth year used to show age on the profile; `null` hides age. */
   birthYear: number | null;
+  /** Venmo / Cash App / PayPal.Me handles for cash funds on wishlists. */
+  paymentMethods: PaymentMethod[];
   preferences: UserPreferences;
   /** When the current recovery code was made; null if the account has none yet. */
   recoveryCodeCreatedAt: string | null;
@@ -534,6 +582,8 @@ export interface Wishlist {
   shareToken: string | null;
   surpriseMode: boolean;
   settings: WishlistSettings;
+  /** Cash contribution fund; null/undefined when off. Collections never have one. */
+  cashFund?: CashFund | null;
   archivedAt: string | null;
   /** Mirrored from a synced source (e.g. a Brickfolio sheet tab). */
   link?: ListLink | null;
@@ -600,6 +650,12 @@ export interface WishlistDetail {
   /** `null` when gift activity is hidden from this viewer (Surprise Mode). */
   claims: OwnerClaimView[] | null;
   pledges: OwnerPledgeView[] | null;
+  /** Cash contributions; `null` when Surprise Mode hides them from this viewer. */
+  contributions: OwnerContributionView[] | null;
+  /** Sum of visible contributions in cents; `null` when hidden. */
+  raisedCents: number | null;
+  /** Owner's payment methods (for cash fund setup / preview). Empty for non-owners. */
+  paymentMethods: PaymentMethod[];
 }
 
 export type PledgeRole = 'coordinator' | 'contributor';
@@ -636,6 +692,18 @@ export interface PublicEntry {
   pledges: PublicPledge[];
 }
 
+export interface PublicCashFundView {
+  title: string;
+  note: string;
+  goalCents: number | null;
+  displayMode: CashFundDisplayMode;
+  icon: CoverIcon;
+  paymentMethods: PaymentMethod[];
+  /** `null` when Surprise Mode hides contribution totals from this viewer. */
+  raisedCents: number | null;
+  contributions: PublicContribution[] | null;
+}
+
 export interface PublicWishlistView {
   wishlist: {
     id: string;
@@ -655,6 +723,8 @@ export interface PublicWishlistView {
   owner: PublicUser & { bio: string };
   recipients: Array<Omit<ListPerson, 'userId'>>;
   entries: PublicEntry[];
+  /** Present when the list has a cash fund and the owner has at least one pay link. */
+  cashFund: PublicCashFundView | null;
   viewer: {
     /** The signed-in viewer owns (or edits) this list, or it's made for them. */
     isOwner: boolean;

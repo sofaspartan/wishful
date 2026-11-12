@@ -1349,6 +1349,9 @@ a.sky-stat {
     border-color var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
 }
+.grid-items .item-card {
+  height: 100%;
+}
 .item-card:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-sm);
@@ -3112,6 +3115,255 @@ button.empty:hover {
 }
 .kb-related a:hover {
   text-decoration: underline;
+}
+
+/* ── Cash fund ────────────────────────────────────────────────────────── */
+.cash-fund {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.cash-fund-edit {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-2);
+  z-index: 3;
+}
+.cash-fund-edit .btn {
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(4px);
+  border-color: var(--border);
+}
+.cash-fund-banner {
+  margin: 0 0 var(--s-5);
+  padding: var(--s-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--hero-bg), var(--surface));
+}
+.cash-fund-banner .cash-fund-edit {
+  top: var(--s-3);
+  right: var(--s-3);
+}
+.cash-fund-card {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+  height: 100%;
+}
+.grid-items > .cash-fund-card,
+.sortable-node > .cash-fund-card {
+  height: 100%;
+}
+.cash-fund-media {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 20%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 55%),
+    var(--media-bg);
+  border-bottom: 1px solid var(--border);
+}
+.cash-fund-body {
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+@media (min-width: 640px) {
+  .cash-fund-body {
+    padding: var(--s-3) var(--s-4) var(--s-4);
+  }
+}
+.cash-fund-card .cash-fund-cta {
+  margin-top: auto;
+  align-self: stretch;
+}
+.cash-fund-head {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+}
+.cash-fund-avatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+.cash-fund-avatar-lg {
+  width: 64px;
+  height: 64px;
+}
+.cash-fund-media .cash-fund-avatar-lg {
+  width: 88px;
+  height: 88px;
+}
+.cash-fund-icon-setup {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+}
+.cash-fund-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.cash-fund-banner .cash-fund-title {
+  font-size: var(--text-xl);
+}
+.cash-fund-note {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.cash-fund-banner .cash-fund-note {
+  margin-top: 4px;
+}
+/* List view: compact horizontal row instead of square media. */
+.list-items .cash-fund-card {
+  flex-direction: row;
+  height: auto;
+  align-items: stretch;
+}
+.list-items .cash-fund-media {
+  aspect-ratio: auto;
+  width: 72px;
+  flex-shrink: 0;
+  border-bottom: 0;
+  border-right: 1px solid var(--border);
+}
+.list-items .cash-fund-media .cash-fund-avatar-lg {
+  width: 40px;
+  height: 40px;
+}
+.list-items .cash-fund-body {
+  padding: var(--s-3);
+  justify-content: center;
+}
+.list-items .cash-fund-card .cash-fund-cta {
+  align-self: flex-start;
+}
+.cash-fund-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cash-fund-progress-banner {
+  gap: 8px;
+  margin-top: 2px;
+}
+.cash-fund-amounts {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+.cash-fund-progress-banner .cash-fund-amounts {
+  font-size: var(--text-md);
+}
+.cash-fund-bar {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-sunken));
+  overflow: hidden;
+}
+.cash-fund-bar-banner {
+  height: 12px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-sunken));
+}
+.cash-fund-bar > span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 75%, var(--accent-ink)));
+  border-radius: inherit;
+  transition: width var(--dur) var(--ease);
+}
+.cash-fund-owner {
+  margin: 0 0 var(--s-4);
+}
+.cash-fund-preview {
+  pointer-events: none;
+}
+.cash-fund-preview-off {
+  opacity: 0.55;
+  filter: grayscale(0.15);
+}
+.cash-pay-list {
+  display: flex;
+  flex-direction: column;
+}
+.cash-pay-row + .cash-pay-row {
+  border-top: 1px solid var(--border);
+}
+.cash-pay-row .switch-row {
+  padding-left: 0;
+  padding-right: 0;
+}
+.cash-pay-row .switch-row + .switch-row,
+.cash-pay-row + .cash-pay-row .switch-row {
+  border-top: 0;
+}
+.cash-pay-row.is-unset {
+  opacity: 0.72;
+}
+.cash-pay-row.is-unset.is-editing {
+  opacity: 1;
+}
+.cash-pay-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+.cash-pay-setup {
+  padding: 0 0 var(--s-3);
+}
+.editor-preview .cash-fund-banner {
+  margin: 0;
+}
+.editor-preview .cash-fund-card {
+  box-shadow: var(--shadow-sm);
+}
+.cash-amount-chips,
+.cash-provider-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cash-mine {
+  margin: 0 0 var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.cash-mine ul {
+  list-style: none;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.cash-mine li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  font-size: var(--text-sm);
 }
 
 .how-it-works {

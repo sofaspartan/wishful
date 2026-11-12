@@ -21,19 +21,24 @@ import {
   Shield,
   Trash2,
   UserRound,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import {
+  PAYMENT_PROVIDERS,
   PROFILE_VISIBILITIES,
   VISIBILITIES,
   type CoverArt as CoverArtValue,
   type NotificationPreferences,
+  type PaymentMethod,
+  type PaymentProvider,
   type ProfileVisibility,
   type SelfUser,
   type SyncResult,
   type Visibility,
   type WishlistSettings,
 } from '../../shared/types';
+import { PAYMENT_PROVIDER_HINTS, PAYMENT_PROVIDER_LABELS, normalizePaymentHandle } from '../../shared/paymentLinks';
 import {
   CURRENCIES,
   LIMITS,
@@ -65,6 +70,7 @@ import { PageSky } from '../components/PageSky';
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: UserRound },
+  { id: 'pay-links', label: 'Pay links', icon: Wallet },
   { id: 'privacy', label: 'Privacy & sharing', icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'extension', label: 'Browser extension', icon: Puzzle },
@@ -143,6 +149,7 @@ export default function Settings() {
         </div>
         <div role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
           {tab === 'profile' && <ProfileSection me={me} />}
+          {tab === 'pay-links' && <PayLinksSection me={me} />}
           {tab === 'privacy' && <PrivacySection me={me} />}
           {tab === 'notifications' && <NotificationsSection me={me} />}
           {tab === 'extension' && <ExtensionSection />}
@@ -330,6 +337,81 @@ function ProfileSection({ me }: { me: SelfUser }) {
       <div className="sticky-actions">
         <Button type="submit" variant="primary" loading={busy} disabled={uploading}>
           Save profile
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function PayLinksSection({ me }: { me: SelfUser }) {
+  const saveUser = useSaveUser();
+  const toast = useToast();
+  const [paymentHandles, setPaymentHandles] = useState<Record<PaymentProvider, string>>(() => {
+    const map = { venmo: '', cashapp: '', paypal: '' };
+    for (const m of me.paymentMethods ?? []) map[m.provider] = m.handle;
+    return map;
+  });
+  const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setErrors({});
+    setError(null);
+    const paymentMethods: PaymentMethod[] = PAYMENT_PROVIDERS.map((provider) => {
+      const handle = normalizePaymentHandle(provider, paymentHandles[provider]);
+      return handle ? { provider, handle } : null;
+    }).filter(Boolean) as PaymentMethod[];
+    try {
+      const { user } = await patch<{ user: SelfUser }>('/api/account/profile', { paymentMethods });
+      saveUser(user);
+      const next = { venmo: '', cashapp: '', paypal: '' };
+      for (const m of user.paymentMethods ?? []) next[m.provider] = m.handle;
+      setPaymentHandles(next);
+      toast.success('Pay links saved');
+    } catch (err) {
+      setErrors(fieldErrors(err));
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="settings-section" onSubmit={submit} noValidate>
+      <div className="card card-pad stack">
+        <CardTitle icon={Wallet}>Pay links</CardTitle>
+        <p className="muted text-sm" style={{ marginTop: '-0.5rem' }}>
+          Venmo, Cash App, and PayPal handles for wishlist cash funds. Guests pay in those apps — Wishful never moves the money.
+        </p>
+        <FormError message={error} />
+        <div className="form-grid cols-2">
+          {PAYMENT_PROVIDERS.map((provider) => (
+            <Field
+              key={provider}
+              label={PAYMENT_PROVIDER_LABELS[provider]}
+              optional
+              hint={PAYMENT_PROVIDER_HINTS[provider]}
+              error={errors.paymentMethods || errors[`paymentMethods.${PAYMENT_PROVIDERS.indexOf(provider)}.handle`]}
+            >
+              <input
+                className="input"
+                value={paymentHandles[provider]}
+                onChange={(e) => setPaymentHandles((h) => ({ ...h, [provider]: e.target.value }))}
+                placeholder={provider === 'cashapp' ? 'Cashtag' : 'username'}
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={64}
+              />
+            </Field>
+          ))}
+        </div>
+      </div>
+      <div className="sticky-actions">
+        <Button type="submit" variant="primary" loading={busy}>
+          Save pay links
         </Button>
       </div>
     </form>

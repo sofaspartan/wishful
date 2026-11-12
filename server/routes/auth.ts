@@ -305,6 +305,7 @@ export function registerAuthRoutes(router: Router) {
         profileCoverArt: input.profileCoverArt !== undefined ? input.profileCoverArt : (u.profileCoverArt ?? null),
         location: input.location !== undefined ? input.location : (u.location ?? ''),
         birthYear: input.birthYear !== undefined ? input.birthYear : (u.birthYear ?? null),
+        paymentMethods: input.paymentMethods !== undefined ? input.paymentMethods : (u.paymentMethods ?? []),
         updatedAt: nowIso(),
       };
     });

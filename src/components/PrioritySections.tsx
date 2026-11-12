@@ -15,6 +15,8 @@ interface Props<T> {
   /** When set, items can be dragged within their section; receives that section's new order. */
   onReorderSection?: (ids: string[]) => void;
   dragLabel?: (row: T) => string;
+  /** Non-sortable cell at the start of the first section (e.g. cash fund card). */
+  leading?: ReactNode;
 }
 
 const TITLES: Record<PrioritySectionKey, string> = {
@@ -24,15 +26,16 @@ const TITLES: Record<PrioritySectionKey, string> = {
 };
 
 /** Must haves and really wants in their own highlighted sections, ahead of everything else. */
-export function PrioritySections<T>({ rows, idOf, priorityOf, view, renderCard, onReorderSection, dragLabel }: Props<T>) {
+export function PrioritySections<T>({ rows, idOf, priorityOf, view, renderCard, onReorderSection, dragLabel, leading }: Props<T>) {
   const sections = groupByPriority(rows, priorityOf);
   const className = view === 'grid' ? 'grid-items' : 'list-items';
   return (
     <div className="prio-sections">
-      {sections.map((s) => {
+      {sections.map((s, sectionIndex) => {
         const Icon = s.key === 'rest' ? null : PRIORITY_ICONS[s.key];
         const byId = new Map(s.rows.map((r) => [idOf(r), r]));
         const showHeader = s.key !== 'rest' || sections.length > 1;
+        const lead = sectionIndex === 0 ? leading : undefined;
         return (
           <section key={s.key} className={`prio-section prio-section-${s.key}`} aria-label={TITLES[s.key]}>
             {showHeader && (
@@ -51,6 +54,7 @@ export function PrioritySections<T>({ rows, idOf, priorityOf, view, renderCard, 
                 ids={s.rows.map(idOf)}
                 layout={view}
                 className={className}
+                leading={lead}
                 onReorder={onReorderSection}
                 renderItem={(id, handle) => {
                   const row = byId.get(id);
@@ -59,6 +63,7 @@ export function PrioritySections<T>({ rows, idOf, priorityOf, view, renderCard, 
               />
             ) : (
               <div className={className}>
+                {lead}
                 {s.rows.map((r) => (
                   <div key={idOf(r)} style={{ minWidth: 0 }}>
                     {renderCard(r)}

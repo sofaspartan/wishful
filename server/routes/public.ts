@@ -7,13 +7,24 @@
  * Visitors never need an account, and no endpoint here can modify list
  * content or reveal owner-private data.
  */
-import { claimSchema, claimTokenSchema, pledgeSchema, pledgeTokenSchema } from '../../shared/schemas';
-import { forbidden, json, readJson, type RequestContext, type Router } from '../http';
-import type { WishlistRecord } from '../records';
+import { claimSchema, claimTokenSchema, contributionSchema, contributionTokenSchema, pledgeSchema, pledgeTokenSchema } from '../../shared/schemas';
+import { forbidden, json, notFound, readJson, type RequestContext, type Router } from '../http';
+import type { UserRecord, WishlistRecord } from '../records';
+import { db } from '../storage';
 import { getCurrentUser } from '../services/auth';
 import { rateLimit } from '../services/rateLimit';
 import { assertCanOpen, buildPublicProfile, buildPublicView, resolveShareToken } from '../domain/publicView';
-import { addPledge, claimEntry, coordinatorPurchase, giftSide, purchaseClaim, releaseClaim, withdrawPledge } from '../domain/claims';
+import {
+  addContribution,
+  addPledge,
+  claimEntry,
+  coordinatorPurchase,
+  giftSide,
+  purchaseClaim,
+  releaseClaim,
+  withdrawContribution,
+  withdrawPledge,
+} from '../domain/claims';
 
 /**
  * Starting a reservation or pledge requires being allowed to open the list.
@@ -83,6 +94,33 @@ export function registerPublicRoutes(router: Router) {
     const wishlist = await resolveShareToken(ctx.params.token);
     const { pledgeToken } = await readJson(ctx.req, pledgeTokenSchema);
     await coordinatorPurchase(wishlist, ctx.params.entryId, pledgeToken);
+    return json({ ok: true });
+  });
+
+  router.post('/api/public/lists/:token/contributions', async (ctx) => {
+    await rateLimit('claim', ctx.ip);
+    const wishlist = await visitorList(ctx);
+    const owner = (await db('users').get<UserRecord>(wishlist.ownerId))?.value;
+    if (!owner) throw notFound('This wishlist link is invalid or has been turned off.');
+    const input = await readJson(ctx.req, contributionSchema);
+    const { contributionToken, contribution } = await addContribution(wishlist, owner, input);
+    return json(
+      {
+        contributionToken,
+        contributionId: contribution.id,
+        amountCents: contribution.amountCents,
+        provider: contribution.provider,
+        createdAt: contribution.createdAt,
+      },
+      201,
+    );
+  });
+
+  router.post('/api/public/lists/:token/contributions/withdraw', async (ctx) => {
+    await rateLimit('claim', ctx.ip);
+    const wishlist = await resolveShareToken(ctx.params.token);
+    const { contributionToken } = await readJson(ctx.req, contributionTokenSchema);
+    await withdrawContribution(wishlist, contributionToken);
     return json({ ok: true });
   });
 

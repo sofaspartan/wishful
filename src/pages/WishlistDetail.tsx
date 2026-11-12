@@ -28,6 +28,7 @@ import {
   Trash2,
   Undo2,
   Users,
+  Wallet,
 } from 'lucide-react';
 import { isDarkCover, type Item, type OwnerClaimView, type OwnerPledgeView, type Priority, type WishlistDetail as Detail, type WishlistEntry } from '../../shared/types';
 import {
@@ -60,7 +61,9 @@ import { SkyArt } from '../components/SkyArt';
 import { CoverArt, CoverAvatar, suggestCoverArt } from '../components/CoverArt';
 import { CloudBank } from '../components/Cloud';
 import { WishlistFormModal } from '../components/WishlistFormModal';
-import { CollaboratorsDialog, EntrySettingsDialog, GiftSettingsDialog, MoveEntryDialog, ShareDialog } from '../components/WishlistDialogs';
+import { CashFundDisplay } from '../components/CashFund';
+import { CashFundDialog, CollaboratorsDialog, EntrySettingsDialog, GiftSettingsDialog, MoveEntryDialog, ShareDialog } from '../components/WishlistDialogs';
+import { filterPaymentMethods } from '../../shared/paymentLinks';
 import { useWishlistActions } from '../components/WishlistMenu';
 import { DragHandle, SortableList } from '../components/Sortable';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
@@ -140,6 +143,7 @@ function WishlistView({ detail }: { detail: Detail }) {
   const [editingList, setEditingList] = useState(params.get('edit') === '1');
   const [sharing, setSharing] = useState(params.get('share') === '1');
   const [giftSettings, setGiftSettings] = useState(false);
+  const [cashFundOpen, setCashFundOpen] = useState(false);
   const [collaborators, setCollaborators] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [listsFor, setListsFor] = useState<Item | null>(null);
@@ -483,6 +487,11 @@ function WishlistView({ detail }: { detail: Detail }) {
                 <MenuItem icon={<ListPlus size={16} />} onSelect={addSeveral}>
                   Add several
                 </MenuItem>
+                {isOwner && !collection && (
+                  <MenuItem icon={<Wallet size={16} />} onSelect={() => setCashFundOpen(true)}>
+                    {w.cashFund ? 'Edit cash fund' : 'Cash fund'}
+                  </MenuItem>
+                )}
               </Menu>
             )}
             {isOwner ? (
@@ -585,6 +594,31 @@ function WishlistView({ detail }: { detail: Detail }) {
 
       {collection && rows.length > 0 && <CollectionStats items={rows.map((r) => r.item)} privateValues={canEdit} />}
 
+      {(() => {
+        const fund = w.cashFund;
+        if (collection || !fund) return null;
+        const methods = filterPaymentMethods(detail.paymentMethods ?? [], fund.providers);
+        const viewFund = {
+          title: fund.title,
+          note: fund.note,
+          goalCents: fund.goalCents,
+          raisedCents: detail.raisedCents,
+          paymentMethods: methods,
+          icon: fund.icon ?? 'cash',
+        };
+        if (fund.displayMode === 'banner') {
+          return (
+            <CashFundDisplay
+              fund={viewFund}
+              mode="banner"
+              className="cash-fund-owner"
+              onEdit={isOwner ? () => setCashFundOpen(true) : undefined}
+            />
+          );
+        }
+        return null;
+      })()}
+
       {rows.length > 0 && (
         <div className="toolbar">
           <div className="input-group">
@@ -638,64 +672,107 @@ function WishlistView({ detail }: { detail: Detail }) {
         </div>
       )}
 
-      {rows.length === 0 ? (
-        <EmptyState
-          tone={collection ? 'blush' : undefined}
-          art={<SkyArt scene={collection ? 'collection' : 'wishlist'} />}
-          title={collection ? 'Nothing in this collection yet' : 'This list is empty'}
-          action={
-            canEdit && !w.archivedAt ? (
-              <div className="row-wrap" style={{ justifyContent: 'center' }}>
-                <Button variant="primary" icon={<Plus size={16} />} onClick={addItem}>
-                  Add the first item
-                </Button>
-                <Button icon={<ListPlus size={16} />} onClick={addSeveral}>
-                  Paste several links
-                </Button>
+      {(() => {
+        const fund = !collection && w.cashFund?.displayMode === 'card' ? w.cashFund : null;
+        const cashFundCard = fund ? (
+          <CashFundDisplay
+            fund={{
+              title: fund.title,
+              note: fund.note,
+              goalCents: fund.goalCents,
+              raisedCents: detail.raisedCents,
+              paymentMethods: filterPaymentMethods(detail.paymentMethods ?? [], fund.providers),
+              icon: fund.icon ?? 'cash',
+            }}
+            mode="card"
+            onEdit={isOwner ? () => setCashFundOpen(true) : undefined}
+          />
+        ) : null;
+        const itemsClass = view === 'grid' ? 'grid-items' : 'list-items';
+
+        if (rows.length === 0) {
+          return (
+            <>
+              {cashFundCard ? <div className="grid-items">{cashFundCard}</div> : null}
+              <EmptyState
+                tone={collection ? 'blush' : undefined}
+                art={<SkyArt scene={collection ? 'collection' : 'wishlist'} />}
+                title={collection ? 'Nothing in this collection yet' : cashFundCard ? 'No items yet' : 'This list is empty'}
+                action={
+                  canEdit && !w.archivedAt ? (
+                    <div className="row-wrap" style={{ justifyContent: 'center' }}>
+                      <Button variant="primary" icon={<Plus size={16} />} onClick={addItem}>
+                        Add the first item
+                      </Button>
+                      <Button icon={<ListPlus size={16} />} onClick={addSeveral}>
+                        Paste several links
+                      </Button>
+                    </div>
+                  ) : undefined
+                }
+              >
+                {!canEdit
+                  ? 'Nothing has been added yet.'
+                  : collection
+                    ? 'Add things you already have — paste a link, upload a photo, or tap “Got it!” on a wishlist item to move it here.'
+                    : 'Paste a link from any store, add an experience, or jot down an idea.'}
+              </EmptyState>
+            </>
+          );
+        }
+
+        if (filtered.length === 0) {
+          return (
+            <EmptyState icon={<Search size={22} />} title="No matching items">
+              Try a different search or filter.
+            </EmptyState>
+          );
+        }
+
+        if (grouped) {
+          return (
+            <>
+              {cashFundCard ? <div className={itemsClass} style={{ marginBottom: 'var(--s-4)' }}>{cashFundCard}</div> : null}
+              <PrioritySections
+                rows={displayRows}
+                idOf={(r) => r.entry.id}
+                priorityOf={(r) => r.entry.priority}
+                view={view}
+                renderCard={renderCard}
+                onReorderSection={canDrag ? (ids) => reorder(mergeSectionOrder(orderedIds, ids)) : undefined}
+                dragLabel={(r) => `Reorder ${r.item.title}`}
+              />
+            </>
+          );
+        }
+
+        if (canDrag) {
+          return (
+            <SortableList
+              ids={orderedIds}
+              layout={view === 'grid' ? 'grid' : 'list'}
+              className={itemsClass}
+              leading={cashFundCard}
+              onReorder={reorder}
+              renderItem={(eid, handle) => {
+                const r = rowById.get(eid);
+                return r ? renderCard(r, <DragHandle handle={handle} label={`Reorder ${r.item.title}`} />) : null;
+              }}
+            />
+          );
+        }
+
+        return (
+          <div className={itemsClass}>
+            {cashFundCard}
+            {filtered.map((r) => (
+              <div key={r.entry.id} style={{ minWidth: 0 }}>
+                {renderCard(r)}
               </div>
-            ) : undefined
-          }
-        >
-          {!canEdit
-            ? 'Nothing has been added yet.'
-            : collection
-              ? 'Add things you already have — paste a link, upload a photo, or tap “Got it!” on a wishlist item to move it here.'
-              : 'Paste a link from any store, add an experience, or jot down an idea.'}
-        </EmptyState>
-      ) : filtered.length === 0 ? (
-        <EmptyState icon={<Search size={22} />} title="No matching items">
-          Try a different search or filter.
-        </EmptyState>
-      ) : grouped ? (
-        <PrioritySections
-          rows={displayRows}
-          idOf={(r) => r.entry.id}
-          priorityOf={(r) => r.entry.priority}
-          view={view}
-          renderCard={renderCard}
-          onReorderSection={canDrag ? (ids) => reorder(mergeSectionOrder(orderedIds, ids)) : undefined}
-          dragLabel={(r) => `Reorder ${r.item.title}`}
-        />
-      ) : canDrag ? (
-        <SortableList
-          ids={orderedIds}
-          layout={view === 'grid' ? 'grid' : 'list'}
-          className={view === 'grid' ? 'grid-items' : 'list-items'}
-          onReorder={reorder}
-          renderItem={(eid, handle) => {
-            const r = rowById.get(eid);
-            return r ? renderCard(r, <DragHandle handle={handle} label={`Reorder ${r.item.title}`} />) : null;
-          }}
-        />
-      ) : (
-        <div className={view === 'grid' ? 'grid-items' : 'list-items'}>
-          {filtered.map((r) => (
-            <div key={r.entry.id} style={{ minWidth: 0 }}>
-              {renderCard(r)}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        );
+      })()}
       <div style={{ height: 'var(--s-12)' }} />
 
       <ItemDetailModal
@@ -793,6 +870,13 @@ function WishlistView({ detail }: { detail: Detail }) {
           <WishlistFormModal open={editingList} onClose={() => setEditingList(false)} onSaved={() => setEditingList(false)} wishlist={w} />
           <ShareDialog open={sharing} onClose={() => setSharing(false)} wishlist={w} whose={possessiveNames(people.length ? people.map((p) => p.name) : [firstName(detail.owner.displayName)])} />
           <GiftSettingsDialog open={giftSettings} onClose={() => setGiftSettings(false)} wishlist={w} />
+          <CashFundDialog
+            open={cashFundOpen}
+            onClose={() => setCashFundOpen(false)}
+            wishlist={w}
+            paymentMethods={detail.paymentMethods ?? []}
+            raisedCents={detail.raisedCents}
+          />
         </>
       )}
       <CollaboratorsDialog open={collaborators} onClose={() => setCollaborators(false)} detail={detail} />

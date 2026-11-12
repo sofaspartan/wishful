@@ -17,6 +17,7 @@ export function toSelfUser(u: UserRecord): SelfUser {
     profileCoverArt: u.profileCoverArt ?? null,
     location: u.location ?? '',
     birthYear: u.birthYear ?? null,
+    paymentMethods: u.paymentMethods ?? [],
     preferences: {
       ...DEFAULT_PREFERENCES,
       ...u.preferences,

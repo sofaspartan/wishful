@@ -3,7 +3,21 @@
  * hashes, claim token hashes) and must be mapped through the serializers in
  * `server/serialize.ts` before being returned to any client.
  */
-import type { Box, CircleKind, ClaimStatus, CoverArt, Item, ListKind, PledgeRole, ProfileVisibility, SyncResult, UserPreferences, Wishlist } from '../shared/types';
+import type {
+  Box,
+  CircleKind,
+  ClaimStatus,
+  CoverArt,
+  Item,
+  ListKind,
+  PaymentMethod,
+  PaymentProvider,
+  PledgeRole,
+  ProfileVisibility,
+  SyncResult,
+  UserPreferences,
+  Wishlist,
+} from '../shared/types';
 
 export interface UserRecord {
   id: string;
@@ -19,6 +33,8 @@ export interface UserRecord {
   profileCoverArt?: CoverArt | null;
   location?: string;
   birthYear?: number | null;
+  /** Venmo / Cash App / PayPal.Me handles for wishlist cash funds. */
+  paymentMethods?: PaymentMethod[];
   preferences: UserPreferences;
   passwordHash: string;
   /** Sessions issued before this instant are invalid (password change / reset). */
@@ -107,11 +123,26 @@ export interface PledgeRecord {
   createdAt: string;
 }
 
+/** Honor-system cash contribution toward a list's cash fund (paid off-site via Venmo/Cash App/PayPal). */
+export interface ContributionRecord {
+  id: string;
+  amountCents: number;
+  name: string;
+  message: string;
+  provider: PaymentProvider;
+  tokenHash: string;
+  surprise: boolean;
+  surpriseFor?: GiftSide;
+  createdAt: string;
+}
+
 /** All gift activity for one wishlist, updated atomically via ETags. */
 export interface ClaimsDoc {
   wishlistId: string;
   claims: Record<string, ClaimRecord>;
   pledges: Record<string, PledgeRecord[]>;
+  /** List-level cash fund contributions (absent on older docs). */
+  contributions?: ContributionRecord[];
 }
 
 export interface ShareRecord {

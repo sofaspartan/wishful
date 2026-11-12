@@ -127,6 +127,7 @@ export function applyCollectionRules(w: WishlistRecord): void {
   w.surpriseMode = false;
   w.occasion = '';
   w.eventDate = null;
+  w.cashFund = null;
   w.settings = { ...COLLECTION_SETTINGS, showReviews: w.settings?.showReviews ?? true };
   for (const e of w.entries) {
     e.groupGift = false;

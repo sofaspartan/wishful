@@ -30,6 +30,7 @@ export const COVER_ICON_LABELS: Record<CoverIcon, string> = {
   collection: 'Collection (records and books)',
   sparkles: 'Sparkles',
   chest: 'Treasure chest',
+  cash: 'Cash dollar',
   tree: 'Christmas tree',
   snowflake: 'Snowflake',
   holly: 'Holly',
@@ -155,7 +156,7 @@ export const COVER_ICON_LABELS: Record<CoverIcon, string> = {
 };
 
 export const COVER_ICON_GROUPS: Array<{ label: string; icons: CoverIcon[] }> = [
-  { label: 'Wishlists & collections', icons: ['gift', 'wishlist', 'sparkles', 'star', 'bag', 'collection', 'chest'] },
+  { label: 'Wishlists & collections', icons: ['gift', 'wishlist', 'sparkles', 'star', 'bag', 'collection', 'chest', 'cash'] },
   { label: 'Celebrations', icons: ['cake', 'balloon', 'party-hat', 'grad-cap', 'ring', 'house', 'suitcase'] },
   { label: 'Christmas & winter', icons: ['tree', 'holly', 'snowflake', 'snowman', 'ornament', 'candy-cane'] },
   { label: 'Hanukkah', icons: ['menorah', 'dreidel', 'star-of-david'] },
@@ -190,6 +191,7 @@ const COVER_ICON_KEYWORDS: Partial<Record<CoverIcon, string>> = {
   collection: 'records books shelf library',
   sparkles: 'magic shiny',
   chest: 'treasure',
+  cash: 'dollar money coin fund contribute tip',
   tree: 'christmas xmas holiday pine',
   snowflake: 'snow cold winter',
   holly: 'christmas berries',

@@ -1,12 +1,13 @@
 import type { PublicEntry, PublicProfileView, PublicWishlistView, Visibility } from '../../shared/types';
 import { isCollection } from '../../shared/constants';
+import { filterPaymentMethods } from '../../shared/paymentLinks';
 import { ageFromBirthYear, profileVisibilityOf } from '../../shared/profileVisibility';
 import { db, getMany } from '../storage';
 import { HttpError, notFound } from '../http';
 import type { ItemRecord, ShareRecord, UserRecord, WishlistRecord } from '../records';
 import { toPublicItem } from '../serialize';
 import { getUserIndex } from '../services/auth';
-import { activeClaim, activityHidden, getClaimsDoc, giftHidden, giftSide } from './claims';
+import { activeClaim, activityHidden, getClaimsDoc, giftHidden, giftSide, publicContributions } from './claims';
 import { areFriends } from './friends';
 import { accessRole, getWishlist, publicPeople, resolveListRecipients, resolveRecipients } from './wishlists';
 
@@ -145,6 +146,24 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
     });
   }
 
+  let cashFund: PublicWishlistView['cashFund'] = null;
+  if (wishlist.cashFund && !isCollection(wishlist) && owner) {
+    const methods = filterPaymentMethods(owner.paymentMethods ?? [], wishlist.cashFund.providers);
+    if (methods.length > 0) {
+      const contrib = publicContributions(wishlist, doc, side);
+      cashFund = {
+        title: wishlist.cashFund.title,
+        note: wishlist.cashFund.note,
+        goalCents: wishlist.cashFund.goalCents,
+        displayMode: wishlist.cashFund.displayMode,
+        icon: wishlist.cashFund.icon ?? 'cash',
+        paymentMethods: methods,
+        raisedCents: contrib?.raisedCents ?? null,
+        contributions: contrib?.contributions ?? null,
+      };
+    }
+  }
+
   return {
     wishlist: {
       id: wishlist.id,
@@ -170,6 +189,7 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
     },
     recipients: publicPeople(recipients),
     entries,
+    cashFund,
     viewer: { isOwner: side !== null, isRecipient: side === 'recipient', claimsHidden: side !== null && activityHidden(wishlist, side) },
   };
 }

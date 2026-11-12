@@ -269,7 +269,7 @@ printed to the terminal instead.
 ```bash
 npm install
 cp .env.example .env      # optional
-npm run dev               # http://localhost:5173 — SPA + API, data in ./.data
+npm run dev               # http://localhost:5174 — SPA + API, data in ./.data
 ```
 
 Other scripts:
@@ -380,7 +380,7 @@ bypassed.
 
 ```bash
 npm run extension:build   # extension/dist, talks to https://wishful-lists.netlify.app
-npm run extension:dev     # extension/dist-dev, talks to http://localhost:5173
+npm run extension:dev     # extension/dist-dev, talks to http://localhost:5174
 WISHFUL_URL=https://wishful.example npm run extension:build   # another domain
 ```
 

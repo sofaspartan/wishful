@@ -16,17 +16,20 @@ import {
   COVER_BACKDROPS,
   COVER_FRAME_FILLS,
   COVER_FRAME_SHAPES,
+  CASH_FUND_DISPLAY_MODES,
   CIRCLE_KINDS,
   COVER_ICONS,
   ITEM_ORDERS,
   ITEM_TYPES,
   LIST_KINDS,
+  PAYMENT_PROVIDERS,
   PRIORITIES,
   PROFILE_VISIBILITIES,
   VISIBILITIES,
 } from './types';
 import { LIMITS } from './constants';
 import { GIFT_MAX_PAGE, GIFT_PRICE_CAPS, GIFT_STORES } from './giftIdeas';
+import { isValidPaymentHandle, normalizePaymentHandle } from './paymentLinks';
 
 export function isHttpUrl(value: string): boolean {
   try {
@@ -153,6 +156,52 @@ export const deleteAccountSchema = z.object({
 
 const currentYear = () => new Date().getFullYear();
 
+export const paymentProviderSchema = z.enum(PAYMENT_PROVIDERS);
+
+export const paymentMethodSchema = z
+  .object({
+    provider: paymentProviderSchema,
+    handle: z.string().trim().min(1, 'Enter your username').max(64),
+  })
+  .superRefine((m, ctx) => {
+    const handle = normalizePaymentHandle(m.provider, m.handle);
+    if (!isValidPaymentHandle(m.provider, handle)) {
+      ctx.addIssue({ code: 'custom', path: ['handle'], message: 'That doesn’t look like a valid username' });
+    }
+  })
+  .transform((m) => ({ provider: m.provider, handle: normalizePaymentHandle(m.provider, m.handle) }));
+
+export const paymentMethodsSchema = z
+  .array(paymentMethodSchema)
+  .max(3)
+  .superRefine((methods, ctx) => {
+    const seen = new Set<string>();
+    methods.forEach((m, i) => {
+      if (seen.has(m.provider)) {
+        ctx.addIssue({ code: 'custom', path: [i, 'provider'], message: 'You already added this app' });
+      }
+      seen.add(m.provider);
+    });
+  });
+
+export const cashFundSchema = z
+  .object({
+    title: z.string().trim().min(1, 'Name the fund').max(LIMITS.wishlistTitle),
+    note: z.string().trim().max(LIMITS.message).optional(),
+    goalCents: z.number().int().min(100, 'Set at least $1').max(10_000_000_00).nullable().optional(),
+    displayMode: z.enum(CASH_FUND_DISPLAY_MODES),
+    providers: z.array(paymentProviderSchema).max(3).nullable().optional(),
+    icon: z.enum(COVER_ICONS).nullable().optional(),
+  })
+  .transform((v) => ({
+    title: v.title,
+    note: v.note ?? '',
+    goalCents: v.goalCents ?? null,
+    displayMode: v.displayMode,
+    providers: v.providers?.length ? v.providers : null,
+    icon: v.icon ?? 'cash',
+  }));
+
 export const profileUpdateSchema = z.object({
   displayName: displayNameSchema.optional(),
   username: usernameSchema.optional(),
@@ -168,6 +217,7 @@ export const profileUpdateSchema = z.object({
     .max(currentYear() - 5, 'Enter a realistic birth year')
     .nullable()
     .optional(),
+  paymentMethods: paymentMethodsSchema.optional(),
 });
 
 export const peopleSearchSchema = z.object({
@@ -345,6 +395,8 @@ const wishlistFields = {
     .optional(),
   /** Also show the owner as someone the list is for (needs at least one other person in `recipients`). */
   includeOwner: z.boolean().optional(),
+  /** Cash contribution fund; `null` turns it off. */
+  cashFund: cashFundSchema.nullable().optional(),
 };
 
 export const wishlistCreateSchema = z.object({ ...wishlistFields, kind: listKindSchema.optional() });
@@ -439,6 +491,15 @@ export const pledgeSchema = z.object({
 });
 
 export const pledgeTokenSchema = z.object({ pledgeToken: z.string().min(20).max(200) });
+
+export const contributionSchema = z.object({
+  amountCents: z.number().int().min(100, 'Enter at least $1').max(10_000_000_00),
+  name: z.string().trim().min(1, 'Let others know who you are').max(60),
+  message: z.string().trim().max(LIMITS.message).optional(),
+  provider: paymentProviderSchema,
+});
+
+export const contributionTokenSchema = z.object({ contributionToken: z.string().min(20).max(200) });
 
 export const metadataRequestSchema = z.object({ url: httpUrlSchema });
 

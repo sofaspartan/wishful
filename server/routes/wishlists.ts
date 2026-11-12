@@ -73,6 +73,7 @@ async function buildDetail(w: WishlistRecord, role: AccessRole, viewerId: string
   const activity = side ? ownerClaimViews(w, await getClaimsDoc(w.id), side) : null;
   const dto = toWishlistDto(w, role);
   dto.collaborators = w.collaborators.map((c) => ({ ...c, user: users.get(c.userId) }));
+  const ownerUser = (await db('users').get<UserRecord>(w.ownerId))?.value;
   return {
     wishlist: dto,
     items: itemMap,
@@ -81,6 +82,9 @@ async function buildDetail(w: WishlistRecord, role: AccessRole, viewerId: string
     recipients: await resolveListRecipients(w),
     claims: activity?.claims ?? null,
     pledges: activity?.pledges ?? null,
+    contributions: activity?.contributions ?? null,
+    raisedCents: activity?.raisedCents ?? null,
+    paymentMethods: role === 'owner' ? (ownerUser?.paymentMethods ?? []) : [],
   };
 }
 
@@ -256,6 +260,7 @@ export function registerWishlistRoutes(router: Router) {
       }
       if (input.surpriseMode !== undefined) w.surpriseMode = input.surpriseMode;
       if (input.settings) w.settings = { ...w.settings, ...input.settings };
+      if (input.cashFund !== undefined) w.cashFund = input.cashFund;
       if (input.archived !== undefined) w.archivedAt = input.archived ? (w.archivedAt ?? nowIso()) : null;
       applyCollectionRules(w);
     });

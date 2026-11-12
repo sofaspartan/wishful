@@ -17,7 +17,7 @@ function apiDevServer(): Plugin {
       const { brand } = (await server.ssrLoadModule('/src/config/brand.ts')) as typeof import('./src/config/brand');
       const { injectMeta, pageMeta } = (await server.ssrLoadModule('/shared/shareMeta.ts')) as typeof import('./shared/shareMeta');
       const { handleRequest } = (await server.ssrLoadModule('/server/app.ts')) as typeof import('./server/app');
-      const origin = `http://localhost:${server.config.server.port ?? 5173}`;
+      const origin = `http://localhost:${server.config.server.port ?? 5174}`;
       const getJson = async (apiPath: string) => {
         const res = await handleRequest(new Request(origin + apiPath));
         return res.ok ? res.json() : null;
@@ -73,7 +73,8 @@ export default defineConfig(({ mode }) => {
   for (const [k, v] of Object.entries(env)) if (process.env[k] === undefined) process.env[k] = v;
   return {
     plugins: [react(), apiDevServer()],
-    server: { port: 5173 },
+    // 5174 — 5173 is often taken by other local Vite apps on this machine.
+    server: { port: 5174, strictPort: false },
     build: { sourcemap: true, chunkSizeWarningLimit: 800 },
   };
 });

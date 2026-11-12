@@ -10,7 +10,7 @@ can reserve gifts without an account, and Surprise Mode keeps who's getting what
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 (app + API; data stored in ./.data)
+npm run dev        # http://localhost:5174 (app + API; data stored in ./.data)
 npm test           # API test suite
 ```
 

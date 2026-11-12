@@ -392,6 +392,20 @@ const Chest = (
   </Svg>
 );
 
+/** Default cash-fund avatar: coin with a centered, correctly oriented dollar. */
+const Cash = (
+  <Svg>
+    <circle cx="24" cy="24" r="16.5" fill="#f2c14e" />
+    <circle cx="24" cy="24" r="13.2" fill="#ffe08a" stroke="#d4a017" strokeWidth="1.6" />
+    <circle cx="24" cy="24" r="10.2" fill="none" stroke="#e8b83a" strokeWidth="1.2" strokeDasharray="2.2 2.4" />
+    <g transform="translate(24 24) scale(1.15) translate(-12 -12)" stroke="#8a6410" strokeWidth="2.35" strokeLinecap="round" strokeLinejoin="round" fill="none">
+      <path d="M12 2v20" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </g>
+    <path className="fa-spark" d={sparklePath(39, 9, 3.2)} fill="#fff3bf" />
+  </Svg>
+);
+
 /* ── Halloween ─────────────────────────────────────────────────────────── */
 
 const JackOLantern = (
@@ -1775,6 +1789,7 @@ export const COVER_ILLUSTRATIONS: Record<Exclude<CoverIcon, BorrowedIcon>, React
   wishlist: Wishlist,
   sparkles: Sparkles,
   chest: Chest,
+  cash: Cash,
   tree: Tree,
   snowflake: Snowflake,
   holly: Holly,

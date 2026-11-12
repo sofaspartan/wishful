@@ -216,6 +216,28 @@ export const KB_ARTICLES: KbArticle[] = [
     ],
   },
   {
+    slug: 'cash-funds',
+    title: 'Cash funds (Venmo, Cash App, PayPal)',
+    category: 'gifting',
+    summary: 'Collect money toward a goal with amount-prefilled pay links — Wishful never handles the payment.',
+    keywords: ['cash', 'venmo', 'paypal', 'cash app', 'contribute', 'donate', 'money', 'fund', 'honeymoon'],
+    sections: [
+      {
+        paragraphs: [
+          'A cash fund lets guests contribute money instead of (or alongside) physical gifts. You save your Venmo, Cash App, and/or PayPal.Me usernames under Settings → Pay links, then enable a cash fund from a wishlist’s Add menu.',
+          'Choose a title, optional goal (for example $500 for a trip), and how it looks: a top banner under the list header, or a card in the item grid.',
+        ],
+      },
+      {
+        heading: 'How guests pay',
+        paragraphs: [
+          'Guests pick an amount, open Venmo, Cash App, or PayPal with that amount filled in, and send the payment in that app. Then they tap “I sent it” on Wishful so the list can show progress. Wishful cannot verify transfers — it’s honor-system, like group-gift pledges.',
+          'Surprise Mode hides contribution totals and names from you the same way it hides reservations.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'friends',
     title: 'Friends',
     category: 'people',

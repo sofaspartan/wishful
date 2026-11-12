@@ -19,6 +19,8 @@ interface Props {
   onReorder: (ids: string[]) => void;
   layout: 'grid' | 'list';
   className?: string;
+  /** Non-sortable cell rendered first in the same grid/list (e.g. cash fund card). */
+  leading?: ReactNode;
   renderItem: (id: string, handle: HandleProps) => ReactNode;
 }
 
@@ -26,7 +28,7 @@ interface Props {
  * Drag-and-drop reordering via a dedicated handle (so taps and scrolling still
  * work on touch screens). Keyboard: focus a handle, Space to lift, arrows to move.
  */
-export function SortableList({ ids, onReorder, layout, className, renderItem }: Props) {
+export function SortableList({ ids, onReorder, layout, className, leading, renderItem }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -44,6 +46,7 @@ export function SortableList({ ids, onReorder, layout, className, renderItem }: 
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={ids} strategy={layout === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}>
         <div className={className}>
+          {leading}
           {ids.map((id) => (
             <SortableNode key={id} id={id}>
               {(handle) => renderItem(id, handle)}

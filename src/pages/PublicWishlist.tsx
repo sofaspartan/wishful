@@ -20,6 +20,7 @@ import { CollectionBadge, StatusBadge } from '../components/ItemVisuals';
 import { CloudBank } from '../components/Cloud';
 import { CoverArt, CoverAvatar, suggestCoverArt } from '../components/CoverArt';
 import { CollectionStats } from '../components/CollectionStats';
+import { CashFundDisplay, ContributeDialog, MyContributions } from '../components/CashFund';
 import { PrioritySections } from '../components/PrioritySections';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { useLocalPref } from '../lib/prefs';
@@ -223,12 +224,16 @@ const listPeople = (view: PublicWishlistView) =>
 const listNames = (view: PublicWishlistView) => (view.recipients.length ? view.recipients.map((r) => r.name) : [view.owner.displayName.split(' ')[0]]);
 
 function PublicListView({ view, token }: { view: PublicWishlistView; token: string }) {
-  const { wishlist: w, owner, viewer } = view;
+  const { wishlist: w, owner, viewer, cashFund } = view;
   const people = listPeople(view);
   const forOthers = view.recipients.length > 0;
   const { data: me } = useMe();
+  const qc = useQueryClient();
+  const [contributeOpen, setContributeOpen] = useState(false);
   const [spoilersShown, setSpoilersShown] = useState(() => readSpoilersShown(w.id));
   const hasGiftActivity = view.entries.some((e) => (e.status !== null && e.status !== 'available') || e.pledges.length > 0);
+  const canContribute = Boolean(cashFund && !viewer.isOwner && !viewer.isRecipient);
+  const refreshCash = () => void qc.invalidateQueries({ queryKey: keys.publicList(token) });
   // Gift activity is only a spoiler for the people the list is for; whoever made it for someone else is meant to see it.
   const forViewer = !forOthers || viewer.isRecipient;
   // Only reachable when the API already shares claims with the owner (Surprise Mode off).
@@ -500,6 +505,13 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
           </div>
         )}
 
+        {cashFund?.displayMode === 'banner' && (
+          <CashFundDisplay fund={cashFund} mode="banner" canContribute={canContribute} onContribute={() => setContributeOpen(true)} />
+        )}
+        {cashFund && canContribute && (
+          <MyContributions token={token} contributions={cashFund.contributions} onChanged={refreshCash} />
+        )}
+
         {collection && entries.length > 0 && <CollectionStats items={entries.map((e) => e.item)} />}
 
         {entries.length > 0 && (
@@ -545,26 +557,63 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
           </div>
         )}
 
-        {entries.length === 0 ? (
-          <EmptyState icon={<Gift size={22} />} title="Nothing here yet">
-            {forOthers ? `Nothing’s on ${possessiveNames(listNames(view))} list yet.` : `${firstName} hasn't added anything to this list yet.`} Check back soon!
-          </EmptyState>
-        ) : shown.length === 0 ? (
-          <EmptyState icon={<Search size={22} />} title={query.trim() ? 'No matches' : 'Nothing to show'}>
-            {query.trim()
-              ? `Nothing matches “${query.trim()}”. Try a different search${filter !== 'all' ? ' or filter' : ''}.`
-              : 'No items match this filter.'}
-          </EmptyState>
-        ) : grouped ? (
-          <PrioritySections rows={shown} idOf={(e) => e.id} priorityOf={(e) => e.priority} view={itemsView} renderCard={card} />
-        ) : (
-          <div className={itemsView === 'grid' ? 'grid-items' : 'list-items'}>
-            {shown.map((e) => (
-              <div key={e.id} style={{ minWidth: 0 }}>
-                {card(e)}
-              </div>
-            ))}
-          </div>
+        {(() => {
+          const cashFundCard =
+            cashFund?.displayMode === 'card' ? (
+              <CashFundDisplay fund={cashFund} mode="card" canContribute={canContribute} onContribute={() => setContributeOpen(true)} />
+            ) : null;
+          const itemsClass = itemsView === 'grid' ? 'grid-items' : 'list-items';
+
+          if (entries.length === 0) {
+            return (
+              <>
+                {cashFundCard ? <div className="grid-items" style={{ marginBottom: 'var(--s-6)' }}>{cashFundCard}</div> : null}
+                <EmptyState icon={<Gift size={22} />} title={cashFundCard ? 'No items yet' : 'Nothing here yet'}>
+                  {forOthers ? `Nothing’s on ${possessiveNames(listNames(view))} list yet.` : `${firstName} hasn't added anything to this list yet.`} Check back soon!
+                </EmptyState>
+              </>
+            );
+          }
+
+          if (shown.length === 0) {
+            return (
+              <EmptyState icon={<Search size={22} />} title={query.trim() ? 'No matches' : 'Nothing to show'}>
+                {query.trim()
+                  ? `Nothing matches “${query.trim()}”. Try a different search${filter !== 'all' ? ' or filter' : ''}.`
+                  : 'No items match this filter.'}
+              </EmptyState>
+            );
+          }
+
+          if (grouped) {
+            return (
+              <>
+                {cashFundCard ? <div className={itemsClass} style={{ marginBottom: 'var(--s-4)' }}>{cashFundCard}</div> : null}
+                <PrioritySections rows={shown} idOf={(e) => e.id} priorityOf={(e) => e.priority} view={itemsView} renderCard={card} />
+              </>
+            );
+          }
+
+          return (
+            <div className={itemsClass}>
+              {cashFundCard}
+              {shown.map((e) => (
+                <div key={e.id} style={{ minWidth: 0 }}>
+                  {card(e)}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+        {cashFund && canContribute && (
+          <ContributeDialog
+            open={contributeOpen}
+            onClose={() => setContributeOpen(false)}
+            token={token}
+            fund={cashFund}
+            onRecorded={refreshCash}
+          />
         )}
       </main>
 
