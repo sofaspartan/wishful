@@ -24,6 +24,7 @@ export function ItemFacts({ item }: { item: Item | PublicItem }) {
   const rows: Array<[string, ReactNode]> = [];
   if (item.brand) rows.push(['Brand', item.brand]);
   if (item.retailer) rows.push(['From', item.retailer]);
+  if (m.barcode) rows.push(['Barcode', m.barcode]);
   if (m.model) rows.push(['Model', m.model]);
   if (m.variant) rows.push(['Variant', m.variant]);
   if (m.size) rows.push(['Size', m.size]);

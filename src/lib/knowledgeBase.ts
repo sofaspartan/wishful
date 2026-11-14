@@ -103,13 +103,21 @@ export const KB_ARTICLES: KbArticle[] = [
     slug: 'adding-items',
     title: 'Adding items',
     category: 'lists',
-    summary: 'Paste a link, add manually, import in bulk, or save from the browser extension.',
-    keywords: ['add item', 'paste', 'url', 'csv', 'bulk', 'extension', 'priority'],
+    summary: 'Paste a link, scan a barcode in store, add manually, import in bulk, or save from the browser extension.',
+    keywords: ['add item', 'paste', 'url', 'csv', 'bulk', 'extension', 'priority', 'barcode', 'scan', 'upc', 'ean'],
     sections: [
       {
         paragraphs: [
           'From Home, a list, or the Add menu, you can paste a product URL and Wishful will try to fill in title, price, and image. You can also add an item by hand, enter several lines at once, or import a CSV.',
           'Each item can live on multiple lists. On a wishlist, set priority (Must have, Really want, Interested), notes for gift-givers, and optional private notes only you (and editors) see.',
+        ],
+      },
+      {
+        heading: 'Scan a barcode in store',
+        paragraphs: [
+          'On your phone, open Add → Scan barcode (or Home → Scan a barcode). Point the camera at the UPC / EAN on a package — Wishful looks up the product and prefills what it can. You can also type the digits under the bars.',
+          'Grocery and pantry items match most often. Store brands and some general merchandise may need a name typed in; the barcode is still saved on the item so you can find it later.',
+          'Camera access needs HTTPS (or localhost). If the camera is blocked, use typed digits or allow Camera in your browser site settings.',
         ],
       },
       {

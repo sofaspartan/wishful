@@ -1,4 +1,4 @@
-import { ChevronDown, Library, List, Package, Plus } from 'lucide-react';
+import { ChevronDown, Library, List, Package, Plus, ScanBarcode } from 'lucide-react';
 import { useAppActions } from './appActions';
 import { buttonClass } from './ui/Button';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
@@ -40,6 +40,9 @@ export function CreateMenu({ variant = 'new', block, align }: Props) {
         <>
           <MenuItem icon={<Plus size={16} />} onSelect={() => openAddItem()}>
             Add item
+          </MenuItem>
+          <MenuItem icon={<ScanBarcode size={16} />} onSelect={() => openAddItem({ mode: 'barcode' })}>
+            Scan barcode
           </MenuItem>
           <MenuSeparator />
         </>

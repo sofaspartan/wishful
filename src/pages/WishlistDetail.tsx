@@ -22,6 +22,7 @@ import {
   Plus,
   RefreshCw,
   Rows3,
+  ScanBarcode,
   Search,
   Settings2,
   Share2,
@@ -296,6 +297,7 @@ function WishlistView({ detail }: { detail: Detail }) {
 
   const addItem = () => openAddItem({ wishlistId: w.id, lockedToWishlist: !isOwner });
   const addSeveral = () => openAddItem({ mode: 'bulk', wishlistId: w.id, lockedToWishlist: !isOwner });
+  const scanBarcode = () => openAddItem({ mode: 'barcode', wishlistId: w.id, lockedToWishlist: !isOwner });
 
   const statusBadge = (r: Row) => {
     if (collection) return null;
@@ -483,6 +485,9 @@ function WishlistView({ detail }: { detail: Detail }) {
               >
                 <MenuItem icon={<Plus size={16} />} onSelect={addItem}>
                   Add item
+                </MenuItem>
+                <MenuItem icon={<ScanBarcode size={16} />} onSelect={scanBarcode}>
+                  Scan barcode
                 </MenuItem>
                 <MenuItem icon={<ListPlus size={16} />} onSelect={addSeveral}>
                   Add several

@@ -8555,3 +8555,90 @@ button.empty:hover {
   color: var(--ink-2);
   line-height: 1.5;
 }
+
+/* ── In-store barcode scanner ─────────────────────────────────────────── */
+.barcode-scanner {
+  gap: var(--s-3);
+}
+.barcode-viewport {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #0b1020;
+  border: 1px solid var(--border);
+}
+.barcode-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #0b1020;
+}
+.barcode-viewport:not(.is-live) .barcode-video {
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+}
+.barcode-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: var(--s-2);
+  padding: var(--s-5);
+  text-align: center;
+  color: color-mix(in srgb, #fff 82%, transparent);
+}
+.barcode-fallback svg {
+  margin: 0 auto;
+  opacity: 0.7;
+}
+.barcode-frame {
+  pointer-events: none;
+  position: absolute;
+  inset: 18% 12%;
+  border: 2px solid color-mix(in srgb, #fff 70%, transparent);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 999px color-mix(in srgb, #000 35%, transparent);
+}
+.barcode-frame span {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 2px;
+  background: color-mix(in srgb, var(--accent) 85%, #fff);
+  transform: translateY(-50%);
+  animation: barcode-scan 1.8s ease-in-out infinite;
+}
+@keyframes barcode-scan {
+  0%,
+  100% {
+    top: 18%;
+  }
+  50% {
+    top: 82%;
+  }
+}
+.barcode-torch {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-2);
+  z-index: 2;
+  background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+  backdrop-filter: blur(4px);
+}
+.barcode-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .barcode-frame span {
+    animation: none;
+    top: 50%;
+  }
+}
+

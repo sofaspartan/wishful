@@ -10,6 +10,7 @@ import { registerExtensionRoutes } from './routes/extension';
 import { registerIntegrationRoutes } from './routes/integrations';
 import { registerGiftRoutes } from './routes/gifts';
 import { registerBoxRoutes } from './routes/boxes';
+import { registerBarcodeRoutes } from './routes/barcode';
 
 const router = new Router();
 registerAuthRoutes(router);
@@ -23,6 +24,7 @@ registerExtensionRoutes(router);
 registerIntegrationRoutes(router);
 registerGiftRoutes(router);
 registerBoxRoutes(router);
+registerBarcodeRoutes(router);
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export const CSRF_HEADER = 'x-requested-with';

@@ -114,9 +114,9 @@ export default function Home() {
             <h2 className="tile-title">Quick actions</h2>
           </div>
           <div className="quick-actions-grid">
-            <QuickAction art={FEATURE_ILLUSTRATIONS.store} title="Paste a link" hint="From any online store" onClick={() => openAddItem({ mode: 'link' })} />
-            <QuickAction art={FEATURE_ILLUSTRATIONS.idea} title="Write an idea" hint="Experiences, wishes" onClick={() => openAddItem({ mode: 'idea' })} />
-            <QuickAction art={ILLUSTRATED_ITEMS[0].art} title="Upload a photo" hint="Snap it, save it" onClick={() => openAddItem({ mode: 'upload' })} />
+            <QuickAction art={FEATURE_ILLUSTRATIONS.store} title="Scan a barcode" hint="In a store aisle" onClick={() => openAddItem({ mode: 'barcode' })} />
+            <QuickAction art={FEATURE_ILLUSTRATIONS.idea} title="Paste a link" hint="From any online store" onClick={() => openAddItem({ mode: 'link' })} />
+            <QuickAction art={ILLUSTRATED_ITEMS[0].art} title="Write an idea" hint="Experiences, wishes" onClick={() => openAddItem({ mode: 'idea' })} />
             <QuickAction art={FEATURE_ILLUSTRATIONS.collection} title="Start a collection" hint="Things you already have" onClick={newCollection} tone="blush" />
           </div>
         </section>

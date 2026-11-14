@@ -31,6 +31,8 @@ export const RATE_LIMITS = {
   integrationSync: { limit: 30, windowSec: 60 * 60 },
   /** Opening a box by its code, per IP address; codes are 60 random bits, this just stops guessing in bulk. */
   boxScan: { limit: 120, windowSec: 10 * 60 },
+  /** In-store UPC / EAN product lookups (Open Food Facts + retail catalogs). */
+  barcodeLookup: { limit: 120, windowSec: 60 * 60 },
 } as const;
 
 /**

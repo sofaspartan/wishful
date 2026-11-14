@@ -259,6 +259,11 @@ export const itemMetadataSchema = z.object({
   color: shortText.optional(),
   model: shortText.optional(),
   variant: shortText.optional(),
+  barcode: z
+    .string()
+    .trim()
+    .regex(/^\d{8}$|^\d{12}$|^\d{13}$|^\d{14}$/, 'Use an 8–14 digit UPC / EAN code')
+    .optional(),
   location: shortText.optional(),
   venue: shortText.optional(),
   timeframe: shortText.optional(),

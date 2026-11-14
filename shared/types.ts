@@ -391,6 +391,8 @@ export interface ItemMetadata {
   color?: string;
   model?: string;
   variant?: string;
+  /** Retail UPC / EAN / GTIN from an in-store scan. */
+  barcode?: string;
   // experience
   location?: string;
   venue?: string;

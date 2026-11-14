@@ -22,6 +22,7 @@ export interface ItemDraft {
   color: string;
   model: string;
   variant: string;
+  barcode: string;
   location: string;
   venue: string;
   timeframe: string;
@@ -47,6 +48,7 @@ export function emptyDraft(currency = 'USD', type: ItemType = 'custom'): ItemDra
     color: '',
     model: '',
     variant: '',
+    barcode: '',
     location: '',
     venue: '',
     timeframe: '',
@@ -80,6 +82,7 @@ export function draftFromItem(item: Item): ItemDraft {
     color: m.color ?? '',
     model: m.model ?? '',
     variant: m.variant ?? '',
+    barcode: m.barcode ?? '',
     location: m.location ?? '',
     venue: m.venue ?? '',
     timeframe: m.timeframe ?? '',
@@ -100,7 +103,15 @@ export function draftToInput(d: ItemDraft) {
   const amount = parseAmount(d.price);
   const metadata: ItemMetadata = {};
   const t = d.type;
-  if (t === 'product' || t === 'custom') Object.assign(metadata, { size: d.size, color: d.color, model: d.model, variant: d.variant });
+  if (t === 'product' || t === 'custom') {
+    Object.assign(metadata, {
+      size: d.size,
+      color: d.color,
+      model: d.model,
+      variant: d.variant,
+      barcode: d.barcode.trim() || undefined,
+    });
+  }
   if (t === 'experience') Object.assign(metadata, { location: d.location, venue: d.venue, timeframe: d.timeframe, bookingUrl: d.bookingUrl || null });
   if (t === 'gift_card') Object.assign(metadata, { instructions: d.instructions, suggestedAmount: amount });
   if (t === 'idea') Object.assign(metadata, { budget: amount });
@@ -221,7 +232,7 @@ export function ItemFormFields({ draft, onChange, errors, onUploadingChange, hid
       </Field>
 
       {(t === 'product' || t === 'custom') && (
-        <details className="disclosure" open={t === 'product' || Boolean(draft.retailer || draft.brand || draft.size || draft.color || draft.model)}>
+        <details className="disclosure" open={t === 'product' || Boolean(draft.retailer || draft.brand || draft.size || draft.color || draft.model || draft.barcode)}>
           <summary>
             <ChevronRight size={16} aria-hidden /> Product details
           </summary>
@@ -243,6 +254,9 @@ export function ItemFormFields({ draft, onChange, errors, onUploadingChange, hid
             </Field>
             <Field label="Variation" optional error={errors.variant}>
               <input className="input" value={draft.variant} onChange={set('variant')} placeholder="Edition, material…" maxLength={120} />
+            </Field>
+            <Field label="Barcode" optional error={errors.barcode} hint="UPC / EAN from an in-store scan">
+              <input className="input" inputMode="numeric" value={draft.barcode} onChange={set('barcode')} placeholder="012345678905" maxLength={14} />
             </Field>
           </div>
         </details>

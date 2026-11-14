@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Globe, ImagePlus, Lightbulb, Link2, ListPlus, Plus, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeft, Globe, ImagePlus, Lightbulb, Link2, ListPlus, Plus, ScanBarcode, Sparkles, Wand2 } from 'lucide-react';
+import type { BarcodeProduct } from '../../shared/barcode';
 import type { Item, ItemType, Priority, UrlMetadata, WishlistSummary } from '../../shared/types';
 import { PRIORITY_LABELS } from '../../shared/constants';
 import { isHttpUrl } from '../../shared/schemas';
 import { useMe, useSharedWishlists, useWishlists, useInvalidate } from '../lib/queries';
-import { errorMessage, fieldErrors, post } from '../lib/api';
+import { errorMessage, fieldErrors, get, post } from '../lib/api';
 import { brand } from '../config/brand';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
@@ -13,6 +14,7 @@ import { Field, FormError, FormNote } from './ui/Field';
 import { Segmented } from './ui/misc';
 import { useToast } from './ui/Toast';
 import { ImagePicker } from './ImagePicker';
+import { BarcodeScanner } from './BarcodeScanner';
 import { ItemFormFields, draftToInput, emptyDraft, mapItemErrors, validateDraft, type ItemDraft } from './ItemForm';
 import type { AddItemMode, AddItemOptions } from './appActions';
 import { BulkPaste, BulkReview, bulkRowErrors, bulkRowToInput, useBulkRows } from './BulkAdd';
@@ -21,6 +23,12 @@ import { WebsiteImportForm, WebsiteImportReview, websiteListFile, type WebsiteLi
 import { buildImport, CSV_FIELDS, guessMapping, importBatches, limitRows, type CsvField, type CsvFile } from '../lib/csvImport';
 import { applyPreset, defaultFilter, detectPreset, presetCounts, type CsvPreset } from '../lib/csvPresets';
 import type { Wishlist } from '../../shared/types';
+
+const BARCODE_SOURCE_LABELS: Record<string, string> = {
+  openfoodfacts: 'Open Food Facts',
+  openproductsfacts: 'Open Products Facts',
+  upcitemdb: 'product catalog',
+};
 
 interface Props {
   options: AddItemOptions | null;
@@ -59,6 +67,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fetchSeq = useRef(0);
+  const barcodeBusy = useRef(false);
   const [bulkText, setBulkText] = useState('');
   const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
   const bulk = useBulkRows();
@@ -85,7 +94,10 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     setUrlError(null);
     setExtractNote(null);
     setExtractHelp({ blocked: false, noPhoto: false });
-    const blank = emptyDraft(currency, m === 'idea' ? 'idea' : m === 'link' || product ? 'product' : 'custom');
+    const blank = emptyDraft(
+      currency,
+      m === 'idea' ? 'idea' : m === 'link' || m === 'barcode' || product ? 'product' : 'custom',
+    );
     setDraft(
       product
         ? {
@@ -125,14 +137,54 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     setErrors({});
     setFormError(null);
     setExtractNote(null);
+    setExtractHelp({ blocked: false, noPhoto: false });
     if (m === 'idea') {
       setDraft((d) => ({ ...d, type: d.type === 'product' || d.type === 'custom' ? 'idea' : d.type }));
       setStep('details');
     } else {
       setStep('start');
-      if (m === 'link') setDraft((d) => ({ ...d, type: d.type === 'idea' ? 'product' : d.type }));
+      if (m === 'link' || m === 'barcode') setDraft((d) => ({ ...d, type: d.type === 'idea' ? 'product' : d.type }));
     }
   };
+
+  const lookupFromBarcode = useCallback(async (code: string) => {
+    if (barcodeBusy.current) return;
+    barcodeBusy.current = true;
+    setFetching(true);
+    setFormError(null);
+    try {
+      const product = await get<BarcodeProduct>(`/api/barcode/${encodeURIComponent(code)}`);
+      setDraft((d) => ({
+        ...d,
+        type: 'product',
+        title: product.title || d.title,
+        description: product.description || d.description,
+        imageUrl: product.imageUrl || d.imageUrl,
+        externalUrl: product.url || d.externalUrl,
+        retailer: product.retailer || d.retailer,
+        brand: product.brand || d.brand,
+        price: product.price != null ? String(product.price) : d.price,
+        currency: product.currency || d.currency,
+        category: product.category || d.category,
+        barcode: product.barcode || code,
+      }));
+      setExtractNote(
+        product.found
+          ? `Found via ${BARCODE_SOURCE_LABELS[product.source] ?? product.source}. Check the details, then save.`
+          : product.message ?? 'No catalog match — add a name and save with the barcode.',
+      );
+      setExtractHelp({ blocked: false, noPhoto: !product.imageUrl });
+      setStep('details');
+    } catch (err) {
+      setDraft((d) => ({ ...d, type: 'product', barcode: code }));
+      setExtractNote(`${errorMessage(err)} You can still name it and save with the barcode.`);
+      setExtractHelp({ blocked: false, noPhoto: true });
+      setStep('details');
+    } finally {
+      barcodeBusy.current = false;
+      setFetching(false);
+    }
+  }, []);
 
   const fetchDetails = async (raw = url) => {
     const target = raw.trim();
@@ -357,6 +409,15 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           Save item
         </Button>
       </>
+    ) : step === 'start' && mode === 'barcode' && fetching ? (
+      <>
+        <Button onClick={onClose} disabled>
+          Cancel
+        </Button>
+        <Button variant="primary" loading>
+          Looking up…
+        </Button>
+      </>
     ) : undefined;
 
   return (
@@ -376,11 +437,26 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           onChange={switchMode}
           options={[
             { value: 'link', label: <><span className="hide-xs">Paste a link</span><span className="show-xs">Link</span></>, icon: <Link2 size={15} /> },
+            { value: 'barcode', label: <><span className="hide-xs">Scan barcode</span><span className="show-xs">Scan</span></>, icon: <ScanBarcode size={15} /> },
             { value: 'idea', label: <><span className="hide-xs">Write an idea</span><span className="show-xs">Idea</span></>, icon: <Lightbulb size={15} /> },
             { value: 'upload', label: <><span className="hide-xs">Upload a photo</span><span className="show-xs">Photo</span></>, icon: <ImagePlus size={15} /> },
             { value: 'bulk', label: <><span className="hide-xs">Add several</span><span className="show-xs">Several</span></>, icon: <ListPlus size={15} /> },
           ]}
         />
+
+        {step === 'start' && mode === 'barcode' && (
+          <div className="stack">
+            <FormError message={formError} />
+            {fetching ? (
+              <FormNote icon={<ScanBarcode size={16} aria-hidden />}>Looking up that barcode…</FormNote>
+            ) : (
+              <BarcodeScanner active={open && step === 'start' && mode === 'barcode'} onDetected={(code) => void lookupFromBarcode(code)} />
+            )}
+            <FormNote icon={<Sparkles size={16} aria-hidden />}>
+              Best for packaged goods in store. If we can’t find a match (common for store brands), keep the barcode and fill in the name yourself.
+            </FormNote>
+          </div>
+        )}
 
         {step === 'start' && mode === 'link' && (
           <form
