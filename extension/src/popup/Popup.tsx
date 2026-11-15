@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
-import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, LoaderCircle, StickyNote } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, LoaderCircle, Palette, StickyNote } from 'lucide-react';
 import type { ExtensionSession } from '../../../shared/types';
 import { CURRENCIES, LIMITS } from '../../../shared/constants';
 import { parsePrice } from '../../../shared/metadata';
@@ -7,14 +7,17 @@ import { brand } from '../../../src/config/brand';
 import { CloudBank } from '../../../src/components/Cloud';
 import { COVER_ICON_ART } from '../../../src/components/CoverArt';
 import { LogoMark } from '../../../src/components/Logo';
-import {
-  CLASSIC_DASHBOARD_LABELS,
-  CLASSIC_DASHBOARD_SCENES,
-  CLASSIC_DASHBOARD_TINTS,
-  type ClassicDashboardScene,
-} from '../../../src/lib/dashboardScene';
 import { ApiError, SITE_URL, api } from '../api';
-import { clearToken, getLastLists, getSoftLook, getToken, setLastLists, setSoftLook, startConnect } from '../storage';
+import {
+  SOFT_LOOKS,
+  SOFT_LOOK_HINTS,
+  SOFT_LOOK_LABELS,
+  SOFT_LOOK_TINTS,
+  getSoftLook,
+  setSoftLook,
+  type SoftLook,
+} from '../softLook';
+import { clearToken, getLastLists, getToken, setLastLists, startConnect } from '../storage';
 import { readDetails, snapshotPage, type PageDetails, type PageSnapshot } from '../scrape';
 import { scanList, type ListScan } from '../listScrape';
 import { ListImport } from './ListImport';
@@ -64,27 +67,27 @@ const offersList = (scan: ListScan | null): scan is ListScan => Boolean(scan && 
 
 export function Popup() {
   const [view, setView] = useState<View>({ kind: 'loading' });
-  const [softLook, setSoftLookState] = useState<ClassicDashboardScene>('sky');
+  const [softLook, setSoftLookState] = useState<SoftLook>('sky');
 
   useEffect(() => {
     void getSoftLook().then(setSoftLookState);
   }, []);
 
   useEffect(() => {
-    const tints = CLASSIC_DASHBOARD_TINTS[softLook];
+    const tints = SOFT_LOOK_TINTS[softLook];
     const root = document.documentElement;
     root.dataset.soft = softLook;
     root.style.setProperty('--page-tint', tints.tint);
     root.style.setProperty('--page-tint-2', tints.tint2);
   }, [softLook]);
 
-  const pickSoftLook = (scene: ClassicDashboardScene) => {
+  const pickSoftLook = (scene: SoftLook) => {
     setSoftLookState(scene);
     void setSoftLook(scene);
   };
 
   const softStyle = useMemo((): CSSProperties => {
-    const tints = CLASSIC_DASHBOARD_TINTS[softLook];
+    const tints = SOFT_LOOK_TINTS[softLook];
     return {
       ['--page-tint' as string]: tints.tint,
       ['--page-tint-2' as string]: tints.tint2,
@@ -127,8 +130,8 @@ export function Popup() {
       <header className="popup-header">
         <LogoMark size={28} />
         <span className="popup-brand">{brand.name}</span>
-        <SoftLookPicker value={softLook} onChange={pickSoftLook} />
         <span className="popup-spacer" />
+        <SoftLookPicker value={softLook} onChange={pickSoftLook} />
         <a className="popup-link" href={`${SITE_URL}/app`} target="_blank" rel="noreferrer">
           Open <ExternalLink size={12} aria-hidden />
         </a>
@@ -205,30 +208,75 @@ export function Popup() {
   );
 }
 
-function SoftLookPicker({
-  value,
-  onChange,
-}: {
-  value: ClassicDashboardScene;
-  onChange: (scene: ClassicDashboardScene) => void;
-}) {
+function SoftLookPicker({ value, onChange }: { value: SoftLook; onChange: (scene: SoftLook) => void }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   return (
-    <div className="soft-look" role="radiogroup" aria-label="Color style">
-      {CLASSIC_DASHBOARD_SCENES.map((id) => {
-        const on = value === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            aria-label={CLASSIC_DASHBOARD_LABELS[id]}
-            title={CLASSIC_DASHBOARD_LABELS[id]}
-            className={`soft-swatch soft-swatch-${id}${on ? ' is-on' : ''}`}
-            onClick={() => onChange(id)}
-          />
-        );
-      })}
+    <div className="soft-look-wrap" ref={wrapRef}>
+      <button
+        type="button"
+        className={`soft-look-trigger${open ? ' is-open' : ''}`}
+        aria-label="Color style"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <Palette size={16} aria-hidden />
+      </button>
+      {open && (
+        <div className="soft-look-panel" role="dialog" aria-label="Color style">
+          <div className="soft-look-head">
+            <strong>Color style</strong>
+            <span>Soft washes for the popup</span>
+          </div>
+          <div className="soft-look-grid" role="listbox" aria-label="Soft looks">
+            {SOFT_LOOKS.map((id) => {
+              const on = value === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="option"
+                  aria-selected={on}
+                  className={`soft-look-card${on ? ' is-on' : ''}`}
+                  onClick={() => {
+                    onChange(id);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="soft-look-preview" aria-hidden>
+                    <span className={`soft-look-mini soft-look-mini-${id}`} />
+                    {on && (
+                      <span className="soft-look-check">
+                        <Check size={11} strokeWidth={3} />
+                      </span>
+                    )}
+                  </span>
+                  <span className="soft-look-label">{SOFT_LOOK_LABELS[id]}</span>
+                  <span className="soft-look-hint">{SOFT_LOOK_HINTS[id]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

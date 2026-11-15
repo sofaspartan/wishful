@@ -109,7 +109,7 @@ export function AppLayout() {
           View profile
         </MenuItem>
       )}
-      <MenuItem icon={<House size={16} />} onSelect={() => navigate('/app')}>
+      <MenuItem icon={<House size={16} />} onSelect={() => navigate('/')}>
         Home
       </MenuItem>
       <MenuItem icon={<BookOpen size={16} />} onSelect={() => navigate('/knowledge')}>

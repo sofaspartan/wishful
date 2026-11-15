@@ -49,7 +49,8 @@ await build({
   root,
   configFile: false,
   logLevel: 'warn',
-  define,
+  // Content script must stay a tiny classic IIFE — never pull React or NODE_ENV checks.
+  define: { ...define, 'process.env.NODE_ENV': JSON.stringify('production') },
   publicDir: false,
   build: {
     outDir,

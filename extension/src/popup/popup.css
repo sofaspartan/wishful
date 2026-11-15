@@ -91,50 +91,135 @@ strong {
   color: var(--soft-accent-ink);
 }
 
-/* Soft classic swatches (Calm / Sky / Blush / Kraft) */
-.soft-look {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-left: 2px;
-  padding: 3px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ink) 4%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--ink) 6%, transparent);
+/* Soft look palette (Calm / Sky / Blush / Kraft) — matches app scene picker pattern */
+.soft-look-wrap {
+  position: relative;
+  flex-shrink: 0;
 }
-.soft-swatch {
-  width: 14px;
-  height: 14px;
+.soft-look-trigger {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
   padding: 0;
-  border-radius: 50%;
-  border: 1.5px solid rgb(255 255 255 / 0.85);
+  border: 1px solid color-mix(in srgb, var(--soft-tint) 16%, var(--border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--soft-accent-ink, var(--ink-2));
   cursor: pointer;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-.soft-swatch:hover {
-  transform: scale(1.12);
+.soft-look-trigger:hover,
+.soft-look-trigger.is-open {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--soft-tint) 28%, var(--border));
 }
-.soft-swatch.is-on {
-  box-shadow:
-    0 0 0 1.5px var(--ink),
-    0 0 0 3px color-mix(in srgb, var(--ink) 10%, transparent);
-}
-.soft-swatch:focus-visible {
-  outline: 2px solid var(--soft-accent);
+.soft-look-trigger:focus-visible {
+  outline: 2px solid var(--soft-accent, var(--accent));
   outline-offset: 2px;
 }
-.soft-swatch-plain {
-  background: linear-gradient(145deg, #c5cad6 0%, #9aa3b5 100%);
+.soft-look-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: 248px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 12px 28px rgb(16 38 92 / 0.16);
+  overflow: hidden;
 }
-.soft-swatch-sky {
-  background: linear-gradient(145deg, #7aa6ef 0%, #2f6fdc 100%);
+.soft-look-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--soft-tint) 6%, var(--surface));
 }
-.soft-swatch-blush {
-  background: linear-gradient(145deg, #f3a190 0%, #e8745b 100%);
+.soft-look-head strong {
+  font-size: 13px;
+  font-weight: 650;
 }
-.soft-swatch-kraft {
-  background: linear-gradient(145deg, #d4b089 0%, #b88958 100%);
+.soft-look-head span {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.soft-look-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+}
+.soft-look-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.soft-look-card:hover {
+  border-color: color-mix(in srgb, var(--soft-tint) 35%, var(--border));
+}
+.soft-look-card.is-on {
+  border-color: var(--soft-accent, var(--accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--soft-tint) 22%, transparent);
+}
+.soft-look-preview {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.soft-look-mini {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.soft-look-mini-plain {
+  background: linear-gradient(180deg, #e8ebf1 0%, #d5dae4 100%);
+}
+.soft-look-mini-sky {
+  background: linear-gradient(180deg, #d6e4fb 0%, color-mix(in srgb, #2f6fdc 8%, #f4f7fc) 100%);
+}
+.soft-look-mini-blush {
+  background: linear-gradient(180deg, #fde8e2 0%, color-mix(in srgb, #e8745b 8%, #fff8f6) 100%);
+}
+.soft-look-mini-kraft {
+  background: linear-gradient(180deg, #f3e6d4 0%, color-mix(in srgb, #b88958 10%, #faf6f0) 100%);
+}
+.soft-look-check {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--soft-accent, var(--accent));
+  color: #fff;
+  box-shadow: 0 1px 3px rgb(16 38 92 / 0.22);
+}
+.soft-look-label {
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 0 1px;
+}
+.soft-look-hint {
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--muted);
+  padding: 0 1px;
 }
 
 .popup-center {

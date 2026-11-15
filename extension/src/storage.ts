@@ -1,15 +1,8 @@
-import {
-  CLASSIC_DASHBOARD_SCENES,
-  type ClassicDashboardScene,
-} from '../../src/lib/dashboardScene';
-
 /** Extension-local storage: the connection token, a one-time connect state and the last lists used. */
 const TOKEN = 'token';
 const PENDING = 'pendingConnect';
 const LAST_LISTS = 'lastListIds';
-const SOFT_LOOK = 'softLook';
 const CONNECT_TTL_MS = 30 * 60 * 1000;
-const DEFAULT_SOFT_LOOK: ClassicDashboardScene = 'sky';
 
 interface PendingConnect {
   state: string;
@@ -47,13 +40,3 @@ export async function getLastLists(): Promise<string[]> {
 }
 
 export const setLastLists = (ids: string[]) => chrome.storage.local.set({ [LAST_LISTS]: ids });
-
-/** Soft classic wash (Calm / Sky / Blush / Kraft) for the popup chrome. */
-export async function getSoftLook(): Promise<ClassicDashboardScene> {
-  const v = (await chrome.storage.local.get(SOFT_LOOK))[SOFT_LOOK];
-  return (CLASSIC_DASHBOARD_SCENES as readonly string[]).includes(v as string)
-    ? (v as ClassicDashboardScene)
-    : DEFAULT_SOFT_LOOK;
-}
-
-export const setSoftLook = (scene: ClassicDashboardScene) => chrome.storage.local.set({ [SOFT_LOOK]: scene });
