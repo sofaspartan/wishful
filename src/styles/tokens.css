@@ -125,6 +125,7 @@
   --content-max: 1180px;
   --topbar-h: 60px;
   --bottom-nav-h: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);

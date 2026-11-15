@@ -883,15 +883,31 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  height: var(--topbar-h);
+  /* Safe-area padding keeps logo/actions below the iOS status bar (Add to Home Screen). */
+  height: calc(var(--topbar-h) + var(--safe-top));
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  padding: 0 var(--s-4);
+  padding: var(--safe-top) var(--s-4) 0;
   background: color-mix(in srgb, var(--bg) 72%, transparent);
   backdrop-filter: saturate(1.4) blur(10px);
   -webkit-backdrop-filter: saturate(1.4) blur(10px);
   border-bottom: 1px solid transparent;
+}
+/* Installed / standalone: solid chrome — frosted blur reads as a smear under the notch. */
+:root[data-display-mode='standalone'] .topbar,
+:root[data-display-mode='standalone'] .landing-top {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+:root[data-display-mode='standalone'] .topbar {
+  background: var(--bg);
+}
+:root[data-display-mode='standalone'] .app-shell.dashboard-themed .app-column > .topbar {
+  background: var(--surface);
+}
+:root[data-display-mode='standalone'] .app-shell.dashboard-themed-dark .app-column > .topbar {
+  background: var(--dash-panel);
 }
 .app-shell[data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar,
 .app-shell.dashboard-themed .app-column > .topbar {
@@ -946,7 +962,7 @@
 @media (min-width: 1024px) {
   .topbar {
     /* Match .page: centered content-max column + --s-8 gutters */
-    padding: 0 max(var(--s-8), calc((100% - var(--content-max)) / 2 + var(--s-8)));
+    padding: var(--safe-top) max(var(--s-8), calc((100% - var(--content-max)) / 2 + var(--s-8))) 0;
   }
   .topbar-brand {
     display: none;
@@ -1041,7 +1057,7 @@
     display: grid;
   }
   .app-shell[data-layout-mode='mobile'] .topbar {
-    padding: 0 var(--s-4);
+    padding: var(--safe-top) var(--s-4) 0;
   }
   .app-shell[data-layout-mode='mobile'] .topbar-brand {
     display: flex;
@@ -3574,7 +3590,7 @@ button.empty:hover {
   }
   .settings-nav {
     position: sticky;
-    top: calc(var(--topbar-h) + var(--s-4));
+    top: calc(var(--topbar-h) + var(--safe-top) + var(--s-4));
     flex-direction: column;
     border-bottom: 0 !important;
     gap: 2px !important;
@@ -3849,14 +3865,14 @@ button.empty:hover {
   align-items: center;
   gap: var(--s-3);
   width: 100%;
-  height: 60px;
-  padding: 0 var(--s-4);
+  height: calc(60px + var(--safe-top));
+  padding: var(--safe-top) var(--s-4) 0;
   max-width: var(--content-max);
   margin: 0 auto;
 }
 @media (min-width: 768px) {
   .public-header {
-    padding: 0 var(--s-8);
+    padding: var(--safe-top) var(--s-8) 0;
   }
 }
 .public-hero {
@@ -5290,9 +5306,13 @@ button.empty:hover {
   position: sticky;
   top: 0;
   z-index: 50;
+  padding-top: var(--safe-top);
   background: color-mix(in srgb, var(--hero-bg) 88%, transparent);
   backdrop-filter: saturate(1.4) blur(10px);
   -webkit-backdrop-filter: saturate(1.4) blur(10px);
+}
+:root[data-display-mode='standalone'] .landing-top {
+  background: var(--hero-bg);
 }
 .landing-nav {
   position: relative;
