@@ -32,6 +32,7 @@ import {
   VISIBILITIES,
   type CoverArt as CoverArtValue,
   type NotificationPreferences,
+  type PageBackdrop,
   type PaymentMethod,
   type PaymentProvider,
   type ProfileVisibility,
@@ -53,7 +54,7 @@ import {
 } from '../../shared/constants';
 import { ageFromBirthYear } from '../../shared/profileVisibility';
 import { CoverArtPicker } from '../components/CoverArtPicker';
-import { CoverArt } from '../components/CoverArt';
+import { PageBackdropPicker, ThemedPage } from '../components/PageTheme';
 import { keys, useBrickfolio, useExtensionConnections, useInvalidate, useMe, usePlayshelf, type BrickfolioResponse, type PlayshelfResponse } from '../lib/queries';
 import { formatDate, relativeTime } from '../lib/format';
 import { brand } from '../config/brand';
@@ -178,6 +179,8 @@ function ProfileSection({ me }: { me: SelfUser }) {
   const [birthYear, setBirthYear] = useState(me.birthYear ? String(me.birthYear) : '');
   const [showAge, setShowAge] = useState(me.birthYear != null);
   const [coverArt, setCoverArt] = useState<CoverArtValue | null>(me.profileCoverArt);
+  const [pageBackdrop, setPageBackdrop] = useState<PageBackdrop | null>(me.profilePageBackdrop);
+  const [pageColors, setPageColors] = useState<string[] | null>(me.profilePageColors);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -212,6 +215,8 @@ function ProfileSection({ me }: { me: SelfUser }) {
         location,
         birthYear: year,
         profileCoverArt: coverArt,
+        profilePageBackdrop: pageBackdrop,
+        profilePageColors: pageBackdrop === 'solid' || pageBackdrop === 'gradient' ? pageColors : null,
       });
       saveUser(user);
       setShowAge(user.birthYear != null);
@@ -291,32 +296,49 @@ function ProfileSection({ me }: { me: SelfUser }) {
       <div className="card card-pad stack">
         <CardTitle icon={Palette}>Profile style</CardTitle>
         <p className="muted text-sm" style={{ marginTop: '-0.5rem' }}>
-          Styles the whole public profile page — scene, colour, or gradient behind your info and lists.
+          Cover scene plus page wash — same options as wishlists and boxes.
         </p>
-        <Segmented<'none' | 'graphic'>
-          label="Profile background"
-          value={coverArt ? 'graphic' : 'none'}
-          onChange={(mode) => setCoverArt(mode === 'graphic' ? (coverArt ?? defaultCoverArt('wishlist')) : null)}
-          options={[
-            { value: 'none', label: 'None' },
-            { value: 'graphic', label: 'Graphic' },
-          ]}
+        <div className="field">
+          <span className="field-label">Cover</span>
+          <Segmented<'none' | 'graphic'>
+            label="Cover style"
+            value={coverArt ? 'graphic' : 'none'}
+            onChange={(mode) => {
+              const next = mode === 'graphic' ? (coverArt ?? defaultCoverArt('wishlist')) : null;
+              setCoverArt(next);
+              if (!next && pageBackdrop === 'match') setPageBackdrop(null);
+              if (next && !pageBackdrop) setPageBackdrop('match');
+            }}
+            options={[
+              { value: 'none', label: 'None' },
+              { value: 'graphic', label: 'Graphic' },
+            ]}
+          />
+          {coverArt && <CoverArtPicker value={coverArt} onChange={setCoverArt} preview={false} part="style" title={displayName || 'Profile'} />}
+        </div>
+        <PageBackdropPicker
+          value={pageBackdrop}
+          colors={pageColors}
+          onChange={(next, colors) => {
+            setPageBackdrop(next);
+            setPageColors(colors ?? null);
+          }}
+          coverArt={coverArt}
         />
-        {coverArt && (
-          <>
-            <div className="profile-style-preview" aria-hidden>
-              <CoverArt art={coverArt} showIcon={false} />
-              <div className="profile-style-preview-face">
-                <Avatar name={displayName || me.displayName} src={avatarUrl} size={44} />
-                <div className="profile-style-preview-copy">
-                  <strong className="truncate">{displayName || me.displayName}</strong>
-                  <span className="truncate">@{username || me.username}</span>
-                </div>
-              </div>
+        <ThemedPage
+          className="profile-style-preview"
+          pageBackdrop={pageBackdrop}
+          pageColors={pageColors}
+          coverArt={coverArt}
+        >
+          <div className="profile-style-preview-face">
+            <Avatar name={displayName || me.displayName} src={avatarUrl} size={44} />
+            <div className="profile-style-preview-copy">
+              <strong className="truncate">{displayName || me.displayName}</strong>
+              <span className="truncate">@{username || me.username}</span>
             </div>
-            <CoverArtPicker value={coverArt} onChange={setCoverArt} preview={false} title={displayName || 'Profile'} />
-          </>
-        )}
+          </div>
+        </ThemedPage>
       </div>
 
       <div className="card card-pad stack">

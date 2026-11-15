@@ -304,6 +304,9 @@ export function registerAuthRoutes(router: Router) {
         profileVisibility: input.profileVisibility ?? profileVisibilityOf(u),
         publicProfile: undefined,
         profileCoverArt: input.profileCoverArt !== undefined ? input.profileCoverArt : (u.profileCoverArt ?? null),
+        profilePageBackdrop:
+          input.profilePageBackdrop !== undefined ? input.profilePageBackdrop : u.profilePageBackdrop,
+        profilePageColors: input.profilePageColors !== undefined ? input.profilePageColors : u.profilePageColors,
         location: input.location !== undefined ? input.location : (u.location ?? ''),
         birthYear: input.birthYear !== undefined ? input.birthYear : (u.birthYear ?? null),
         paymentMethods: input.paymentMethods !== undefined ? input.paymentMethods : (u.paymentMethods ?? []),

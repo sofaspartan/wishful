@@ -15,6 +15,10 @@ export function toSelfUser(u: UserRecord): SelfUser {
     bio: u.bio,
     profileVisibility: profileVisibilityOf(u),
     profileCoverArt: u.profileCoverArt ?? null,
+    // Absent page fields + a cover → match (pre-page-theme profiles). Explicit null stays Default.
+    profilePageBackdrop:
+      u.profilePageBackdrop !== undefined ? u.profilePageBackdrop : u.profileCoverArt ? 'match' : null,
+    profilePageColors: u.profilePageColors ?? null,
     location: u.location ?? '',
     birthYear: u.birthYear ?? null,
     paymentMethods: u.paymentMethods ?? [],

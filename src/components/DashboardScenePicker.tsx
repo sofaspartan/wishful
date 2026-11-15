@@ -11,7 +11,6 @@ import {
   useDashboardLook,
   type ClassicDashboardScene,
   type DashboardLook,
-  type DashboardSceneBackdrop,
 } from '../lib/dashboardScene';
 import {
   COVER_BACKDROP_LABELS,
@@ -52,7 +51,6 @@ export function DashboardScenePicker() {
   const [look, setLook] = useDashboardLook();
   const activeTab = tabOf(look);
   const [tab, setTab] = useState<PickerTab>(() => activeTab);
-  const [lastScene, setLastScene] = useState<DashboardSceneBackdrop>(look.mode === 'scene' ? look.backdrop : 'sky');
   const [lastSolid, setLastSolid] = useState(look.mode === 'solid' ? look.color : DEFAULT_DASHBOARD_SOLID);
   const [lastGradient, setLastGradient] = useState<[string, string]>(
     look.mode === 'gradient' ? look.colors : DEFAULT_DASHBOARD_GRADIENT,
@@ -61,7 +59,6 @@ export function DashboardScenePicker() {
   const pick = (next: DashboardLook, close: () => void) => {
     setLook(next);
     setTab(tabOf(next));
-    if (next.mode === 'scene') setLastScene(next.backdrop);
     if (next.mode === 'solid') setLastSolid(next.color);
     if (next.mode === 'gradient') setLastGradient(next.colors);
     close();

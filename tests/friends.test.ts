@@ -262,13 +262,27 @@ describe('profile visibility and people search', () => {
       location: 'Brooklyn, NY',
       birthYear: year,
       profileCoverArt: cover,
+      profilePageBackdrop: 'match',
+      profilePageColors: null,
     });
     expect(saved.status).toBe(200);
     expect(saved.data.user).toMatchObject({
       location: 'Brooklyn, NY',
       birthYear: year,
       profileCoverArt: cover,
+      profilePageBackdrop: 'match',
+      profilePageColors: null,
       bio: 'Coffee and board games',
+    });
+
+    const painted = await mia.agent.patch('/api/account/profile', {
+      profilePageBackdrop: 'solid',
+      profilePageColors: ['#2f6f9f'],
+    });
+    expect(painted.status).toBe(200);
+    expect(painted.data.user).toMatchObject({
+      profilePageBackdrop: 'solid',
+      profilePageColors: ['#2f6f9f'],
     });
 
     const meSearch = await mia.agent.get('/api/friends/search?q=mia');
@@ -280,10 +294,24 @@ describe('profile visibility and people search', () => {
       age: 28,
       bio: 'Coffee and board games',
       profileCoverArt: cover,
+      profilePageBackdrop: 'solid',
+      profilePageColors: ['#2f6f9f'],
     });
 
-    await mia.agent.patch('/api/account/profile', { birthYear: null, location: '', profileCoverArt: null });
+    await mia.agent.patch('/api/account/profile', {
+      birthYear: null,
+      location: '',
+      profileCoverArt: null,
+      profilePageBackdrop: null,
+      profilePageColors: null,
+    });
     const cleared = await new Agent().get('/api/public/users/mia');
-    expect(cleared.data.user).toMatchObject({ location: '', age: null, profileCoverArt: null });
+    expect(cleared.data.user).toMatchObject({
+      location: '',
+      age: null,
+      profileCoverArt: null,
+      profilePageBackdrop: null,
+      profilePageColors: null,
+    });
   });
 });

@@ -9,6 +9,7 @@ import type {
   ClaimStatus,
   CoverArt,
   FavoriteTargetType,
+  PageBackdrop,
   Item,
   ListKind,
   PaymentMethod,
@@ -32,6 +33,8 @@ export interface UserRecord {
   /** @deprecated Prefer `profileVisibility`. Kept so existing blobs still load. */
   publicProfile?: boolean;
   profileCoverArt?: CoverArt | null;
+  profilePageBackdrop?: PageBackdrop | null;
+  profilePageColors?: string[] | null;
   location?: string;
   birthYear?: number | null;
   /** Venmo / Cash App / PayPal.Me handles for wishlist cash funds. */

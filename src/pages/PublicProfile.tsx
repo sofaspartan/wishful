@@ -1,23 +1,25 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CalendarDays, Gift, Lock, MapPin, Pencil, UserRoundPlus, UserX, Users } from 'lucide-react';
+import { CalendarDays, Check, Copy, ExternalLink, Gift, Lock, Mail, MapPin, MessageCircle, Pencil, Share2, UserRoundPlus, UserX, Users } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PROFILE_VISIBILITY_LABELS } from '../../shared/constants';
-import { coverColors, coverPaint, isDarkCover, isPlainBackdrop, type SelfUser } from '../../shared/types';
+import type { SelfUser } from '../../shared/types';
 import { keys, useMe, usePublicProfile } from '../lib/queries';
 import { countdownLabel, firstName } from '../lib/format';
 import { useLocalPref } from '../lib/prefs';
 import { brand } from '../config/brand';
 import { errorMessage, post } from '../lib/api';
 import { Logo } from '../components/Logo';
-import { CoverArt } from '../components/CoverArt';
 import { EditProfileModal } from '../components/EditProfileModal';
+import { ThemedPage } from '../components/PageTheme';
 import { ListForLine, WishlistCover, WishlistListThumb } from '../components/WishlistCard';
 import { CollectionBadge } from '../components/ItemVisuals';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
-import { SiteFooter } from '../components/SiteFooter';
+import { PublicFooter } from '../components/PublicFooter';
 import { Avatar, EmptyState, PageLoader } from '../components/ui/misc';
 import { Button } from '../components/ui/Button';
+import { FormNote } from '../components/ui/Field';
+import { Modal } from '../components/ui/Modal';
 import { useToast } from '../components/ui/Toast';
 
 export default function PublicProfile() {
@@ -29,6 +31,7 @@ export default function PublicProfile() {
   const qc = useQueryClient();
   const [friending, setFriending] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [listsView, setListsView] = useLocalPref<CardListView>('public.profileListsView', 'grid', CARD_LIST_VIEWS);
 
   useEffect(() => {
@@ -61,28 +64,20 @@ export default function PublicProfile() {
   };
 
   const cover = data?.user.profileCoverArt ?? null;
-  const dark = cover ? isDarkCover(cover) : false;
-  const pageStyle: CSSProperties | undefined =
-    cover && isPlainBackdrop(cover.backdrop)
-      ? ({ ['--profile-tint' as string]: coverPaint(cover) ?? coverColors(cover)[0] } as CSSProperties)
-      : undefined;
+  const pageBackdrop = data?.user.profilePageBackdrop ?? null;
+  const pageColors = data?.user.profilePageColors ?? null;
+  const themed = Boolean(pageBackdrop || cover);
   const metaBits = data
-    ? [
-        data.user.age != null ? `${data.user.age}` : null,
-        data.user.location || null,
-      ].filter(Boolean)
+    ? [data.user.age != null ? `${data.user.age}` : null, data.user.location || null].filter(Boolean)
     : [];
 
   return (
-    <div
-      className={['public-shell', cover && 'public-shell-styled', dark && 'public-shell-styled-dark'].filter(Boolean).join(' ')}
-      style={pageStyle}
+    <ThemedPage
+      className="public-shell"
+      pageBackdrop={pageBackdrop}
+      pageColors={pageColors}
+      coverArt={cover}
     >
-      {cover && (
-        <div className="profile-page-sky" aria-hidden>
-          <CoverArt art={cover} showIcon={false} />
-        </div>
-      )}
       <header className="public-header">
         <Logo to="/" size={28} />
         <div className="spacer" />
@@ -99,10 +94,23 @@ export default function PublicProfile() {
           </EmptyState>
         ) : (
           <>
-            <section className={['profile-hero', cover && 'profile-hero-panel'].filter(Boolean).join(' ')} aria-label={`${data.user.displayName}'s profile`}>
+            <section
+              className={['profile-hero', themed && 'profile-hero-panel'].filter(Boolean).join(' ')}
+              aria-label={`${data.user.displayName}'s profile`}
+            >
               <div className="profile-hero-body">
-                <Avatar name={data.user.displayName} src={data.user.avatarUrl} size={cover ? 88 : 80} />
+                <Avatar name={data.user.displayName} src={data.user.avatarUrl} size={themed ? 88 : 80} />
                 <div className="profile-hero-main">
+                  <div className="profile-hero-top">
+                    <Button
+                      size="sm"
+                      iconOnly
+                      icon={<Share2 size={15} />}
+                      onClick={() => setSharing(true)}
+                      data-tooltip="Share"
+                      aria-label="Share profile"
+                    />
+                  </div>
                   <h1 className="public-title display">{data.user.displayName}</h1>
                   <p className="muted">@{data.user.username}</p>
                   {metaBits.length > 0 && (
@@ -229,8 +237,80 @@ export default function PublicProfile() {
           </>
         )}
       </main>
-      <SiteFooter coverArt={cover} />
+      <PublicFooter />
       {me && editing && <EditProfileModal open={editing} me={me} onClose={() => setEditing(false)} onSaved={onProfileSaved} />}
-    </div>
+      {data && (
+        <ShareProfileDialog
+          open={sharing}
+          onClose={() => setSharing(false)}
+          displayName={data.user.displayName}
+          username={data.user.username}
+        />
+      )}
+    </ThemedPage>
+  );
+}
+
+function ShareProfileDialog({
+  open,
+  onClose,
+  displayName,
+  username,
+}: {
+  open: boolean;
+  onClose: () => void;
+  displayName: string;
+  username: string;
+}) {
+  const toast = useToast();
+  const [copied, setCopied] = useState(false);
+  const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/u/${username}`;
+  const message = `${displayName}’s profile on ${brand.name}`;
+  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Copy failed — select the link and copy it manually.');
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Share profile" subtitle="Send this link so friends can find their lists.">
+      <div className="stack">
+        <div className="row">
+          <input className="input" readOnly value={url} aria-label="Profile link" onFocus={(e) => e.target.select()} />
+          <Button variant="primary" onClick={() => void copy()} icon={copied ? <Check size={16} /> : <Copy size={16} />} style={{ flexShrink: 0 }}>
+            {copied ? 'Copied' : 'Copy'}
+          </Button>
+        </div>
+        <div className="row-wrap">
+          {canNativeShare && (
+            <Button
+              icon={<Share2 size={16} />}
+              onClick={() => void navigator.share({ title: displayName, text: message, url }).catch(() => undefined)}
+            >
+              Share…
+            </Button>
+          )}
+          <a className="btn" href={`mailto:?subject=${encodeURIComponent(message)}&body=${encodeURIComponent(`${message}\n\n${url}`)}`}>
+            <Mail size={16} aria-hidden /> Email
+          </a>
+          <a className="btn" href={`sms:?&body=${encodeURIComponent(`${message} ${url}`)}`}>
+            <MessageCircle size={16} aria-hidden /> Messages
+          </a>
+          <a className="btn" href={`https://wa.me/?text=${encodeURIComponent(`${message} ${url}`)}`} target="_blank" rel="noopener noreferrer">
+            WhatsApp
+          </a>
+          <a className="btn btn-ghost" href={url} target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={16} aria-hidden /> Preview
+          </a>
+        </div>
+        <FormNote>Anyone with the link can open this profile. Lists still follow each list’s visibility.</FormNote>
+      </div>
+    </Modal>
   );
 }

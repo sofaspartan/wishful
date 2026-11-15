@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Camera, Eye, FileText, MapPin, Palette } from 'lucide-react';
+import { Camera, Eye, FileText, Image, MapPin, Palette } from 'lucide-react';
 import {
   PROFILE_VISIBILITIES,
-  isDarkCover,
   type CoverArt as CoverArtValue,
+  type PageBackdrop,
   type ProfileVisibility,
   type SelfUser,
 } from '../../shared/types';
@@ -16,8 +16,8 @@ import {
 import { ageFromBirthYear } from '../../shared/profileVisibility';
 import { errorMessage, fieldErrors, patch } from '../lib/api';
 import { uploadImage } from '../lib/images';
-import { CoverArt } from './CoverArt';
 import { CoverArtPicker } from './CoverArtPicker';
+import { PageBackdropPicker, ThemedPage } from './PageTheme';
 import { Button } from './ui/Button';
 import { Field, FormError } from './ui/Field';
 import { EditorLayout, PreviewBlock, firstInvalidTab, hasFieldError } from './ui/EditorLayout';
@@ -25,11 +25,12 @@ import { Avatar, Segmented, SwitchRow } from './ui/misc';
 import { Modal } from './ui/Modal';
 import { useToast } from './ui/Toast';
 
-type Tab = 'details' | 'look' | 'visibility';
+type Tab = 'details' | 'cover' | 'page' | 'visibility';
 
 const TAB_FIELDS: Record<Tab, readonly string[]> = {
   details: ['displayName', 'username', 'bio', 'location', 'birthYear', 'avatarUrl'],
-  look: ['profileCoverArt'],
+  cover: ['profileCoverArt'],
+  page: ['profilePageBackdrop', 'profilePageColors'],
   visibility: ['profileVisibility'],
 };
 
@@ -48,6 +49,8 @@ function ProfilePagePreview({
   age,
   avatarUrl,
   coverArt,
+  pageBackdrop,
+  pageColors,
   visibility,
 }: {
   displayName: string;
@@ -57,21 +60,20 @@ function ProfilePagePreview({
   age: number | null;
   avatarUrl: string | null;
   coverArt: CoverArtValue | null;
+  pageBackdrop: PageBackdrop | null;
+  pageColors: string[] | null;
   visibility: ProfileVisibility;
 }) {
-  const dark = coverArt ? isDarkCover(coverArt) : false;
   const name = displayName.trim() || 'Your name';
   const handle = username.trim() || 'username';
 
   return (
-    <div className={['profile-editor-preview', coverArt && 'has-cover', dark && 'is-dark'].filter(Boolean).join(' ')}>
-      {coverArt ? (
-        <div className="profile-editor-preview-sky" aria-hidden>
-          <CoverArt art={coverArt} showIcon={false} />
-        </div>
-      ) : (
-        <div className="profile-editor-preview-plain" aria-hidden />
-      )}
+    <ThemedPage
+      className="profile-editor-preview has-cover"
+      pageBackdrop={pageBackdrop}
+      pageColors={pageColors}
+      coverArt={coverArt}
+    >
       <div className="profile-editor-preview-card">
         <Avatar name={name} src={avatarUrl} size={48} />
         <div className="profile-editor-preview-copy">
@@ -92,7 +94,7 @@ function ProfilePagePreview({
           <span className="badge badge-outline">{PROFILE_VISIBILITY_LABELS[visibility]}</span>
         </div>
       </div>
-    </div>
+    </ThemedPage>
   );
 }
 
@@ -108,6 +110,8 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
   const [birthYear, setBirthYear] = useState(me.birthYear ? String(me.birthYear) : '');
   const [showAge, setShowAge] = useState(me.birthYear != null);
   const [coverArt, setCoverArt] = useState<CoverArtValue | null>(me.profileCoverArt);
+  const [pageBackdrop, setPageBackdrop] = useState<PageBackdrop | null>(me.profilePageBackdrop);
+  const [pageColors, setPageColors] = useState<string[] | null>(me.profilePageColors);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -125,6 +129,8 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
     setBirthYear(me.birthYear ? String(me.birthYear) : '');
     setShowAge(me.birthYear != null);
     setCoverArt(me.profileCoverArt);
+    setPageBackdrop(me.profilePageBackdrop);
+    setPageColors(me.profilePageColors);
     setErrors({});
     setError(null);
   }, [open, me]);
@@ -158,6 +164,8 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
         location,
         birthYear: year,
         profileCoverArt: coverArt,
+        profilePageBackdrop: pageBackdrop,
+        profilePageColors: pageBackdrop === 'solid' || pageBackdrop === 'gradient' ? pageColors : null,
       });
       toast.success('Profile saved');
       onSaved(user);
@@ -232,13 +240,18 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
     </>
   );
 
-  const look = (
+  const cover = (
     <div className="field">
-      <span className="field-label">Profile background</span>
+      <span className="field-label">Cover</span>
       <Segmented<'none' | 'graphic'>
-        label="Profile background"
+        label="Cover style"
         value={coverArt ? 'graphic' : 'none'}
-        onChange={(mode) => setCoverArt(mode === 'graphic' ? (coverArt ?? defaultCoverArt('wishlist')) : null)}
+        onChange={(mode) => {
+          const next = mode === 'graphic' ? (coverArt ?? defaultCoverArt('wishlist')) : null;
+          setCoverArt(next);
+          if (!next && pageBackdrop === 'match') setPageBackdrop(null);
+          if (next && !pageBackdrop) setPageBackdrop('match');
+        }}
         options={[
           { value: 'none', label: 'None' },
           { value: 'graphic', label: 'Graphic' },
@@ -246,13 +259,25 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
       />
       {coverArt ? (
         <>
-          <span className="field-hint">Styles the sky behind your public profile.</span>
+          <span className="field-hint">Scene for the sky band on your public profile. Match it on the Page tab for a full wash.</span>
           <CoverArtPicker value={coverArt} onChange={setCoverArt} preview={false} part="style" title={displayName || 'Profile'} />
         </>
       ) : (
-        <span className="field-hint">Your profile page uses the standard page background.</span>
+        <span className="field-hint">No cover scene — pick a page background on the Page tab if you still want a wash.</span>
       )}
     </div>
+  );
+
+  const page = (
+    <PageBackdropPicker
+      value={pageBackdrop}
+      colors={pageColors}
+      onChange={(next, colors) => {
+        setPageBackdrop(next);
+        setPageColors(colors ?? null);
+      }}
+      coverArt={coverArt}
+    />
   );
 
   const visibility = (
@@ -279,6 +304,8 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
         age={previewAge}
         avatarUrl={avatarUrl}
         coverArt={coverArt}
+        pageBackdrop={pageBackdrop}
+        pageColors={pageColors}
         visibility={profileVisibility}
       />
     </PreviewBlock>
@@ -309,7 +336,7 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
           label="Profile settings"
           active={tab}
           onTabChange={setTab}
-          previewTabs={['look']}
+          previewTabs={['cover', 'page']}
           preview={preview}
           alert={<FormError message={error} />}
           tabs={[
@@ -321,11 +348,18 @@ export function EditProfileModal({ open, me, onClose, onSaved }: Props) {
               content: details,
             },
             {
-              id: 'look',
-              label: 'Look',
+              id: 'cover',
+              label: 'Cover',
               icon: <Palette size={16} aria-hidden />,
-              invalid: hasFieldError(TAB_FIELDS.look, errors),
-              content: look,
+              invalid: hasFieldError(TAB_FIELDS.cover, errors),
+              content: cover,
+            },
+            {
+              id: 'page',
+              label: 'Page',
+              icon: <Image size={16} aria-hidden />,
+              invalid: hasFieldError(TAB_FIELDS.page, errors),
+              content: page,
             },
             {
               id: 'visibility',

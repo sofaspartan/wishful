@@ -320,6 +320,27 @@ export function resolvePageTheme(input: {
   return { kind: 'backdrop', backdrop: choice };
 }
 
+/**
+ * Profiles created before page washes existed only stored `profileCoverArt`.
+ * Treat a missing page field as “match cover” so existing styled profiles keep their sky.
+ */
+export function resolveProfilePageTheme(input: {
+  profileCoverArt?: CoverArt | null;
+  profilePageBackdrop?: PageBackdrop | null;
+  profilePageColors?: string[] | null;
+}): {
+  coverArt: CoverArt | null;
+  pageBackdrop: PageBackdrop | null;
+  pageColors: string[] | null;
+} {
+  const coverArt = input.profileCoverArt ?? null;
+  const pageBackdrop =
+    input.profilePageBackdrop !== undefined ? input.profilePageBackdrop : coverArt ? PAGE_BACKDROP_MATCH : null;
+  const pageColors =
+    pageBackdrop === 'solid' || pageBackdrop === 'gradient' ? (input.profilePageColors ?? null) : null;
+  return { coverArt, pageBackdrop, pageColors };
+}
+
 export const ACQUIRED_VIA = ['bought', 'gift', 'other'] as const;
 export type AcquiredVia = (typeof ACQUIRED_VIA)[number];
 
@@ -393,6 +414,10 @@ export interface SelfUser extends PublicUser {
   profileVisibility: ProfileVisibility;
   /** Cover graphic behind the public profile header. */
   profileCoverArt: CoverArt | null;
+  /** Soft wash for the public profile page (same modes as list/box pages). */
+  profilePageBackdrop: PageBackdrop | null;
+  /** #rrggbb colours when `profilePageBackdrop` is solid or gradient. */
+  profilePageColors: string[] | null;
   /** City or region shown on the profile when non-empty. */
   location: string;
   /** Birth year used to show age on the profile; `null` hides age. */
@@ -778,6 +803,8 @@ export interface PublicProfileView {
     /** Computed age when the person chose to share a birth year; otherwise null. */
     age: number | null;
     profileCoverArt: CoverArt | null;
+    profilePageBackdrop: PageBackdrop | null;
+    profilePageColors: string[] | null;
   };
   profileVisibility: ProfileVisibility;
   viewer: {

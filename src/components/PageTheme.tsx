@@ -224,7 +224,8 @@ export function ThemedPage({
   pageBackdrop?: PageBackdrop | null;
   pageColors?: string[] | null;
   coverArt?: CoverArt | null;
-  accentColor: string;
+  /** Falls back to the brand accent when omitted (e.g. public profiles). */
+  accentColor?: string;
   className?: string;
   style?: CSSProperties;
   as?: 'div' | 'section';
@@ -246,8 +247,10 @@ export function ThemedPage({
     .filter(Boolean)
     .join(' ');
 
+  const accent = accentColor ?? DEFAULT_SOLID_COLOR;
+
   return (
-    <Tag className={classes} style={{ ...themeStyle(theme, accentColor), ...style }}>
+    <Tag className={classes} style={{ ...themeStyle(theme, accent), ...style }}>
       {backdrop && !paint && (
         <div className="page-theme-sky" aria-hidden>
           <CoverArtView

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
 import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, LoaderCircle, StickyNote } from 'lucide-react';
 import type { ExtensionSession } from '../../../shared/types';
 import { CURRENCIES, LIMITS } from '../../../shared/constants';
@@ -7,8 +7,14 @@ import { brand } from '../../../src/config/brand';
 import { CloudBank } from '../../../src/components/Cloud';
 import { COVER_ICON_ART } from '../../../src/components/CoverArt';
 import { LogoMark } from '../../../src/components/Logo';
+import {
+  CLASSIC_DASHBOARD_LABELS,
+  CLASSIC_DASHBOARD_SCENES,
+  CLASSIC_DASHBOARD_TINTS,
+  type ClassicDashboardScene,
+} from '../../../src/lib/dashboardScene';
 import { ApiError, SITE_URL, api } from '../api';
-import { clearToken, getLastLists, getToken, setLastLists, startConnect } from '../storage';
+import { clearToken, getLastLists, getSoftLook, getToken, setLastLists, setSoftLook, startConnect } from '../storage';
 import { readDetails, snapshotPage, type PageDetails, type PageSnapshot } from '../scrape';
 import { scanList, type ListScan } from '../listScrape';
 import { ListImport } from './ListImport';
@@ -58,6 +64,32 @@ const offersList = (scan: ListScan | null): scan is ListScan => Boolean(scan && 
 
 export function Popup() {
   const [view, setView] = useState<View>({ kind: 'loading' });
+  const [softLook, setSoftLookState] = useState<ClassicDashboardScene>('sky');
+
+  useEffect(() => {
+    void getSoftLook().then(setSoftLookState);
+  }, []);
+
+  useEffect(() => {
+    const tints = CLASSIC_DASHBOARD_TINTS[softLook];
+    const root = document.documentElement;
+    root.dataset.soft = softLook;
+    root.style.setProperty('--page-tint', tints.tint);
+    root.style.setProperty('--page-tint-2', tints.tint2);
+  }, [softLook]);
+
+  const pickSoftLook = (scene: ClassicDashboardScene) => {
+    setSoftLookState(scene);
+    void setSoftLook(scene);
+  };
+
+  const softStyle = useMemo((): CSSProperties => {
+    const tints = CLASSIC_DASHBOARD_TINTS[softLook];
+    return {
+      ['--page-tint' as string]: tints.tint,
+      ['--page-tint-2' as string]: tints.tint2,
+    };
+  }, [softLook]);
 
   const load = async () => {
     setView({ kind: 'loading' });
@@ -91,13 +123,14 @@ export function Popup() {
   const session = view.kind === 'form' || view.kind === 'unsupported' ? view.session : null;
 
   return (
-    <div className="popup">
+    <div className="popup" data-soft={softLook} style={softStyle}>
       <header className="popup-header">
-        <LogoMark size={26} />
+        <LogoMark size={28} />
         <span className="popup-brand">{brand.name}</span>
+        <SoftLookPicker value={softLook} onChange={pickSoftLook} />
         <span className="popup-spacer" />
         <a className="popup-link" href={`${SITE_URL}/app`} target="_blank" rel="noreferrer">
-          Open {brand.name} <ExternalLink size={13} aria-hidden />
+          Open <ExternalLink size={12} aria-hidden />
         </a>
       </header>
 
@@ -168,6 +201,34 @@ export function Popup() {
           </div>
         </footer>
       )}
+    </div>
+  );
+}
+
+function SoftLookPicker({
+  value,
+  onChange,
+}: {
+  value: ClassicDashboardScene;
+  onChange: (scene: ClassicDashboardScene) => void;
+}) {
+  return (
+    <div className="soft-look" role="radiogroup" aria-label="Color style">
+      {CLASSIC_DASHBOARD_SCENES.map((id) => {
+        const on = value === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            aria-label={CLASSIC_DASHBOARD_LABELS[id]}
+            title={CLASSIC_DASHBOARD_LABELS[id]}
+            className={`soft-swatch soft-swatch-${id}${on ? ' is-on' : ''}`}
+            onClick={() => onChange(id)}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -400,7 +461,7 @@ function SaveForm({
         )}
 
         <div className="lists">
-          <span className="field-label">Add to</span>
+          <h2 className="lists-heading">Add to</h2>
           {session.lists.length === 0 ? (
             <p className="popup-muted small">You don’t have any lists yet — this will go to your Saved Items.</p>
           ) : (

@@ -6,15 +6,6 @@ const STORAGE_KEY = 'wishful.pref.theme';
 const THEME_COLORS: Record<Theme, string> = { light: '#f3f3f2', dark: '#0a1129' };
 const listeners = new Set<() => void>();
 
-function stored(): Theme | null {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    return v === 'light' || v === 'dark' ? v : null;
-  } catch {
-    return null;
-  }
-}
-
 function apply(theme: Theme) {
   document.documentElement.dataset.theme = theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme]);

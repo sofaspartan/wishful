@@ -217,7 +217,7 @@ export function ListImport({
         </ul>
 
         <div className="lists">
-          <span className="field-label">Add to</span>
+          <h2 className="lists-heading">Add to</h2>
           <label className={`list-row${newList ? ' is-on' : ''}`}>
             <input type="checkbox" checked={newList} onChange={() => setNewList((v) => !v)} />
             <span className="thumb new-list-thumb" aria-hidden>

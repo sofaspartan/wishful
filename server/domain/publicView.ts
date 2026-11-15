@@ -251,6 +251,14 @@ export async function buildPublicProfile(rawUsername: string, viewer: UserRecord
       location: hideDetails ? '' : (user.location ?? ''),
       age: hideDetails ? null : ageFromBirthYear(user.birthYear),
       profileCoverArt: hideDetails ? null : (user.profileCoverArt ?? null),
+      profilePageBackdrop: hideDetails
+        ? null
+        : user.profilePageBackdrop !== undefined
+          ? user.profilePageBackdrop
+          : user.profileCoverArt
+            ? 'match'
+            : null,
+      profilePageColors: hideDetails ? null : (user.profilePageColors ?? null),
     },
     profileVisibility: visibility,
     viewer: { isSelf, isFriend, canSeeLists },

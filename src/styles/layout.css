@@ -1917,10 +1917,19 @@ a.sky-stat {
   overflow: hidden;
   border: 1px solid var(--border);
 }
+.profile-style-preview .page-theme-sky,
 .profile-style-preview .cover-art {
   position: absolute;
   inset: 0;
   --cloud-bank-h: 48px;
+}
+.profile-editor-preview.page-themed {
+  isolation: isolate;
+}
+.profile-editor-preview .page-theme-sky {
+  position: absolute;
+  inset: 0 0 36% 0;
+  opacity: 0.9;
 }
 .profile-style-preview-face {
   position: absolute;
@@ -4244,7 +4253,8 @@ button.empty:hover {
 .profile-hero {
   position: relative;
   margin: 0 auto var(--s-10);
-  max-width: 720px;
+  width: 100%;
+  max-width: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4278,6 +4288,7 @@ button.empty:hover {
   gap: var(--s-5);
 }
 .profile-hero-main {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -4288,15 +4299,50 @@ button.empty:hover {
 .profile-hero-panel .profile-hero-main {
   align-items: flex-start;
 }
+.profile-hero-top {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+.profile-hero-top .btn {
+  flex-shrink: 0;
+}
+.profile-hero-main:has(.profile-hero-top) .public-title {
+  padding-right: 48px;
+}
+.profile-hero-panel .profile-hero-top {
+  top: 0;
+  right: 0;
+}
+@media (max-width: 639px) {
+  .profile-hero-top {
+    top: var(--s-3);
+    right: var(--s-3);
+  }
+  .profile-hero-panel .profile-hero-body {
+    padding-top: calc(var(--s-6) + 8px);
+  }
+  .profile-hero-main:has(.profile-hero-top) .public-title {
+    padding-right: 0;
+  }
+}
 .profile-hero .avatar {
   border: 4px solid var(--surface);
   box-shadow: 0 6px 20px rgba(16, 38, 92, 0.14);
   flex-shrink: 0;
 }
 .profile-hero-bio {
-  max-width: 520px;
+  max-width: 42rem;
   white-space: pre-line;
   margin: 0;
+}
+.profile-hero-panel .profile-hero-bio {
+  max-width: none;
 }
 .profile-hero-meta {
   display: flex;
@@ -4327,6 +4373,7 @@ button.empty:hover {
   }
   .profile-hero-panel .profile-hero-main,
   .profile-hero-main {
+    position: static;
     align-items: center;
   }
   .profile-hero-panel .profile-hero-actions,
