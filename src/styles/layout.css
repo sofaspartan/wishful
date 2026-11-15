@@ -4315,17 +4315,14 @@ button.empty:hover {
 .profile-hero-main:has(.profile-hero-top) .public-title {
   padding-right: 48px;
 }
-.profile-hero-panel .profile-hero-top {
-  top: 0;
-  right: 0;
-}
 @media (max-width: 639px) {
-  .profile-hero-top {
-    top: var(--s-3);
-    right: var(--s-3);
+  .profile-hero-top,
+  .profile-hero-panel .profile-hero-top {
+    top: var(--s-4);
+    right: var(--s-4);
   }
   .profile-hero-panel .profile-hero-body {
-    padding-top: calc(var(--s-6) + 8px);
+    padding-top: calc(var(--s-6) + 12px);
   }
   .profile-hero-main:has(.profile-hero-top) .public-title {
     padding-right: 0;
