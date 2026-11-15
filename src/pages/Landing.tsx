@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react';
+import { useRef, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Gift, Library, Package, Puzzle, Sparkles } from 'lucide-react';
 import { useMe } from '../lib/queries';
@@ -143,8 +143,8 @@ const FAQS = [
     a: 'Paste a product link and we’ll try to fill in the details. The browser extension adds a save button on the page itself, and you can import whole lists from some sites.',
   },
   {
-    q: 'Can I add Wishful to my Home Screen?',
-    a: 'Yes. On iPhone use Safari → Share → Add to Home Screen. On Android, Chrome can Install app / Add to Home screen. You get a full-screen app icon without the App Store — smoother than keeping a browser tab open.',
+    q: 'Can I install Wishful like an app?',
+    a: 'Yes. On iPhone use Safari → Share → Add to Home Screen. On Android or desktop Chrome/Edge, use Install app from the browser. You get a full-screen (or own-window) app without an App Store download.',
   },
   {
     q: 'What’s the difference between wishlists and collections?',
@@ -187,7 +187,7 @@ const FEATURES = [
     art: FEATURE_ILLUSTRATIONS.phone,
     tint: '#5f9e6e',
     title: 'Made for your phone',
-    text: 'Add things the moment you spot them. Add Wishful to your Home Screen for a full-screen app feel — everything syncs across devices.',
+    text: 'Add things the moment you spot them. Install Wishful on your Home Screen or desktop browser for an app-like feel — everything syncs across devices.',
   },
 ];
 
@@ -209,6 +209,7 @@ function FeatureStage({ art, tint, index }: { art: ReactElement; tint: string; i
 export default function Landing() {
   const { data: me } = useMe();
   const [heroScene, setHeroScene] = useState<HeroSceneId>('wishlist');
+  const jumpHeroScene = useRef<((id: HeroSceneId) => void) | null>(null);
   return (
     <div>
       <div className="landing-top">
@@ -234,29 +235,39 @@ export default function Landing() {
                 ideas money can’t link to.
               </p>
               <ul className="landing-pair" aria-label={`What you can keep in ${brand.name}`}>
-                <li className={heroScene === 'wishlist' ? 'is-active' : undefined}>
-                  <span className="landing-pair-icon" aria-hidden>
-                    <Gift size={16} />
-                  </span>
-                  <span>
-                    <strong>Wishlists</strong> for what you want — share them and friends reserve gifts.
-                  </span>
+                <li>
+                  <button type="button" className={heroScene === 'wishlist' ? 'is-active' : undefined} onClick={() => jumpHeroScene.current?.('wishlist')}>
+                    <span className="landing-pair-icon" aria-hidden>
+                      <Gift size={16} />
+                    </span>
+                    <span>
+                      <strong>Wishlists</strong> for what you want — share them and friends reserve gifts.
+                    </span>
+                  </button>
                 </li>
-                <li className={heroScene === 'collection' ? 'is-active' : undefined}>
-                  <span className="landing-pair-icon is-have" aria-hidden>
-                    <Library size={16} />
-                  </span>
-                  <span>
-                    <strong>Collections</strong> for what you have — records, sneakers, books, plants.
-                  </span>
+                <li>
+                  <button
+                    type="button"
+                    className={heroScene === 'collection' ? 'is-active' : undefined}
+                    onClick={() => jumpHeroScene.current?.('collection')}
+                  >
+                    <span className="landing-pair-icon is-have" aria-hidden>
+                      <Library size={16} />
+                    </span>
+                    <span>
+                      <strong>Collections</strong> for what you have — records, sneakers, books, plants.
+                    </span>
+                  </button>
                 </li>
-                <li className={heroScene === 'box' ? 'is-active' : undefined}>
-                  <span className="landing-pair-icon is-box" aria-hidden>
-                    <Package size={16} />
-                  </span>
-                  <span>
-                    <strong>Boxes</strong> for what’s packed away — scan the QR label to see what’s inside.
-                  </span>
+                <li>
+                  <button type="button" className={heroScene === 'box' ? 'is-active' : undefined} onClick={() => jumpHeroScene.current?.('box')}>
+                    <span className="landing-pair-icon is-box" aria-hidden>
+                      <Package size={16} />
+                    </span>
+                    <span>
+                      <strong>Boxes</strong> for what’s packed away — scan the QR label to see what’s inside.
+                    </span>
+                  </button>
                 </li>
               </ul>
               <div className="landing-ctas">
@@ -271,7 +282,7 @@ export default function Landing() {
               </div>
               <p className="landing-note text-sm">Free to use. Friends don’t need an account to reserve gifts.</p>
             </div>
-            <HeroSwirl onSceneChange={setHeroScene} />
+            <HeroSwirl onSceneChange={setHeroScene} jumpToRef={jumpHeroScene} />
           </section>
           <CloudBank className="hero-bottom" />
         </div>
@@ -376,13 +387,13 @@ export default function Landing() {
 
         <section className="landing-extension landing-homescreen" aria-labelledby="landing-homescreen-title">
           <div className="landing-extension-copy">
-            <span className="eyebrow">On your phone</span>
+            <span className="eyebrow">Install the app</span>
             <h2 id="landing-homescreen-title" className="display">
-              Add {brand.name} to your Home Screen.
+              On your phone or desktop.
             </h2>
             <p>
-              Install it like an app — full screen, no App Store. Open straight into your lists with the same look and feel, minus the browser
-              chrome.
+              Install {brand.name} like an app — Home Screen on your phone, or its own window on a desktop browser. Same lists and look, without the
+              browser chrome.
             </p>
             <ul className="landing-extension-points">
               <li>
@@ -392,10 +403,10 @@ export default function Landing() {
                 <Check size={16} aria-hidden /> Android: Chrome → Install app / Add to Home screen
               </li>
               <li>
-                <Check size={16} aria-hidden /> Same signed-in lists, bottom navigation and all
+                <Check size={16} aria-hidden /> Desktop: Chrome or Edge → Install app (toolbar or menu)
               </li>
               <li>
-                <Check size={16} aria-hidden /> Free — no download from an app store
+                <Check size={16} aria-hidden /> Free — no App Store or desktop download required
               </li>
             </ul>
             <Link to="/knowledge/install-home-screen" className="btn btn-primary btn-lg">

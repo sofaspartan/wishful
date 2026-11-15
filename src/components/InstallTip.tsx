@@ -75,14 +75,14 @@ export function InstallTip() {
   return (
     <aside className="install-tip" role="status">
       <div className="install-tip-copy">
-        <strong>Add Wishful to your Home Screen</strong>
+        <strong>{iosHint && !deferred ? 'Add Wishful to your Home Screen' : 'Install Wishful like an app'}</strong>
         {iosHint && !deferred ? (
           <span>
             Tap <Share size={14} aria-label="Share" className="install-tip-inline-icon" /> then{' '}
             <em>Add to Home Screen</em> for a full-screen app.
           </span>
         ) : (
-          <span>Install for a faster, full-screen experience — like an app, in your browser.</span>
+          <span>Install on your phone or desktop for a faster, full-screen experience — like an app, without the browser chrome.</span>
         )}
       </div>
       <div className="install-tip-actions">

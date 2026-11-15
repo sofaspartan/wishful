@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react';
 import { Cloud } from './Cloud';
 import { BOX_ITEMS, COLLECTION_ITEMS, ILLUSTRATED_ITEMS, type SceneItem } from './ItemIllustrations';
 
@@ -103,7 +103,14 @@ interface Claim {
  * a QR-labelled box a phone scans. Positions are written straight to the DOM from a rAF
  * loop so React only re-renders when an item lands, a claim appears, or the scene changes.
  */
-export function HeroSwirl({ onSceneChange }: { onSceneChange?: (id: HeroSceneId) => void } = {}) {
+export function HeroSwirl({
+  onSceneChange,
+  jumpToRef,
+}: {
+  onSceneChange?: (id: HeroSceneId) => void;
+  /** Lets the landing copy jump to Wishlists / Collections / Boxes. */
+  jumpToRef?: MutableRefObject<((id: HeroSceneId) => void) | null>;
+} = {}) {
   const stageRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
@@ -127,6 +134,17 @@ export function HeroSwirl({ onSceneChange }: { onSceneChange?: (id: HeroSceneId)
   useEffect(() => {
     onSceneChange?.(SCENES[scene].id);
   }, [scene, onSceneChange]);
+
+  useEffect(() => {
+    if (!jumpToRef) return;
+    jumpToRef.current = (id) => {
+      const i = SCENES.findIndex((s) => s.id === id);
+      if (i >= 0) jumpRef.current?.(i);
+    };
+    return () => {
+      jumpToRef.current = null;
+    };
+  }, [jumpToRef]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -208,7 +226,7 @@ export function HeroSwirl({ onSceneChange }: { onSceneChange?: (id: HeroSceneId)
         }
         if (phoneRef.current) {
           phoneRef.current.style.opacity = phoneIn.toFixed(3);
-          phoneRef.current.style.transform = `translate(${lerp(42, 0, phoneIn).toFixed(1)}%, -50%) rotate(${lerp(12, -6, phoneIn).toFixed(2)}deg)`;
+          phoneRef.current.style.transform = `translate(${lerp(28, -18, phoneIn).toFixed(1)}%, -50%) rotate(${lerp(12, -6, phoneIn).toFixed(2)}deg)`;
         }
       }
     };
@@ -240,7 +258,7 @@ export function HeroSwirl({ onSceneChange }: { onSceneChange?: (id: HeroSceneId)
       }
       if (phoneRef.current) {
         phoneRef.current.style.opacity = '1';
-        phoneRef.current.style.transform = 'translate(0, -50%) rotate(-6deg)';
+        phoneRef.current.style.transform = 'translate(-18%, -50%) rotate(-6deg)';
       }
     };
 
@@ -350,7 +368,7 @@ export function HeroSwirl({ onSceneChange }: { onSceneChange?: (id: HeroSceneId)
       }
       if (phoneRef.current) {
         phoneRef.current.style.opacity = '0';
-        phoneRef.current.style.transform = 'translate(42%, -50%) rotate(12deg)';
+        phoneRef.current.style.transform = 'translate(28%, -50%) rotate(12deg)';
       }
       if (shelfRef.current) {
         shelfRef.current.style.opacity = '0';
@@ -542,8 +560,8 @@ function PackedBoxArt() {
 /** Phone that shows what's inside the scanned box, with a soft beam toward the QR. */
 function ScanPhoneArt() {
   return (
-    <svg className="swirl-phone-art" viewBox="0 0 72 120" fill="none" aria-hidden focusable="false">
-      <path className="swirl-beam" d="M10 40 L-18 28 L-18 72 L10 70 Z" fill="#4fa3a5" opacity=".35" />
+    <svg className="swirl-phone-art" viewBox="-36 0 108 120" fill="none" aria-hidden focusable="false" overflow="visible">
+      <path className="swirl-beam" d="M12 44 L-32 26 L-32 78 L12 72 Z" fill="#4fa3a5" opacity=".35" />
       <rect x="10" y="4" width="52" height="112" rx="10" fill="#2f3440" />
       <rect x="16" y="14" width="40" height="86" rx="4" fill="#eef1f5" />
       <rect x="30" y="104" width="12" height="3" rx="1.5" fill="#5a6070" />

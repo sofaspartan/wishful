@@ -81,14 +81,14 @@ export const KB_ARTICLES: KbArticle[] = [
   },
   {
     slug: 'install-home-screen',
-    title: 'Add Wishful to your Home Screen',
+    title: 'Install Wishful like an app',
     category: 'getting-started',
-    summary: 'Install Wishful like an app from Safari or Chrome — full screen, no App Store required.',
-    keywords: ['install', 'pwa', 'home screen', 'ios', 'android', 'standalone', 'app'],
+    summary: 'Add Wishful to your phone’s Home Screen or install it from Chrome/Edge on desktop — no App Store required.',
+    keywords: ['install', 'pwa', 'home screen', 'ios', 'android', 'desktop', 'chrome', 'edge', 'standalone', 'app'],
     sections: [
       {
         paragraphs: [
-          'Wishful can live on your phone’s Home Screen. It opens straight into your signed-in app (no Safari or Chrome chrome), with the same Wishful look and bottom navigation.',
+          'Wishful can live on your phone’s Home Screen or as a desktop app window. It opens straight into your signed-in lists — no browser chrome — with the same Wishful look.',
         ],
       },
       {
@@ -104,9 +104,15 @@ export const KB_ARTICLES: KbArticle[] = [
         ],
       },
       {
+        heading: 'Desktop (Chrome or Edge)',
+        paragraphs: [
+          'In Chrome or Edge, look for the Install icon in the address bar, or open the browser menu and choose Install Wishful / Install app. Wishful opens in its own window and can sit in your dock or taskbar like other apps.',
+        ],
+      },
+      {
         heading: 'Tips',
         paragraphs: [
-          'If you dismiss the in-app “Add Wishful to your Home Screen” tip, you can still install anytime from the browser menu. Offline caching isn’t included yet — you still need a connection to load lists.',
+          'If you dismiss the in-app install tip, you can still install anytime from the browser menu or address bar. Offline caching isn’t included yet — you still need a connection to load lists.',
         ],
       },
     ],
