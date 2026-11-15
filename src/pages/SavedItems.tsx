@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, ListChecks, MoreHorizontal, Package, PartyPopper, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Check, ListChecks, MoreHorizontal, Package, PartyPopper, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
 import type { Item, Priority } from '../../shared/types';
 import { PRIORITY_LABELS, PRIORITY_RANK } from '../../shared/constants';
 import { useItems, useWishlists, useInvalidate } from '../lib/queries';
@@ -19,6 +19,7 @@ import { SkyArt } from '../components/SkyArt';
 import { effectivePrice } from '../components/ItemForm';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
+import { Popover } from '../components/ui/Popover';
 import { Button } from '../components/ui/Button';
 import { EmptyState, useConfirm } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
@@ -114,12 +115,67 @@ export default function SavedItems() {
   };
 
   const filtersActive = query || category !== 'all' || priority !== 'all' || listFilter !== 'all';
+  const panelFiltersActive = category !== 'all' || priority !== 'all' || listFilter !== 'all' || sort !== 'newest';
   const clearFilters = () => {
     setQuery('');
     setCategory('all');
     setPriority('all');
     setListFilter('all');
   };
+
+  const filterControls = (
+    <>
+      <select className="select" value={listFilter} onChange={(e) => setListFilter(e.target.value)} aria-label="Filter by list">
+        <option value="all">All items</option>
+        <option value="wanted">Things I want</option>
+        <option value="owned">Things I have</option>
+        <option value="unlisted">Not on any list</option>
+        <option value="listed">On a list</option>
+        {boxById.size > 0 && (
+          <>
+            <option value="boxed">Packed in a box</option>
+            <option value="unboxed">Not in a box</option>
+          </>
+        )}
+        {lists.length > 0 && (
+          <optgroup label="On list">
+            {lists.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.title}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+      {categories.length > 0 && (
+        <select className="select" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filter by category">
+          <option value="all">All categories</option>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      )}
+      <select className="select" value={priority} onChange={(e) => setPriority(e.target.value as Priority | 'all')} aria-label="Filter by priority">
+        <option value="all">Any priority</option>
+        {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
+          <option key={p} value={p}>
+            {PRIORITY_LABELS[p]}
+          </option>
+        ))}
+      </select>
+      <label className="row text-sm muted toolbar-sort">
+        <span className="hide-xs">Sort</span>
+        <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort items">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="priority">Priority</option>
+          <option value="price_asc">Price: low to high</option>
+          <option value="price_desc">Price: high to low</option>
+          <option value="name">Name</option>
+        </select>
+      </label>
+    </>
+  );
 
   const menu = (item: Item) => (
     <Menu label={`Actions for ${item.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm">
@@ -179,8 +235,8 @@ export default function SavedItems() {
         </div>
       </PageSky>
 
-      <div className="toolbar">
-        <div className="input-group" style={{ flex: '1 1 220px', maxWidth: 360 }}>
+      <div className="toolbar toolbar-items">
+        <div className="input-group toolbar-items-search">
           <Search size={16} aria-hidden />
           <input
             className="input"
@@ -191,56 +247,27 @@ export default function SavedItems() {
             aria-label="Search saved items"
           />
         </div>
-        <div className="row" style={{ gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
-          <select className="select" value={listFilter} onChange={(e) => setListFilter(e.target.value)} aria-label="Filter by list">
-            <option value="all">All items</option>
-            <option value="wanted">Things I want</option>
-            <option value="owned">Things I have</option>
-            <option value="unlisted">Not on any list</option>
-            <option value="listed">On a list</option>
-            {boxById.size > 0 && (
+        <div className="toolbar-items-mobile-actions">
+          <Popover
+            label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
+            align="end"
+            buttonClassName={`btn btn-ghost toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
+            buttonContent={
               <>
-                <option value="boxed">Packed in a box</option>
-                <option value="unboxed">Not in a box</option>
+                <SlidersHorizontal size={18} aria-hidden />
+                <span>Filters</span>
+                {panelFiltersActive && <span className="toolbar-filters-dot" aria-hidden />}
               </>
+            }
+            className="toolbar-filters-panel"
+          >
+            {() => (
+              <div className="toolbar-filters-stack">
+                <strong className="toolbar-filters-title">Filters &amp; sort</strong>
+                {filterControls}
+              </div>
             )}
-            {lists.length > 0 && (
-              <optgroup label="On list">
-                {lists.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.title}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-          {categories.length > 0 && (
-            <select className="select" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filter by category">
-              <option value="all">All categories</option>
-              {categories.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          )}
-          <select className="select" value={priority} onChange={(e) => setPriority(e.target.value as Priority | 'all')} aria-label="Filter by priority">
-            <option value="all">Any priority</option>
-            {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
-              <option key={p} value={p}>
-                {PRIORITY_LABELS[p]}
-              </option>
-            ))}
-          </select>
-          <label className="row text-sm muted" style={{ gap: 8 }}>
-            <span className="hide-xs">Sort</span>
-            <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort items">
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="priority">Priority</option>
-              <option value="price_asc">Price: low to high</option>
-              <option value="price_desc">Price: high to low</option>
-              <option value="name">Name</option>
-            </select>
-          </label>
+          </Popover>
           <ViewToggle value={view} onChange={setView} labels="grid" />
         </div>
       </div>

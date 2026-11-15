@@ -358,7 +358,7 @@ export function WishlistCard({ wishlist: w, menu, dragHandle, showOwner, view = 
         {w.description && <p className="wl-desc clamp-2">{w.description}</p>}
         <div className="wl-meta">
           {metaBits}
-          <span style={{ marginLeft: 'auto' }}>Updated {relativeTime(w.updatedAt)}</span>
+          <span>Updated {relativeTime(w.updatedAt)}</span>
         </div>
       </div>
     </article>

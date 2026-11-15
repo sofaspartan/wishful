@@ -14,6 +14,8 @@ interface ModalProps {
   onClose: () => void;
   title: ReactNode;
   subtitle?: ReactNode;
+  /** Optional icon shown beside the title. */
+  icon?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -23,7 +25,7 @@ interface ModalProps {
   bare?: boolean;
 }
 
-export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md', className, bodyClassName, bare }: ModalProps) {
+export function Modal({ open, onClose, title, subtitle, icon, children, footer, size = 'md', className, bodyClassName, bare }: ModalProps) {
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -103,6 +105,11 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
           </h2>
         ) : (
           <div className="modal-header">
+            {icon && (
+              <span className="modal-header-icon" aria-hidden>
+                {icon}
+              </span>
+            )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 id={`${id}-title`} className="modal-title display">
                 {title}

@@ -51,10 +51,6 @@ export default function Home() {
   const collections = active.filter((w) => w.kind === 'collection');
   const items = useMemo(() => itemsData?.items ?? [], [itemsData]);
   const recentItems = useMemo(() => [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6), [items]);
-  const recentLists = useMemo(
-    () => [...active].sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt)).slice(0, 3),
-    [active],
-  );
   const upcoming = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -177,7 +173,7 @@ export default function Home() {
                   </Button>
                 </div>
                 <button type="button" className="home-hub-hero-more" onClick={() => openAddItem()}>
-                  Idea, photo, or other options
+                  More options
                   <ArrowRight size={14} aria-hidden />
                 </button>
               </form>
@@ -188,7 +184,7 @@ export default function Home() {
           <div className="home-hub-ctas">
             <button type="button" className="home-hub-cta home-hub-cta-lg" onClick={() => openAddItem({ mode: 'barcode' })}>
               <span className="art-icon" aria-hidden>
-                {FEATURE_ILLUSTRATIONS.store}
+                {FEATURE_ILLUSTRATIONS.barcode}
               </span>
               <span className="home-hub-cta-copy">
                 <strong>Scan barcode</strong>
@@ -226,25 +222,6 @@ export default function Home() {
               </button>
             </div>
           </div>
-
-          {!isNew && recentLists.length > 0 && (
-            <section className="home-hub-continue tile tile-flush" aria-label="Continue">
-              <p className="home-hub-continue-label">Continue</p>
-              {recentLists.map((w) => (
-                <Link key={w.id} to={`/app/lists/${w.id}`} className="home-hub-continue-row">
-                  <WishlistListThumb
-                    title={w.title}
-                    coverImage={w.coverImage}
-                    coverArt={w.coverArt}
-                    accentColor={w.accentColor}
-                    previewImages={w.previewImages}
-                  />
-                  <strong className="truncate">{w.title}</strong>
-                  <ArrowRight size={15} className="faint" aria-hidden />
-                </Link>
-              ))}
-            </section>
-          )}
 
           <div className="home-hub-lists bento">{listSections}</div>
         </div>
@@ -331,7 +308,7 @@ export default function Home() {
               <QuickAction art={FEATURE_ILLUSTRATIONS.boxes} title="New box" hint="Pack and label storage" onClick={() => openCreateBox()} />
             </div>
             <div className="quick-actions-grid">
-              <QuickAction art={FEATURE_ILLUSTRATIONS.store} title="Scan a barcode" hint="In a store aisle" onClick={() => openAddItem({ mode: 'barcode' })} />
+              <QuickAction art={FEATURE_ILLUSTRATIONS.barcode} title="Scan a barcode" hint="In a store aisle" onClick={() => openAddItem({ mode: 'barcode' })} />
               <QuickAction art={FEATURE_ILLUSTRATIONS.idea} title="Write an idea" hint="Experiences, wishes" onClick={() => openAddItem({ mode: 'idea' })} />
               <QuickAction art={FEATURE_ILLUSTRATIONS.share} title="Gift ideas" hint="Browse curated catalogs" onClick={() => navigate('/app/gifts')} />
             </div>

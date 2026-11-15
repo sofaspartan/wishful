@@ -191,6 +191,35 @@ const ShoppingBag = (
   </Svg>
 );
 
+/** A product label with a 1D barcode and a sweeping scan line. */
+const BarcodeScan = (
+  <Svg>
+    <rect x="5" y="9" width="30" height="32" rx="4" fill="#fff" stroke="#e3e6ec" strokeWidth="1.5" />
+    <rect x="5" y="9" width="30" height="7" rx="3.5" fill="#e8745b" />
+    <rect x="9" y="11.2" width="12" height="2.6" rx="1.3" fill="#fff" opacity=".85" />
+    <g fill={INK}>
+      <rect x="9" y="20" width="1.8" height="15" rx=".4" />
+      <rect x="12.2" y="20" width="1" height="15" rx=".3" />
+      <rect x="14.4" y="20" width="2.4" height="15" rx=".4" />
+      <rect x="18" y="20" width="1" height="15" rx=".3" />
+      <rect x="20.2" y="20" width="1.6" height="15" rx=".4" />
+      <rect x="23.2" y="20" width="1" height="15" rx=".3" />
+      <rect x="25.4" y="20" width="2.8" height="15" rx=".4" />
+      <rect x="29.4" y="20" width="1.2" height="15" rx=".3" />
+    </g>
+    <rect className="fa-scanline" x="8" y="26" width="24" height="1.6" rx=".8" fill="#4fa3a5" />
+    <g className="fa-scanner">
+      <rect x="30" y="6" width="15" height="24" rx="3.2" fill={INK} />
+      <rect x="32" y="8.5" width="11" height="16" rx="1.4" fill="#eef1f5" />
+      <rect x="33.5" y="10.5" width="2.6" height="2.6" rx=".7" fill="#e8745b" />
+      <rect x="37" y="11.2" width="4.5" height="1.2" rx=".6" fill="#c9ced8" />
+      <rect x="33.5" y="15" width="2.6" height="2.6" rx=".7" fill="#4fa3a5" />
+      <rect x="37" y="15.7" width="4" height="1.2" rx=".6" fill="#c9ced8" />
+      <path className="fa-beam" d="M32 18.5L26 24.5v6L32 26z" fill="#f2c14e" opacity=".85" />
+    </g>
+  </Svg>
+);
+
 const StackedLists = (
   <Svg>
     <rect className="fa-card-back" x="14" y="5" width="24" height="30" rx="4" fill="#f2c14e" />
@@ -323,6 +352,7 @@ const ScannedBox = (
 
 export const FEATURE_ILLUSTRATIONS = {
   store: ShoppingBag,
+  barcode: BarcodeScan,
   lists: StackedLists,
   surprise: GiftBox,
   share: PaperPlane,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Globe, ImagePlus, Lightbulb, Link2, ListPlus, Plus, ScanBarcode, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Globe, ImagePlus, Lightbulb, Link2, ListPlus, Plus, ScanBarcode, Sparkles, Wand2 } from 'lucide-react';
 import type { BarcodeProduct } from '../../shared/barcode';
 import type { Item, ItemType, Priority, UrlMetadata, WishlistSummary } from '../../shared/types';
 import { PRIORITY_LABELS } from '../../shared/constants';
@@ -10,7 +10,7 @@ import { errorMessage, fieldErrors, get, post } from '../lib/api';
 import { brand } from '../config/brand';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
-import { Field, FormError, FormNote } from './ui/Field';
+import { FormError, FormNote } from './ui/Field';
 import { Segmented } from './ui/misc';
 import { useToast } from './ui/Toast';
 import { ImagePicker } from './ImagePicker';
@@ -23,6 +23,7 @@ import { WebsiteImportForm, WebsiteImportReview, websiteListFile, type WebsiteLi
 import { buildImport, CSV_FIELDS, guessMapping, importBatches, limitRows, type CsvField, type CsvFile } from '../lib/csvImport';
 import { applyPreset, defaultFilter, detectPreset, presetCounts, type CsvPreset } from '../lib/csvPresets';
 import type { Wishlist } from '../../shared/types';
+import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 
 const BARCODE_SOURCE_LABELS: Record<string, string> = {
   openfoodfacts: 'Open Food Facts',
@@ -441,21 +442,21 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
       onClose={onClose}
       title={step === 'website' || step === 'website-review' ? 'Import from a website' : 'Add an item'}
       subtitle={step === 'website' || step === 'website-review' ? 'Bring a whole wish list over from another site.' : 'Anything you want — products, experiences, ideas.'}
+      icon={step === 'website' || step === 'website-review' ? FEATURE_ILLUSTRATIONS.share : FEATURE_ILLUSTRATIONS.surprise}
       footer={footer}
       size="lg"
     >
       <div className="stack">
         <Segmented
           label="How do you want to add it?"
-          full
           value={mode}
           onChange={switchMode}
           options={[
-            { value: 'link', label: <><span className="hide-xs">Paste a link</span><span className="show-xs">Link</span></>, icon: <Link2 size={15} /> },
-            { value: 'barcode', label: <><span className="hide-xs">Scan barcode</span><span className="show-xs">Scan</span></>, icon: <ScanBarcode size={15} /> },
-            { value: 'idea', label: <><span className="hide-xs">Write an idea</span><span className="show-xs">Idea</span></>, icon: <Lightbulb size={15} /> },
-            { value: 'upload', label: <><span className="hide-xs">Upload a photo</span><span className="show-xs">Photo</span></>, icon: <ImagePlus size={15} /> },
-            { value: 'bulk', label: <><span className="hide-xs">Add several</span><span className="show-xs">Several</span></>, icon: <ListPlus size={15} /> },
+            { value: 'link', label: 'Link', icon: <Link2 size={15} /> },
+            { value: 'barcode', label: 'Scan', icon: <ScanBarcode size={15} /> },
+            { value: 'idea', label: 'Idea', icon: <Lightbulb size={15} /> },
+            { value: 'upload', label: 'Photo', icon: <ImagePlus size={15} /> },
+            { value: 'bulk', label: 'Several', icon: <ListPlus size={15} /> },
           ]}
         />
 
@@ -481,33 +482,41 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
               void fetchDetails();
             }}
           >
-            <Field label="Product or page link" error={urlError ?? undefined} hint="We'll try to grab the name, picture and price for you.">
-              <input
-                className="input"
-                type="url"
-                inputMode="url"
-                autoComplete="off"
-                placeholder="https://www.example.com/product"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onPaste={(e) => {
-                  const pasted = e.clipboardData.getData('text').trim();
-                  if (isHttpUrl(pasted)) {
-                    e.preventDefault();
-                    setUrl(pasted);
-                    void fetchDetails(pasted);
-                  }
-                }}
-              />
-            </Field>
-            <div className="row-wrap">
-              <Button variant="primary" type="submit" loading={fetching} icon={<Wand2 size={16} />}>
-                {fetching ? 'Fetching details…' : 'Fetch details'}
-              </Button>
-              <Button variant="ghost" onClick={skipToManual} disabled={fetching}>
-                Enter details manually
-              </Button>
+            <div className="field">
+              <div className="add-link-row">
+                <input
+                  className="input"
+                  type="url"
+                  inputMode="url"
+                  autoComplete="off"
+                  aria-label="Product or page URL"
+                  aria-invalid={urlError ? true : undefined}
+                  placeholder="Product or page URL"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onPaste={(e) => {
+                    const pasted = e.clipboardData.getData('text').trim();
+                    if (isHttpUrl(pasted)) {
+                      e.preventDefault();
+                      setUrl(pasted);
+                      void fetchDetails(pasted);
+                    }
+                  }}
+                />
+                <Button variant="primary" type="submit" loading={fetching} icon={<Wand2 size={16} />}>
+                  {fetching ? 'Fetching…' : 'Fetch'}
+                </Button>
+              </div>
+              {urlError ? (
+                <span className="field-error" role="alert">
+                  {urlError}
+                </span>
+              ) : null}
             </div>
+            <button type="button" className="add-manual-link" onClick={skipToManual} disabled={fetching}>
+              Enter details manually
+              <ArrowRight size={14} aria-hidden />
+            </button>
             <FormNote icon={<Sparkles size={16} aria-hidden />}>
               Works with most online stores. Some sites block previews — if that happens you can still save the item and fill in the details yourself.
             </FormNote>
@@ -545,7 +554,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
               }}
               aside={
                 <Button icon={<Globe size={16} />} onClick={() => setStep('website')}>
-                  Import from a website
+                  Import from site
                 </Button>
               }
             />

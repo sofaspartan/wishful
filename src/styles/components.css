@@ -424,6 +424,58 @@
 }
 
 /* Segmented control */
+.segmented-scroll {
+  position: relative;
+  max-width: 100%;
+  min-width: 0;
+}
+.segmented-scroll.is-scrollable::before,
+.segmented-scroll.is-scrollable::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+.segmented-scroll.is-scrollable::before {
+  left: 0;
+  background: linear-gradient(to right, var(--surface), transparent);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.segmented-scroll.is-scrollable::after {
+  right: 0;
+  background: linear-gradient(to left, var(--surface), transparent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.segmented-scroll.is-scrollable:not([data-at-start])::before,
+.segmented-scroll.is-scrollable:not([data-at-end])::after {
+  opacity: 1;
+}
+.segmented-scroll-more {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  z-index: 2;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.segmented-scroll-more:hover {
+  border-color: var(--border-strong);
+}
 .segmented {
   display: inline-flex;
   padding: 3px;
@@ -440,6 +492,22 @@
 .segmented::-webkit-scrollbar {
   display: none;
 }
+/* Compact icon toggles: pan-x steals taps on mobile — use larger hit targets instead */
+.segmented.view-toggle {
+  overflow: visible;
+  touch-action: manipulation;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.segmented.view-toggle button {
+  min-width: 44px;
+  height: 38px;
+  padding: 0;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
 .segmented button {
   display: inline-flex;
   align-items: center;
@@ -453,6 +521,7 @@
   font-weight: 550;
   color: var(--muted);
   white-space: nowrap;
+  cursor: pointer;
   transition:
     background var(--dur) var(--ease),
     color var(--dur) var(--ease);
@@ -852,11 +921,16 @@
   max-height: calc(100dvh - 24px);
   display: flex;
   flex-direction: column;
-  background: var(--surface);
+  background:
+    radial-gradient(ellipse 90% 55% at 12% -8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 58%),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--surface)) 0%, var(--surface) 42%);
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   box-shadow: var(--shadow-lg);
   animation: sheet-in var(--dur-slow) var(--ease);
   padding-bottom: var(--safe-bottom);
+  overflow: hidden;
+  isolation: isolate;
 }
 .modal:focus {
   outline: none;
@@ -871,7 +945,8 @@
   height: 4px;
   margin-left: -18px;
   border-radius: 2px;
-  background: var(--border-strong);
+  background: color-mix(in srgb, var(--accent) 28%, var(--border-strong));
+  z-index: 2;
 }
 @media (min-width: 640px) {
   .modal-root {
@@ -902,9 +977,120 @@
 .modal .check-list {
   max-height: none;
 }
+.modal .segmented-scroll {
+  width: 100%;
+}
+.modal .segmented-scroll.is-scrollable::before,
+.modal .segmented-scroll.is-scrollable::after {
+  width: 36px;
+  background: linear-gradient(to right, var(--surface), transparent);
+}
+.modal .segmented-scroll.is-scrollable::after {
+  background: linear-gradient(to left, var(--surface), transparent);
+}
 .modal .segmented {
-  flex-wrap: wrap;
-  overflow: visible;
+  display: flex;
+  width: 100%;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
+  scroll-padding-inline: 8px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-sunken));
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.modal .segmented::-webkit-scrollbar {
+  display: none;
+}
+.modal .segmented.full {
+  display: flex;
+  width: 100%;
+}
+.modal .segmented.full button {
+  flex: 0 0 auto;
+}
+.modal .segmented-scroll.is-scrollable .segmented {
+  padding-inline-end: 36px;
+}
+.modal .segmented-scroll-more {
+  right: 4px;
+}
+@media (max-width: 639px) {
+  .modal .segmented-scroll.is-scrollable::after {
+    width: 44px;
+    opacity: 1;
+    background:
+      linear-gradient(to left, var(--surface) 18%, transparent),
+      linear-gradient(to left, color-mix(in srgb, var(--ink) 6%, transparent), transparent 70%);
+  }
+  .modal .segmented-scroll.is-scrollable[data-at-end]::after {
+    opacity: 0;
+  }
+  .modal .segmented-scroll.is-scrollable .segmented button {
+    flex: 0 0 auto;
+  }
+}
+.add-link-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+}
+.add-link-row .input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+}
+.add-link-row .btn {
+  flex-shrink: 0;
+  height: 44px;
+  padding-inline: var(--s-4);
+}
+.add-manual-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 550;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.add-manual-link:hover:not(:disabled) {
+  color: var(--accent-hover);
+}
+.add-manual-link:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.add-manual-link svg {
+  transition: transform var(--dur) var(--ease);
+}
+.add-manual-link:hover:not(:disabled) svg {
+  transform: translateX(2px);
+}
+.import-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--s-2);
+  width: 100%;
+}
+.import-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+  padding-inline: var(--s-3);
 }
 .modal-header {
   display: flex;
@@ -912,6 +1098,26 @@
   gap: var(--s-3);
   padding: var(--s-6) var(--s-5) var(--s-3);
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.modal-header-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: var(--hero-bg);
+}
+.modal-header-icon svg {
+  width: 32px;
+  height: 32px;
+  overflow: visible;
+}
+.modal-header-icon svg * {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 @media (min-width: 640px) {
   .modal-header {
@@ -924,6 +1130,7 @@
   font-variation-settings: normal;
   font-weight: 650;
   letter-spacing: -0.02em;
+  color: var(--ink);
 }
 .modal-title {
   font-size: var(--text-xl);
@@ -931,7 +1138,7 @@
   min-width: 0;
 }
 .modal-subtitle {
-  color: var(--muted);
+  color: color-mix(in srgb, var(--accent-ink) 55%, var(--muted));
   font-size: var(--text-sm);
   margin-top: 4px;
   font-family: var(--font-sans);
@@ -941,19 +1148,46 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 @media (min-width: 640px) {
   .modal-body {
     padding: var(--s-2) var(--s-6) var(--s-6);
   }
 }
+.modal .segmented button[aria-pressed='true'],
+.modal .segmented button[aria-selected='true'],
+.modal .segmented button[aria-checked='true'] {
+  background: var(--surface);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, var(--border));
+}
+.modal .field-label {
+  color: color-mix(in srgb, var(--accent-ink) 35%, var(--ink));
+}
+.modal .form-note {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+}
+.modal .input,
+.modal .select,
+.modal .textarea {
+  border-color: color-mix(in srgb, var(--accent) 14%, var(--border));
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent-soft));
+}
+.modal .input:focus,
+.modal .select:focus,
+.modal .textarea:focus {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
 .modal-footer {
   display: flex;
   gap: var(--s-2);
   justify-content: flex-end;
   padding: var(--s-4) var(--s-5);
-  border-top: 1px solid var(--border);
-  background: var(--surface);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border));
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   flex-shrink: 0;
   position: sticky;

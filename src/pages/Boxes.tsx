@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Archive, ArrowRight, MapPin, Plus, Printer, Search, Share2 } from 'lucide-react';
+import { Archive, ArrowRight, MapPin, Plus, Printer, Search, Share2, SlidersHorizontal } from 'lucide-react';
 import type { BoxSummary } from '../../shared/types';
 import { useBoxes, useItems } from '../lib/queries';
 import { useLocalPref } from '../lib/prefs';
@@ -15,6 +15,7 @@ import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/misc';
 import { PageSky } from '../components/PageSky';
 import { SkyArt } from '../components/SkyArt';
+import { Popover } from '../components/ui/Popover';
 import { useAppActions } from '../components/appActions';
 
 const SORTS = ['number', 'name', 'updated', 'location'] as const;
@@ -77,6 +78,34 @@ export default function Boxes() {
     ? pool.filter((b) => [b.name, b.location, b.room, b.number ? `box ${b.number}` : '', ...b.lineTexts].some((s) => s.toLowerCase().includes(q)))
     : pool;
   const shown = sortBoxes(foundBoxes, sort);
+  const panelFiltersActive = tab !== 'active' || sort !== 'number';
+
+  const statusControls = (
+    <div className="segmented view-toggle-tabs" role="tablist" aria-label="Box status">
+      <button type="button" role="tab" aria-selected={tab === 'active'} onClick={() => setTab('active')}>
+        Active <span className="faint">{active.length}</span>
+      </button>
+      <button type="button" role="tab" aria-selected={tab === 'archived'} onClick={() => setTab('archived')}>
+        Archived <span className="faint">{archived.length}</span>
+      </button>
+      <button type="button" role="tab" aria-selected={tab === 'shared'} onClick={() => setTab('shared')}>
+        Shared <span className="faint">0</span>
+      </button>
+    </div>
+  );
+
+  const sortControl =
+    tab === 'shared' ? null : (
+      <label className="row text-sm muted toolbar-sort">
+        <span className="hide-xs">Sort</span>
+        <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort boxes">
+          <option value="number">Box number</option>
+          <option value="name">Name</option>
+          <option value="location">Where it’s kept</option>
+          <option value="updated">Recently updated</option>
+        </select>
+      </label>
+    );
 
   return (
     <div className="page">
@@ -98,37 +127,9 @@ export default function Boxes() {
         </div>
       </PageSky>
 
-      <div className="toolbar">
-        <div className="segmented" role="tablist" aria-label="Box status">
-          <button type="button" role="tab" aria-selected={tab === 'active'} onClick={() => setTab('active')}>
-            Active <span className="faint">{active.length}</span>
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'archived'} onClick={() => setTab('archived')}>
-            Archived <span className="faint">{archived.length}</span>
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'shared'} onClick={() => setTab('shared')}>
-            Shared <span className="faint">0</span>
-          </button>
-        </div>
-        <div className="row" style={{ gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
-          {tab !== 'shared' && (
-            <label className="row text-sm muted" style={{ gap: 8 }}>
-              <span className="hide-xs">Sort</span>
-              <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort boxes">
-                <option value="number">Box number</option>
-                <option value="name">Name</option>
-                <option value="location">Where it’s kept</option>
-                <option value="updated">Recently updated</option>
-              </select>
-            </label>
-          )}
-          <ViewToggle value={view} onChange={setView} />
-        </div>
-      </div>
-
-      {tab !== 'shared' && pool.length > 0 && (
-        <div className="toolbar" style={{ marginTop: 0 }}>
-          <div className="input-group" style={{ flex: '1 1 260px' }}>
+      <div className="toolbar toolbar-lists">
+        {tab !== 'shared' && (
+          <div className="input-group toolbar-lists-search">
             <Search size={16} aria-hidden />
             <input
               className="input"
@@ -139,8 +140,33 @@ export default function Boxes() {
               aria-label="Find a thing or a box"
             />
           </div>
+        )}
+        <div className="toolbar-items-mobile-actions">
+          {tab !== 'active' && <span className="toolbar-filter-chip">{tab === 'archived' ? 'Archived' : 'Shared'}</span>}
+          <Popover
+            label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
+            align="end"
+            buttonClassName={`btn btn-ghost toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
+            buttonContent={
+              <>
+                <SlidersHorizontal size={18} aria-hidden />
+                <span>Filters</span>
+                {panelFiltersActive && <span className="toolbar-filters-dot" aria-hidden />}
+              </>
+            }
+            className="toolbar-filters-panel"
+          >
+            {() => (
+              <div className="toolbar-filters-stack">
+                <strong className="toolbar-filters-title">Filters &amp; sort</strong>
+                {statusControls}
+                {sortControl}
+              </div>
+            )}
+          </Popover>
+          <ViewToggle value={view} onChange={setView} />
         </div>
-      )}
+      </div>
 
       {tab === 'shared' ? (
         <EmptyState icon={<Share2 size={22} />} title="Nothing shared with you">

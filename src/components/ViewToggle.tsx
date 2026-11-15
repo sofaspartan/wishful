@@ -6,7 +6,7 @@ export type CardListView = 'grid' | 'list';
 export function ViewToggle({ value, onChange, labels = 'card' }: { value: CardListView; onChange: (v: CardListView) => void; labels?: 'card' | 'grid' }) {
   const gridLabel = labels === 'card' ? 'Card view' : 'Grid view';
   return (
-    <div className="segmented" role="group" aria-label="View">
+    <div className="segmented view-toggle" role="group" aria-label="View">
       <button type="button" aria-pressed={value === 'grid'} onClick={() => onChange('grid')} title={gridLabel}>
         <LayoutGrid size={16} aria-hidden />
         <span className="sr-only">{gridLabel}</span>

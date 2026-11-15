@@ -7,10 +7,12 @@ interface PopoverProps {
   buttonContent: ReactNode;
   children: (close: () => void) => ReactNode;
   className?: string;
+  /** Prefer aligning the panel to the trigger/viewport end (right in LTR). */
+  align?: 'start' | 'end';
 }
 
 /** Non-menu popover (e.g. notifications panel). Fixed-positioned in a portal. */
-export function Popover({ label, buttonClassName = 'btn btn-ghost btn-icon', buttonContent, children, className }: PopoverProps) {
+export function Popover({ label, buttonClassName = 'btn btn-ghost btn-icon', buttonContent, children, className, align = 'end' }: PopoverProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -25,10 +27,21 @@ export function Popover({ label, buttonClassName = 'btn btn-ghost btn-icon', but
     if (!open || !triggerRef.current || !panelRef.current) return;
     const t = triggerRef.current.getBoundingClientRect();
     const p = panelRef.current.getBoundingClientRect();
-    const left = Math.max(8, Math.min(t.right - p.width, window.innerWidth - p.width - 8));
+    const vw = window.innerWidth;
+    const shell = document.querySelector('.app-shell');
+    const mobileShell = shell?.getAttribute('data-layout-mode') === 'mobile' || vw < 1024;
+    // On phone / mobile-app layout, pin end-aligned panels to the viewport’s right edge
+    // so they don’t read as left-docked when the trigger isn’t far enough right.
+    let left =
+      align === 'end'
+        ? mobileShell
+          ? vw - p.width - 8
+          : t.right - p.width
+        : t.left;
+    left = Math.max(8, Math.min(left, vw - p.width - 8));
     setPos({ top: t.bottom + 6, left });
     panelRef.current.focus({ preventScroll: true });
-  }, [open]);
+  }, [open, align]);
 
   useEffect(() => {
     if (!open) return;

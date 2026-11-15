@@ -14,8 +14,8 @@ type Props = {
 /** Dropdown to create a wishlist, collection or box — and optionally add an item first. */
 export function CreateMenu({ variant = 'new', block, align }: Props) {
   const { openAddItem, openCreateWishlist, openCreateBox } = useAppActions();
-  const add = variant === 'add' || variant === 'fab';
   const fab = variant === 'fab';
+  const add = variant === 'add' || fab;
 
   return (
     <Menu
@@ -36,17 +36,13 @@ export function CreateMenu({ variant = 'new', block, align }: Props) {
         )
       }
     >
-      {add && (
-        <>
-          <MenuItem icon={<Plus size={16} />} onSelect={() => openAddItem()}>
-            Add item
-          </MenuItem>
-          <MenuItem icon={<ScanBarcode size={16} />} onSelect={() => openAddItem({ mode: 'barcode' })}>
-            Scan barcode
-          </MenuItem>
-          <MenuSeparator />
-        </>
-      )}
+      <MenuItem icon={<Plus size={16} />} onSelect={() => openAddItem()}>
+        Add item
+      </MenuItem>
+      <MenuItem icon={<ScanBarcode size={16} />} onSelect={() => openAddItem({ mode: 'barcode' })}>
+        Scan barcode
+      </MenuItem>
+      <MenuSeparator />
       <MenuItem icon={<List size={16} />} onSelect={() => openCreateWishlist()}>
         New wishlist
       </MenuItem>

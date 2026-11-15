@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Archive, Plus } from 'lucide-react';
+import { Archive, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { WishlistSummary } from '../../shared/types';
 import { keys, useSharedWishlists, useWishlists } from '../lib/queries';
@@ -18,6 +18,7 @@ import { EmptyState } from '../components/ui/misc';
 import { PageSky } from '../components/PageSky';
 import { SkyArt } from '../components/SkyArt';
 import { ListsSwitch } from '../components/ListsSwitch';
+import { Popover } from '../components/ui/Popover';
 import { useToast } from '../components/ui/Toast';
 
 const SORTS = ['custom', 'updated', 'date', 'name'] as const;
@@ -51,6 +52,7 @@ export default function Wishlists() {
   const [sort, setSort] = useLocalPref<Sort>('lists.sort', 'custom', SORTS);
   const [view, setView] = useLocalPref<CardListView>('lists.view', 'grid', CARD_LIST_VIEWS);
   const [order, setOrder] = useState<string[] | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => setOrder(null), [lists, kind]);
 
@@ -67,13 +69,44 @@ export default function Wishlists() {
   const byId = useMemo(() => new Map(all.map((w) => [w.id, w])), [all]);
 
   const ofKind = (w: WishlistSummary) => w.kind === kind;
-  const shown = (tab === 'active' ? active : archived).filter(ofKind);
+  const q = query.trim().toLowerCase();
+  const matchesQuery = (w: WishlistSummary) =>
+    !q || [w.title, w.description, w.occasion, ...(w.recipients?.map((r) => r.name) ?? [])].some((s) => (s ?? '').toLowerCase().includes(q));
+  const shown = (tab === 'active' ? active : archived).filter(ofKind).filter(matchesQuery);
   const sorted = sortLists(shown, sort);
   const kindActiveIds = active.filter(ofKind).map((w) => w.id);
   const activeIds = order ?? kindActiveIds;
-  const canDrag = tab === 'active' && sort === 'custom' && kindActiveIds.length > 1 && view === 'grid';
+  const canDrag = tab === 'active' && sort === 'custom' && kindActiveIds.length > 1 && view === 'grid' && !q;
   const collectionsOnly = kind === 'collection';
   const sharedCount = shared.filter((w) => !w.archivedAt && w.kind === kind).length;
+  const panelFiltersActive = tab !== 'active' || sort !== 'custom';
+
+  const statusControls = (
+    <div className="segmented view-toggle-tabs" role="tablist" aria-label="List status">
+      <button type="button" role="tab" aria-selected={tab === 'active'} onClick={() => setTab('active')}>
+        Active <span className="faint">{active.filter(ofKind).length}</span>
+      </button>
+      <button type="button" role="tab" aria-selected={tab === 'archived'} onClick={() => setTab('archived')}>
+        Archived <span className="faint">{archived.filter(ofKind).length}</span>
+      </button>
+      <button type="button" role="tab" aria-selected={tab === 'shared'} onClick={() => setTab('shared')}>
+        Shared <span className="faint">{sharedCount}</span>
+      </button>
+    </div>
+  );
+
+  const sortControl =
+    tab === 'shared' ? null : (
+      <label className="row text-sm muted toolbar-sort">
+        <span className="hide-xs">Sort</span>
+        <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort lists">
+          <option value="custom">Custom order</option>
+          <option value="updated">Recently updated</option>
+          <option value="date">Upcoming date</option>
+          <option value="name">Name</option>
+        </select>
+      </label>
+    );
 
   const reorder = async (ids: string[]) => {
     setOrder(ids);
@@ -107,30 +140,41 @@ export default function Wishlists() {
         </div>
       </PageSky>
 
-      <div className="toolbar">
-        <div className="segmented" role="tablist" aria-label="List status">
-          <button type="button" role="tab" aria-selected={tab === 'active'} onClick={() => setTab('active')}>
-            Active <span className="faint">{active.filter(ofKind).length}</span>
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'archived'} onClick={() => setTab('archived')}>
-            Archived <span className="faint">{archived.filter(ofKind).length}</span>
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'shared'} onClick={() => setTab('shared')}>
-            Shared <span className="faint">{sharedCount}</span>
-          </button>
+      <div className="toolbar toolbar-lists">
+        <div className="input-group toolbar-lists-search">
+          <Search size={16} aria-hidden />
+          <input
+            className="input"
+            type="search"
+            placeholder={collectionsOnly ? 'Search collections' : 'Search wishlists'}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label={collectionsOnly ? 'Search collections' : 'Search wishlists'}
+          />
         </div>
-        <div className="row" style={{ gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
-          {tab !== 'shared' && (
-            <label className="row text-sm muted" style={{ gap: 8 }}>
-              <span className="hide-xs">Sort</span>
-              <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort lists">
-                <option value="custom">Custom order</option>
-                <option value="updated">Recently updated</option>
-                <option value="date">Upcoming date</option>
-                <option value="name">Name</option>
-              </select>
-            </label>
-          )}
+        <div className="toolbar-items-mobile-actions">
+          {tab !== 'active' && <span className="toolbar-filter-chip">{tab === 'archived' ? 'Archived' : 'Shared'}</span>}
+          <Popover
+            label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
+            align="end"
+            buttonClassName={`btn btn-ghost toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
+            buttonContent={
+              <>
+                <SlidersHorizontal size={18} aria-hidden />
+                <span>Filters</span>
+                {panelFiltersActive && <span className="toolbar-filters-dot" aria-hidden />}
+              </>
+            }
+            className="toolbar-filters-panel"
+          >
+            {() => (
+              <div className="toolbar-filters-stack">
+                <strong className="toolbar-filters-title">Filters &amp; sort</strong>
+                {statusControls}
+                {sortControl}
+              </div>
+            )}
+          </Popover>
           <ViewToggle value={view} onChange={setView} />
         </div>
       </div>
@@ -144,7 +188,11 @@ export default function Wishlists() {
           ))}
         </div>
       ) : shown.length === 0 ? (
-        tab === 'active' ? (
+        q ? (
+          <EmptyState icon={<Search size={22} />} title="No matching lists" action={<Button onClick={() => setQuery('')}>Clear search</Button>}>
+            Try a different search.
+          </EmptyState>
+        ) : tab === 'active' ? (
           collectionsOnly ? (
             <EmptyState
               tone="blush"

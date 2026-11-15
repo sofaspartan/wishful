@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import type { Item, ItemMetadata, ItemType } from '../../shared/types';
 import { CURRENCIES, ITEM_TYPE_LABELS, SUGGESTED_CATEGORIES } from '../../shared/constants';
 import { Field } from './ui/Field';
+import { Segmented } from './ui/misc';
 import { ImagePicker } from './ImagePicker';
 import { ItemTypeIcon } from './ItemVisuals';
 
@@ -180,14 +181,16 @@ export function ItemFormFields({ draft, onChange, errors, onUploadingChange, hid
         <span className="field-label" id="item-type-label">
           What is it? <span className="field-optional">Optional</span>
         </span>
-        <div className="segmented" role="radiogroup" aria-labelledby="item-type-label">
-          {TYPES.map((type) => (
-            <button key={type} type="button" role="radio" aria-checked={t === type} aria-pressed={t === type} onClick={() => onChange({ type })}>
-              <ItemTypeIcon type={type} size={15} />
-              {type === 'gift_card' ? 'Gift card' : ITEM_TYPE_LABELS[type]}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="What is it?"
+          value={t}
+          onChange={(type) => onChange({ type })}
+          options={TYPES.map((type) => ({
+            value: type,
+            label: type === 'gift_card' ? 'Gift card' : ITEM_TYPE_LABELS[type],
+            icon: <ItemTypeIcon type={type} size={15} />,
+          }))}
+        />
       </div>
 
       {!hideImage && (

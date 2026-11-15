@@ -1,5 +1,5 @@
-import { Component, createContext, useCallback, useContext, useRef, useState, type ErrorInfo, type ReactNode } from 'react';
-import { LoaderCircle } from 'lucide-react';
+import { Component, createContext, useCallback, useContext, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react';
+import { ChevronRight, LoaderCircle } from 'lucide-react';
 import { initials } from '../../lib/format';
 import { Modal } from './Modal';
 import { Button } from './Button';
@@ -119,14 +119,56 @@ export function Segmented<T extends string>({
   label: string;
   full?: boolean;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: true, end: true, scrollable: false });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const scrollable = el.scrollWidth > el.clientWidth + 1;
+      setEdges({
+        start: el.scrollLeft <= 1,
+        end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 1,
+        scrollable,
+      });
+    };
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    const resize = new ResizeObserver(measure);
+    resize.observe(el);
+    return () => {
+      el.removeEventListener('scroll', measure);
+      resize.disconnect();
+    };
+  }, [options]);
+
+  const scrollMore = () => {
+    const el = ref.current;
+    if (!el) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollBy({ left: Math.min(120, el.clientWidth * 0.45), behavior: reduce ? 'auto' : 'smooth' });
+  };
+
   return (
-    <div className={['segmented', full && 'full'].filter(Boolean).join(' ')} role="group" aria-label={label}>
-      {options.map((o) => (
-        <button key={o.value} type="button" aria-pressed={value === o.value} onClick={() => onChange(o.value)} title={o.title}>
-          {o.icon}
-          {o.label}
+    <div
+      className={['segmented-scroll', edges.scrollable && 'is-scrollable'].filter(Boolean).join(' ')}
+      data-at-start={edges.start || undefined}
+      data-at-end={edges.end || undefined}
+    >
+      <div ref={ref} className={['segmented', full && 'full'].filter(Boolean).join(' ')} role="group" aria-label={label}>
+        {options.map((o) => (
+          <button key={o.value} type="button" aria-pressed={value === o.value} onClick={() => onChange(o.value)} title={o.title}>
+            {o.icon}
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {edges.scrollable && !edges.end && (
+        <button type="button" className="segmented-scroll-more" aria-label="Show more options" tabIndex={-1} onClick={scrollMore}>
+          <ChevronRight size={16} aria-hidden />
         </button>
-      ))}
+      )}
     </div>
   );
 }

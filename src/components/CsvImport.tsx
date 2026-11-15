@@ -76,9 +76,9 @@ export function CsvPicker({ onLoaded, aside }: { onLoaded: (file: CsvFile, name:
   };
   return (
     <div className="stack" style={{ gap: 'var(--s-2)' }}>
-      <div className="row-wrap">
+      <div className="import-actions">
         <label className="btn" style={{ cursor: 'pointer' }}>
-          <FileSpreadsheet size={16} aria-hidden /> Import a CSV file
+          <FileSpreadsheet size={16} aria-hidden /> Import CSV
           <input
             type="file"
             accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values"
