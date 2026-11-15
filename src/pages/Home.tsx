@@ -1,11 +1,12 @@
 import { useMemo, type ReactElement, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Bell, CalendarHeart, Gift, Library, Plus, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, Bell, CalendarHeart, Gift, Library, Package, Plus, ScanBarcode, Sparkles, Zap } from 'lucide-react';
 import type { Item, WishlistSummary } from '../../shared/types';
 import { joinNames } from '../../shared/constants';
 import { useItems, useMe, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
 import { countdownLabel, daysUntil, formatDate, formatPrice, greeting, parseDateOnly, relativeTime } from '../lib/format';
 import { useLocalPref } from '../lib/prefs';
+import { useCaptureHub } from '../lib/layoutMode';
 import { useAppActions } from '../components/appActions';
 import { ItemImage } from '../components/ItemVisuals';
 import { effectivePrice } from '../components/ItemForm';
@@ -23,15 +24,25 @@ function plural(n: number, word: string) {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
+function hasStoredListsView(): boolean {
+  try {
+    return localStorage.getItem('wishful.pref.home.listsView') != null;
+  } catch {
+    return false;
+  }
+}
+
 export default function Home() {
   const { data: me } = useMe();
   const { data: lists, isLoading: listsLoading } = useWishlists();
   const { data: shared = [] } = useSharedWishlists();
   const { data: itemsData, isLoading: itemsLoading } = useItems();
   const { data: notifications = [] } = useNotifications();
-  const { openAddItem, openCreateWishlist } = useAppActions();
+  const { openAddItem, openCreateWishlist, openCreateBox } = useAppActions();
   const navigate = useNavigate();
-  const [listsView, setListsView] = useLocalPref<CardListView>('home.listsView', 'grid', CARD_LIST_VIEWS);
+  const captureHub = useCaptureHub();
+  const [listsViewPref, setListsView] = useLocalPref<CardListView>('home.listsView', 'grid', CARD_LIST_VIEWS);
+  const listsView: CardListView = captureHub && !hasStoredListsView() ? 'list' : listsViewPref;
 
   const active = useMemo(() => (lists ?? []).filter((w) => !w.archivedAt), [lists]);
   const wishlists = active.filter((w) => w.kind !== 'collection');
@@ -39,6 +50,10 @@ export default function Home() {
   const items = useMemo(() => itemsData?.items ?? [], [itemsData]);
   const ownedCount = items.filter((i) => i.owned).length;
   const recentItems = useMemo(() => [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6), [items]);
+  const recentLists = useMemo(
+    () => [...active].sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt)).slice(0, 3),
+    [active],
+  );
   const upcoming = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -60,6 +75,139 @@ export default function Home() {
 
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   const newCollection = () => openCreateWishlist({ kind: 'collection' });
+
+  const listSections = (
+    <>
+      <ListTile
+        title="Wishlists"
+        icon={<Gift size={15} />}
+        lists={wishlists}
+        loading={listsLoading}
+        view={listsView}
+        onViewChange={setListsView}
+        empty={
+          <EmptyState
+            art={<SkyArt scene="wishlist" />}
+            title="No wishlists yet"
+            action={
+              <Button variant="primary" size="sm" icon={<Plus size={15} />} onClick={() => openCreateWishlist()}>
+                New wishlist
+              </Button>
+            }
+          >
+            Birthdays, holidays, a new home — start one for whatever’s next.
+          </EmptyState>
+        }
+      />
+      <ListTile
+        tone="blush"
+        title="Collections"
+        icon={<Library size={15} />}
+        lists={collections}
+        loading={listsLoading}
+        view={listsView}
+        onViewChange={setListsView}
+        empty={
+          <EmptyState
+            tone="blush"
+            art={<SkyArt scene="collection" />}
+            title="No collections yet"
+            action={
+              <Button variant="primary" size="sm" icon={<Plus size={15} />} onClick={newCollection}>
+                Start a collection
+              </Button>
+            }
+          >
+            Keep track of what you already have — records, sneakers, books, plants.
+          </EmptyState>
+        }
+      />
+    </>
+  );
+
+  if (captureHub) {
+    return (
+      <div className="page">
+        <div className="home-hub">
+          <header className="home-hub-hero">
+            <p className="home-hub-date">{today}</p>
+            <h1 className="display">
+              {greeting()}
+              {firstName && (
+                <>
+                  , <span className="tile-sky-name">{firstName}</span>
+                </>
+              )}
+            </h1>
+            <p className="home-hub-lead">{isNew ? lead : 'Scan, add, or start a list — Wishful keeps it ready for later.'}</p>
+          </header>
+
+          <div className="home-hub-ctas">
+            <button type="button" className="home-hub-cta home-hub-cta-primary" onClick={() => openAddItem({ mode: 'barcode' })}>
+              <span className="home-hub-cta-icon" aria-hidden>
+                <ScanBarcode size={20} />
+              </span>
+              <span className="home-hub-cta-copy">
+                <strong>Scan barcode</strong>
+                <span>In a store aisle</span>
+              </span>
+            </button>
+            <button type="button" className="home-hub-cta" onClick={() => openAddItem()}>
+              <span className="home-hub-cta-icon" aria-hidden>
+                <Plus size={20} />
+              </span>
+              <span className="home-hub-cta-copy">
+                <strong>Add item</strong>
+                <span>Link, idea, or photo</span>
+              </span>
+            </button>
+            <div className="home-hub-secondary">
+              <button type="button" className="home-hub-cta" onClick={() => openCreateWishlist()}>
+                <span className="home-hub-cta-icon" aria-hidden>
+                  <Gift size={18} />
+                </span>
+                <strong>New wishlist</strong>
+              </button>
+              <button type="button" className="home-hub-cta" onClick={newCollection}>
+                <span className="home-hub-cta-icon" aria-hidden>
+                  <Library size={18} />
+                </span>
+                <strong>New collection</strong>
+              </button>
+              <button type="button" className="home-hub-cta" onClick={() => openCreateBox()}>
+                <span className="home-hub-cta-icon" aria-hidden>
+                  <Package size={18} />
+                </span>
+                <strong>New box</strong>
+              </button>
+            </div>
+          </div>
+
+          {!isNew && recentLists.length > 0 && (
+            <section className="home-hub-continue" aria-label="Continue">
+              <p className="home-hub-continue-label">Continue</p>
+              {recentLists.map((w) => (
+                <Link key={w.id} to={`/app/lists/${w.id}`} className="home-hub-continue-row">
+                  <WishlistListThumb
+                    title={w.title}
+                    coverImage={w.coverImage}
+                    coverArt={w.coverArt}
+                    accentColor={w.accentColor}
+                    previewImages={w.previewImages}
+                  />
+                  <strong className="truncate">{w.title}</strong>
+                  <ArrowRight size={15} className="faint" aria-hidden />
+                </Link>
+              ))}
+            </section>
+          )}
+
+          <div className="home-hub-lists bento">{listSections}</div>
+        </div>
+        <div style={{ height: 'var(--s-12)' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -121,50 +269,7 @@ export default function Home() {
           </div>
         </section>
 
-        <ListTile
-          title="Wishlists"
-          icon={<Gift size={15} />}
-          lists={wishlists}
-          loading={listsLoading}
-          view={listsView}
-          onViewChange={setListsView}
-          empty={
-            <EmptyState
-              art={<SkyArt scene="wishlist" />}
-              title="No wishlists yet"
-              action={
-                <Button variant="primary" size="sm" icon={<Plus size={15} />} onClick={() => openCreateWishlist()}>
-                  New wishlist
-                </Button>
-              }
-            >
-              Birthdays, holidays, a new home — start one for whatever’s next.
-            </EmptyState>
-          }
-        />
-        <ListTile
-          tone="blush"
-          title="Collections"
-          icon={<Library size={15} />}
-          lists={collections}
-          loading={listsLoading}
-          view={listsView}
-          onViewChange={setListsView}
-          empty={
-            <EmptyState
-              tone="blush"
-              art={<SkyArt scene="collection" />}
-              title="No collections yet"
-              action={
-                <Button variant="primary" size="sm" icon={<Plus size={15} />} onClick={newCollection}>
-                  Start a collection
-                </Button>
-              }
-            >
-              Keep track of what you already have — records, sneakers, books, plants.
-            </EmptyState>
-          }
-        />
+        {listSections}
 
         <section className="tile span-2 tile-flush">
           <TileHeader title="Upcoming" icon={<CalendarHeart size={15} />} />

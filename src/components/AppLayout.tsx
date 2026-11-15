@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bookmark, BookOpen, Gift, House, List, LogOut, Menu as MenuIcon, Moon, Search, Settings, Sun, User, UserRoundPlus } from 'lucide-react';
+import { Bookmark, BookOpen, Gift, House, LayoutTemplate, List, LogOut, Menu as MenuIcon, Moon, Search, Settings, Smartphone, Sun, User, UserRoundPlus } from 'lucide-react';
 import { useFriends, useMe, useWishlists } from '../lib/queries';
 import { post } from '../lib/api';
 import { setTheme, useTheme } from '../lib/theme';
+import { useDashboardScene } from '../lib/dashboardScene';
+import { useLayoutMode, useStandaloneDisplayAttr } from '../lib/layoutMode';
 import { Logo } from './Logo';
 import { CloudBank } from './Cloud';
 import { CoverArt } from './CoverArt';
@@ -19,7 +21,7 @@ import { SearchPalette } from './SearchPalette';
 import { NotificationsButton } from './NotificationsButton';
 import { DashboardScenePicker } from './DashboardScenePicker';
 import { ThemeToggle } from './ThemeToggle';
-import { useDashboardScene } from '../lib/dashboardScene';
+import { InstallTip } from './InstallTip';
 
 const NAV = [
   { to: '/app', label: 'Home', icon: House, end: true },
@@ -35,6 +37,8 @@ export function AppLayout() {
   const theme = useTheme();
   const dark = theme === 'dark';
   const [dashboardScene] = useDashboardScene();
+  const [layoutMode, setLayoutMode] = useLayoutMode();
+  useStandaloneDisplayAttr();
   const requestCount = friends?.incoming.length ?? 0;
   const badgeFor = (to: string) =>
     to === '/app/friends' && requestCount > 0 ? (
@@ -109,7 +113,7 @@ export function AppLayout() {
 
   return (
     <AppActionsContext.Provider value={actions}>
-      <div className="app-shell">
+      <div className="app-shell" data-layout-mode={layoutMode}>
         <aside className="sidebar" aria-label="Sidebar">
           <div className="sidebar-brand">
             <Logo to="/app" />
@@ -205,12 +209,19 @@ export function AppLayout() {
                 <MenuItem icon={dark ? <Sun size={16} /> : <Moon size={16} />} onSelect={() => setTheme(dark ? 'light' : 'dark')}>
                   {dark ? 'Light mode' : 'Dark mode'}
                 </MenuItem>
+                <MenuItem
+                  icon={layoutMode === 'mobile' ? <LayoutTemplate size={16} /> : <Smartphone size={16} />}
+                  onSelect={() => setLayoutMode(layoutMode === 'mobile' ? 'responsive' : 'mobile')}
+                >
+                  {layoutMode === 'mobile' ? 'Responsive layout' : 'Mobile app layout'}
+                </MenuItem>
                 <MenuSeparator />
                 {userMenuItems}
               </Menu>
             </div>
           </header>
           <main id="main" className="app-main" tabIndex={-1}>
+            <InstallTip />
             <Outlet />
           </main>
         </div>

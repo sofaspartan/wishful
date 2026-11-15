@@ -68,12 +68,60 @@ export const KB_ARTICLES: KbArticle[] = [
     title: 'Your home dashboard',
     category: 'getting-started',
     summary: 'A quick look at your lists, saved items, and shortcuts to create or paste something new.',
-    keywords: ['home', 'dashboard', 'quick actions', 'palette', 'look'],
+    keywords: ['home', 'dashboard', 'quick actions', 'palette', 'look', 'scan', 'hub'],
     sections: [
       {
         paragraphs: [
-          'Home greets you with a short summary of your wishlists, collections, and saved items, plus a Quick actions card for pasting a link, starting a list, or opening common tasks.',
+          'On a phone (or when Mobile app layout is on), Home is a capture hub: Scan barcode, Add item, and shortcuts for a new wishlist, collection, or box sit first, with recent lists and your Wishlists / Collections below.',
+          'On a wide screen with Responsive layout, Home greets you with a summary of your lists and saved items, plus a Quick actions card for pasting a link, scanning, or starting a collection.',
           'Use the paint-palette icon in the top bar (before notifications) to pick a soft dashboard look: Calm gray, Sky, Blush, or Kraft — matching the washes used on list heroes. Dark mode switches each look to a night version with stars.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'install-home-screen',
+    title: 'Add Wishful to your Home Screen',
+    category: 'getting-started',
+    summary: 'Install Wishful like an app from Safari or Chrome — full screen, no App Store required.',
+    keywords: ['install', 'pwa', 'home screen', 'ios', 'android', 'standalone', 'app'],
+    sections: [
+      {
+        paragraphs: [
+          'Wishful can live on your phone’s Home Screen. It opens straight into your signed-in app (no Safari or Chrome chrome), with the same Wishful look and bottom navigation.',
+        ],
+      },
+      {
+        heading: 'iPhone or iPad (Safari)',
+        paragraphs: [
+          'Open Wishful in Safari, tap the Share button, then Add to Home Screen. Confirm the name and tap Add. Launching the icon opens Wishful full screen.',
+        ],
+      },
+      {
+        heading: 'Android (Chrome)',
+        paragraphs: [
+          'Chrome may show an Install banner, or you can use the menu → Install app / Add to Home screen. After install, Wishful appears with its icon and opens in standalone mode.',
+        ],
+      },
+      {
+        heading: 'Tips',
+        paragraphs: [
+          'If you dismiss the in-app “Add Wishful to your Home Screen” tip, you can still install anytime from the browser menu. Offline caching isn’t included yet — you still need a connection to load lists.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'mobile-app-layout',
+    title: 'Mobile app layout',
+    category: 'account',
+    summary: 'Keep the bottom navigation and Home capture hub on tablets and desktops.',
+    keywords: ['mobile', 'layout', 'responsive', 'bottom nav', 'settings', 'device'],
+    sections: [
+      {
+        paragraphs: [
+          'Under Profile & settings → Appearance & device, choose Responsive (sidebar on large screens) or Mobile app layout (bottom navigation and Home hub on any width).',
+          'You can also flip the mode from the mobile menu (hamburger). Mobile app layout is handy if you prefer the phone shell — and the big Scan / Add shortcuts — while working on a laptop.',
         ],
       },
     ],

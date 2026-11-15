@@ -15,10 +15,12 @@ import {
   LifeBuoy,
   LogOut,
   Mail,
+  MonitorSmartphone,
   Palette,
   Puzzle,
   RefreshCw,
   Shield,
+  Smartphone,
   Trash2,
   UserRound,
   Wallet,
@@ -58,6 +60,7 @@ import { brand } from '../config/brand';
 import { del, errorMessage, fieldErrors, patch, post, put } from '../lib/api';
 import { uploadImage } from '../lib/images';
 import { showRecoveryCode } from '../lib/recoveryCode';
+import { LAYOUT_MODE_LABELS, useLayoutMode, type LayoutMode } from '../lib/layoutMode';
 import { ExtensionGetButton, InstallSteps } from '../components/ExtensionInstall';
 import { PriorityLayoutField } from '../components/WishlistDialogs';
 import { Button } from '../components/ui/Button';
@@ -225,7 +228,9 @@ function ProfileSection({ me }: { me: SelfUser }) {
   const previewAge = showAge && birthYear ? ageFromBirthYear(Number(birthYear)) : null;
 
   return (
-    <form className="settings-section" onSubmit={submit} noValidate>
+    <div className="settings-section">
+      <AppearanceSection />
+      <form className="settings-section" onSubmit={submit} noValidate>
       <div className="card card-pad stack">
         <CardTitle icon={UserRound}>Profile</CardTitle>
         <FormError message={error} />
@@ -339,7 +344,38 @@ function ProfileSection({ me }: { me: SelfUser }) {
           Save profile
         </Button>
       </div>
-    </form>
+      </form>
+    </div>
+  );
+}
+
+function AppearanceSection() {
+  const [layoutMode, setLayoutMode] = useLayoutMode();
+  return (
+    <div className="card card-pad stack">
+      <CardTitle icon={MonitorSmartphone}>Appearance & device</CardTitle>
+      <p className="muted text-sm" style={{ marginTop: '-0.5rem' }}>
+        Mobile app layout keeps the bottom Add button and Home capture hub on any screen size.
+      </p>
+      <div className="field">
+        <span className="field-label">Layout</span>
+        <Segmented<LayoutMode>
+          label="Layout mode"
+          full
+          value={layoutMode}
+          onChange={setLayoutMode}
+          options={[
+            { value: 'responsive', label: LAYOUT_MODE_LABELS.responsive, icon: <MonitorSmartphone size={15} aria-hidden /> },
+            { value: 'mobile', label: LAYOUT_MODE_LABELS.mobile, icon: <Smartphone size={15} aria-hidden /> },
+          ]}
+        />
+        <span className="field-hint">
+          {layoutMode === 'mobile'
+            ? 'Bottom navigation and the Home hub stay on — even on wide screens.'
+            : 'Sidebar appears on large screens; phones keep the bottom navigation automatically.'}
+        </span>
+      </div>
+    </div>
   );
 }
 
