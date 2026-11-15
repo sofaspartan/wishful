@@ -10,6 +10,7 @@ import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
 import { SiteFooter } from '../components/SiteFooter';
 import { SiteNav } from '../components/SiteNav';
 import { ExtensionArt } from '../components/ExtensionInstall';
+import { HomeScreenArt } from '../components/HomeScreenArt';
 
 interface StageCloud {
   kind: 'front' | 'tint';
@@ -97,6 +98,60 @@ const BOX_POINTS = [
   'Moving? Mark the room each box goes to and whether it’s fragile',
 ];
 
+const HOW_STEPS = [
+  {
+    step: '1',
+    art: FEATURE_ILLUSTRATIONS.lists,
+    tint: '#7c6cf0',
+    stage: 1,
+    title: 'Create a wishlist',
+    text: 'Name it for a birthday, holiday, or “just because.” One list, or as many as you need — each with its own share link.',
+  },
+  {
+    step: '2',
+    art: FEATURE_ILLUSTRATIONS.barcode,
+    tint: '#e8745b',
+    stage: 0,
+    title: 'Add items with a link or barcode',
+    text: 'Paste a product URL and we pull in the name, photo and price. In a store aisle, scan the barcode. Or jot down an idea, experience or gift card.',
+  },
+  {
+    step: '3',
+    art: FEATURE_ILLUSTRATIONS.share,
+    tint: '#3f6fb5',
+    stage: 3,
+    title: 'Share with family or friends',
+    text: 'Send one link. They can view and reserve gifts without signing up — and Surprise Mode keeps the secrets from you.',
+  },
+];
+
+const FAQS = [
+  {
+    q: 'Is Wishful free?',
+    a: 'Yes. You can create wishlists, collections and boxes, share links, and let friends reserve gifts at no cost.',
+  },
+  {
+    q: 'Do my friends need an account?',
+    a: 'No. Anyone with your share link can open the list and reserve a gift. Accounts are only for people who want to keep their own lists.',
+  },
+  {
+    q: 'What is Surprise Mode?',
+    a: 'When it’s on, friends can reserve what they’re getting so nobody doubles up — while you stay blissfully unaware of who’s buying what.',
+  },
+  {
+    q: 'Can I save from Amazon or any online store?',
+    a: 'Paste a product link and we’ll try to fill in the details. The browser extension adds a save button on the page itself, and you can import whole lists from some sites.',
+  },
+  {
+    q: 'Can I add Wishful to my Home Screen?',
+    a: 'Yes. On iPhone use Safari → Share → Add to Home Screen. On Android, Chrome can Install app / Add to Home screen. You get a full-screen app icon without the App Store — smoother than keeping a browser tab open.',
+  },
+  {
+    q: 'What’s the difference between wishlists and collections?',
+    a: 'Wishlists are for things you want (and can share for gifts). Collections are for things you already have — records, sneakers, books — so you remember what you own.',
+  },
+];
+
 const FEATURES = [
   {
     art: FEATURE_ILLUSTRATIONS.store,
@@ -132,7 +187,7 @@ const FEATURES = [
     art: FEATURE_ILLUSTRATIONS.phone,
     tint: '#5f9e6e',
     title: 'Made for your phone',
-    text: 'Add things the moment you spot them. Everything syncs to every device.',
+    text: 'Add things the moment you spot them. Add Wishful to your Home Screen for a full-screen app feel — everything syncs across devices.',
   },
 ];
 
@@ -221,13 +276,41 @@ export default function Landing() {
           <CloudBank className="hero-bottom" />
         </div>
 
+        <section className="landing-how" aria-labelledby="landing-how-title">
+          <header className="features-head">
+            <span className="eyebrow">How it works</span>
+            <h2 id="landing-how-title" className="display">
+              Three steps to a shareable list.
+            </h2>
+            <p>From a blank wishlist to a link your family can use — usually in under a minute.</p>
+          </header>
+          <ol className="how-steps">
+            {HOW_STEPS.map(({ step, art, tint, stage, title, text }, i) => (
+              <li key={step} className={['how-step', i % 2 === 1 && 'how-step-flip'].filter(Boolean).join(' ')}>
+                <div className="how-step-copy">
+                  <span className="how-step-num" aria-hidden>
+                    {step}
+                  </span>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </div>
+                <div className="how-step-frame">
+                  <FeatureStage art={art} tint={tint} index={stage} />
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <hr className="divider landing-divider" />
+
         <section className="features" aria-labelledby="landing-features-title">
           <header className="features-head">
-            <span className="eyebrow">The details</span>
+            <span className="eyebrow">Features</span>
             <h2 id="landing-features-title" className="display">
-              Thoughtful where it counts.
+              Everything Wishful can do.
             </h2>
-            <p>Secrets stay secret, families plan together, and sharing works whether or not people have an account.</p>
+            <p>From saving a link to Surprise Mode and shared planning — here’s a look at the features packed into one place.</p>
           </header>
           {FEATURES.map(({ art, tint, title, text }, i) => (
             <div className="feature" key={title}>
@@ -287,6 +370,65 @@ export default function Landing() {
             </Link>
           </div>
           <ExtensionArt />
+        </section>
+
+        <hr className="divider landing-divider" />
+
+        <section className="landing-extension landing-homescreen" aria-labelledby="landing-homescreen-title">
+          <div className="landing-extension-copy">
+            <span className="eyebrow">On your phone</span>
+            <h2 id="landing-homescreen-title" className="display">
+              Add {brand.name} to your Home Screen.
+            </h2>
+            <p>
+              Install it like an app — full screen, no App Store. Open straight into your lists with the same look and feel, minus the browser
+              chrome.
+            </p>
+            <ul className="landing-extension-points">
+              <li>
+                <Check size={16} aria-hidden /> iPhone: Safari → Share → Add to Home Screen
+              </li>
+              <li>
+                <Check size={16} aria-hidden /> Android: Chrome → Install app / Add to Home screen
+              </li>
+              <li>
+                <Check size={16} aria-hidden /> Same signed-in lists, bottom navigation and all
+              </li>
+              <li>
+                <Check size={16} aria-hidden /> Free — no download from an app store
+              </li>
+            </ul>
+            <Link to="/knowledge/install-home-screen" className="btn btn-primary btn-lg">
+              How to install <ArrowRight size={17} aria-hidden />
+            </Link>
+          </div>
+          <HomeScreenArt />
+        </section>
+
+        <hr className="divider landing-divider" />
+
+        <section className="landing-faq" aria-labelledby="landing-faq-title">
+          <header className="features-head">
+            <span className="eyebrow">FAQ</span>
+            <h2 id="landing-faq-title" className="display">
+              Questions, answered.
+            </h2>
+            <p>Quick answers before you start — or dig deeper in our&nbsp;guides.</p>
+          </header>
+          <div className="landing-faq-list">
+            {FAQS.map(({ q, a }) => (
+              <details key={q} className="landing-faq-item">
+                <summary>
+                  <span>{q}</span>
+                  <ArrowRight size={16} aria-hidden />
+                </summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </div>
+          <p className="landing-faq-more">
+            More guides in the <Link to="/knowledge">knowledge base</Link>.
+          </p>
         </section>
 
         <section className="landing-band">
