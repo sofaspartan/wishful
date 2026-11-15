@@ -1335,15 +1335,22 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
+  width: 100%;
+  font: inherit;
   font-size: 11px;
   font-weight: 550;
   color: var(--faint);
   -webkit-tap-highlight-color: transparent;
   border: 0;
   background: none;
+  cursor: pointer;
 }
-.bottom-link.active {
+.bottom-link.active,
+.bottom-link[aria-expanded='true'] {
   color: var(--accent-ink);
+}
+.bottom-browse-menu {
+  min-width: 180px;
 }
 .bottom-icon {
   position: relative;

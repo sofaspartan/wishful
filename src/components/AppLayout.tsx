@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Gift, House, LayoutTemplate, List, LogOut, Menu as MenuIcon, Package, Search, Settings, Smartphone, Star, User, UserRoundPlus } from 'lucide-react';
+import { BookOpen, Boxes, Gift, House, LayoutTemplate, Library, List, LogOut, Menu as MenuIcon, Package, Search, Settings, Smartphone, Star, User, UserRoundPlus } from 'lucide-react';
 import { coverPaint } from '../../shared/types';
 import { useFriends, useMe, useWishlists } from '../lib/queries';
 import { post } from '../lib/api';
@@ -31,13 +31,47 @@ const SIDEBAR_NAV = [
   { to: '/app/friends', label: 'Friends', icon: UserRoundPlus },
 ];
 
-/** Mobile bottom bar: Home · Items · [Add] · Favorites · Friends */
+/** Mobile bottom bar trailing slots: Ideas · Friends (Home + Browse + Add are fixed). */
 const BOTTOM_NAV = [
-  { to: '/app', label: 'Home', icon: House, end: true },
-  { to: '/app/items', label: 'Items', icon: Package },
-  { to: '/app/favorites', label: 'Favorites', icon: Star },
+  { to: '/app/gifts', label: 'Ideas', icon: Gift },
   { to: '/app/friends', label: 'Friends', icon: UserRoundPlus },
 ];
+
+const BROWSE_PATHS = ['/app/items', '/app/lists', '/app/boxes', '/app/favorites'];
+
+function BrowseMenu({ active, onNavigate }: { active: boolean; onNavigate: (to: string) => void }) {
+  return (
+    <Menu
+      label="Browse"
+      align="center"
+      className="bottom-browse-menu"
+      buttonClassName={`bottom-link${active ? ' active' : ''}`}
+      buttonContent={
+        <>
+          <List size={21} aria-hidden />
+          Browse
+        </>
+      }
+    >
+      <MenuItem icon={<Star size={16} />} onSelect={() => onNavigate('/app/favorites')}>
+        Favorites
+      </MenuItem>
+      <MenuSeparator />
+      <MenuItem icon={<Package size={16} />} onSelect={() => onNavigate('/app/items')}>
+        Items
+      </MenuItem>
+      <MenuItem icon={<List size={16} />} onSelect={() => onNavigate('/app/lists?kind=wishlist')}>
+        Wishlists
+      </MenuItem>
+      <MenuItem icon={<Library size={16} />} onSelect={() => onNavigate('/app/lists?kind=collection')}>
+        Collections
+      </MenuItem>
+      <MenuItem icon={<Boxes size={16} />} onSelect={() => onNavigate('/app/boxes')}>
+        Boxes
+      </MenuItem>
+    </Menu>
+  );
+}
 
 export function AppLayout() {
   const { data: user } = useMe();
@@ -279,14 +313,13 @@ export function AppLayout() {
         </div>
 
         <nav className="bottom-nav" aria-label="Main">
-          {BOTTOM_NAV.slice(0, 2).map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
-              <Icon size={21} aria-hidden />
-              {label}
-            </NavLink>
-          ))}
+          <NavLink to="/app" end className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
+            <House size={21} aria-hidden />
+            Home
+          </NavLink>
+          <BrowseMenu active={BROWSE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))} onNavigate={navigate} />
           <CreateMenu variant="fab" />
-          {BOTTOM_NAV.slice(2).map(({ to, label, icon: Icon }) => (
+          {BOTTOM_NAV.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
               <span className="bottom-icon">
                 <Icon size={21} aria-hidden />

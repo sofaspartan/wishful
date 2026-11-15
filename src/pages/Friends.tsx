@@ -208,7 +208,6 @@ export default function Friends() {
             {t.label}
             {t.id === 'friends' && incoming > 0 && <span className="nav-badge">{incoming}</span>}
             {t.id === 'friends' && !incoming && data && data.friends.length > 0 && <span className="faint">{data.friends.length}</span>}
-            {t.id === 'circle' && circle && circle.length > 0 && <span className="faint">{circle.length}</span>}
           </button>
         ))}
       </nav>
