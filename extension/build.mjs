@@ -24,7 +24,7 @@ const siteUrl = (process.env.WISHFUL_URL || (dev ? 'http://localhost:5174' : pro
 const site = new URL(siteUrl);
 const outDir = path.join(root, dev ? 'dist-dev' : 'dist');
 const define = { __WISHFUL_URL__: JSON.stringify(siteUrl) };
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 await build({
   root,

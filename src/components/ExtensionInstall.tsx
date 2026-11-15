@@ -11,6 +11,7 @@ const BROWSERS = 'Chrome, Edge, Brave and Arc';
 interface ExtensionInfo {
   version: string;
   size: number;
+  builtAt?: string;
 }
 
 /** Version and size of the zip the build put in /downloads (missing in dev until `npm run extension:build`). */
@@ -22,9 +23,15 @@ function useExtensionInfo() {
       if (!res.ok || !res.headers.get('content-type')?.includes('json')) return null;
       return res.json();
     },
-    staleTime: Infinity,
+    staleTime: 60_000,
     retry: false,
   });
+}
+
+function zipHref(info: ExtensionInfo | null | undefined) {
+  if (!info) return EXTENSION_ZIP;
+  const stamp = info.builtAt || info.version;
+  return `${EXTENSION_ZIP}?v=${encodeURIComponent(stamp)}`;
 }
 
 /** "Add to Chrome" once the store listing exists, otherwise a direct download of the zip. */
@@ -43,7 +50,7 @@ export function ExtensionGetButton({ size }: { size?: 'lg' }) {
   }
   return (
     <div className="ext-get">
-      <a href={EXTENSION_ZIP} download className={cls}>
+      <a href={zipHref(info)} download="wishful-extension.zip" className={cls}>
         <Download size={17} aria-hidden /> Download the extension
       </a>
       <span className="ext-get-meta">
