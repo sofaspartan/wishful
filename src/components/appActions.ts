@@ -8,6 +8,8 @@ export interface AddItemOptions {
   /** Pre-select (and, for shared lists, lock) a destination wishlist. */
   wishlistId?: string;
   lockedToWishlist?: boolean;
+  /** Seed the link field (and auto-fetch metadata when it's a valid http(s) URL). */
+  url?: string;
   /** Open straight on the details step with a product already filled in (e.g. from Gift ideas). */
   product?: {
     title: string;

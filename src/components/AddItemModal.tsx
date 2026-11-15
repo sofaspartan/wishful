@@ -88,15 +88,16 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     if (!options) return;
     const m = options.mode ?? 'link';
     const product = options.product;
+    const seedUrl = (product?.url ?? options.url ?? '').trim();
     setMode(product ? 'link' : m);
     setStep(m === 'idea' || product ? 'details' : 'start');
-    setUrl(product?.url ?? '');
+    setUrl(seedUrl);
     setUrlError(null);
     setExtractNote(null);
     setExtractHelp({ blocked: false, noPhoto: false });
     const blank = emptyDraft(
       currency,
-      m === 'idea' ? 'idea' : m === 'link' || m === 'barcode' || product ? 'product' : 'custom',
+      m === 'idea' ? 'idea' : m === 'link' || m === 'barcode' || product || seedUrl ? 'product' : 'custom',
     );
     setDraft(
       product
@@ -110,7 +111,9 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
             retailer: product.retailer,
             brand: product.brand ?? '',
           }
-        : blank,
+        : seedUrl
+          ? { ...blank, externalUrl: seedUrl }
+          : blank,
     );
     setSelected(options.wishlistId ? [options.wishlistId] : []);
     setPriority('none');
@@ -123,6 +126,18 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     setCsvDone(null);
     setWeb(null);
   }, [options, currency, bulk.reset]);
+
+  useEffect(() => {
+    if (!options?.url || options.product) return;
+    const seed = options.url.trim();
+    if (!isHttpUrl(seed)) return;
+    const t = window.setTimeout(() => {
+      void fetchDetails(seed);
+    }, 0);
+    return () => window.clearTimeout(t);
+    // Intentionally only when options identity changes (modal open with a URL).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchDetails reads latest setters
+  }, [options]);
 
   const destinations = useMemo(() => {
     if (options?.lockedToWishlist && options.wishlistId) {

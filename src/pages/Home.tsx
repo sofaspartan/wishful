@@ -1,17 +1,18 @@
-import { useMemo, type ReactElement, type ReactNode } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Bell, CalendarHeart, Gift, Library, Package, Plus, ScanBarcode, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, Bell, CalendarHeart, Gift, Library, Plus, Sparkles, Wand2, Zap } from 'lucide-react';
 import type { Item, WishlistSummary } from '../../shared/types';
 import { joinNames } from '../../shared/constants';
+import { isHttpUrl } from '../../shared/schemas';
 import { useItems, useMe, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
-import { countdownLabel, daysUntil, formatDate, formatPrice, greeting, parseDateOnly, relativeTime } from '../lib/format';
+import { countdownLabel, formatDate, formatPrice, greeting, parseDateOnly, relativeTime } from '../lib/format';
 import { useLocalPref } from '../lib/prefs';
 import { useCaptureHub } from '../lib/layoutMode';
 import { useAppActions } from '../components/appActions';
 import { ItemImage } from '../components/ItemVisuals';
 import { effectivePrice } from '../components/ItemForm';
 import { CloudBank } from '../components/Cloud';
-import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from '../components/ItemIllustrations';
+import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
 import { SkyArt } from '../components/SkyArt';
 import { WishlistCard, WishlistListThumb } from '../components/WishlistCard';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
@@ -43,12 +44,12 @@ export default function Home() {
   const captureHub = useCaptureHub();
   const [listsViewPref, setListsView] = useLocalPref<CardListView>('home.listsView', 'grid', CARD_LIST_VIEWS);
   const listsView: CardListView = captureHub && !hasStoredListsView() ? 'list' : listsViewPref;
+  const [hubLink, setHubLink] = useState('');
 
   const active = useMemo(() => (lists ?? []).filter((w) => !w.archivedAt), [lists]);
   const wishlists = active.filter((w) => w.kind !== 'collection');
   const collections = active.filter((w) => w.kind === 'collection');
   const items = useMemo(() => itemsData?.items ?? [], [itemsData]);
-  const ownedCount = items.filter((i) => i.owned).length;
   const recentItems = useMemo(() => [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6), [items]);
   const recentLists = useMemo(
     () => [...active].sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt)).slice(0, 3),
@@ -66,12 +67,6 @@ export default function Home() {
   const firstName = me?.displayName.split(' ')[0] ?? '';
   const loading = listsLoading || itemsLoading;
   const isNew = !loading && active.length === 0 && items.length === 0;
-  const next = upcoming[0];
-  const lead = isNew
-    ? 'Start with something you’re wishing for — or something you already love.'
-    : next && (daysUntil(next.eventDate) ?? 99) < 60
-      ? `${next.title} is ${countdownLabel(next.eventDate).toLowerCase()}.`
-      : 'Here’s what’s happening with your wishlists and collections.';
 
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   const newCollection = () => openCreateWishlist({ kind: 'collection' });
@@ -129,62 +124,111 @@ export default function Home() {
     return (
       <div className="page">
         <div className="home-hub">
-          <header className="home-hub-hero">
-            <p className="home-hub-date">{today}</p>
-            <h1 className="display">
-              {greeting()}
-              {firstName && (
-                <>
-                  , <span className="tile-sky-name">{firstName}</span>
-                </>
-              )}
-            </h1>
-            <p className="home-hub-lead">{isNew ? lead : 'Scan, add, or start a list — Wishful keeps it ready for later.'}</p>
-          </header>
+          <section className="home-hub-hero tile tile-sky">
+            <SkyArt scene="hello" className="tile-sky-scene home-hub-sky-scene" />
+            <div className="tile-sky-copy home-hub-hero-copy">
+              <p className="tile-sky-date">{today}</p>
+              <h1 className="display">
+                {greeting()}
+                {firstName && (
+                  <>
+                    , <span className="tile-sky-name">{firstName}</span>
+                  </>
+                )}
+              </h1>
+              <form
+                className="home-hub-hero-form"
+                onSubmit={(e: FormEvent) => {
+                  e.preventDefault();
+                  const next = hubLink.trim();
+                  if (!next) {
+                    openAddItem({ mode: 'link' });
+                    return;
+                  }
+                  openAddItem({ mode: 'link', url: next });
+                  setHubLink('');
+                }}
+              >
+                <label className="home-hub-hero-label" htmlFor="home-hub-link">
+                  Add something you want
+                </label>
+                <div className="home-hub-hero-field">
+                  <input
+                    id="home-hub-link"
+                    className="input"
+                    type="url"
+                    inputMode="url"
+                    autoComplete="off"
+                    enterKeyHint="go"
+                    placeholder="Paste a product link…"
+                    value={hubLink}
+                    onChange={(e) => setHubLink(e.target.value)}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text').trim();
+                      if (isHttpUrl(pasted)) {
+                        e.preventDefault();
+                        setHubLink('');
+                        openAddItem({ mode: 'link', url: pasted });
+                      }
+                    }}
+                  />
+                  <Button type="submit" variant="primary" icon={<Wand2 size={16} aria-hidden />}>
+                    Add
+                  </Button>
+                </div>
+                <button type="button" className="home-hub-hero-more" onClick={() => openAddItem()}>
+                  Idea, photo, or other options
+                  <ArrowRight size={14} aria-hidden />
+                </button>
+              </form>
+            </div>
+            <CloudBank className="tile-sky-bank" />
+          </section>
 
           <div className="home-hub-ctas">
-            <button type="button" className="home-hub-cta home-hub-cta-primary" onClick={() => openAddItem({ mode: 'barcode' })}>
-              <span className="home-hub-cta-icon" aria-hidden>
-                <ScanBarcode size={20} />
+            <button type="button" className="home-hub-cta home-hub-cta-lg" onClick={() => openAddItem({ mode: 'barcode' })}>
+              <span className="art-icon" aria-hidden>
+                {FEATURE_ILLUSTRATIONS.store}
               </span>
               <span className="home-hub-cta-copy">
                 <strong>Scan barcode</strong>
                 <span>In a store aisle</span>
               </span>
-            </button>
-            <button type="button" className="home-hub-cta" onClick={() => openAddItem()}>
-              <span className="home-hub-cta-icon" aria-hidden>
-                <Plus size={20} />
-              </span>
-              <span className="home-hub-cta-copy">
-                <strong>Add item</strong>
-                <span>Link, idea, or photo</span>
-              </span>
+              <ArrowRight size={20} className="home-hub-cta-arrow" aria-hidden />
             </button>
             <div className="home-hub-secondary">
-              <button type="button" className="home-hub-cta" onClick={() => openCreateWishlist()}>
-                <span className="home-hub-cta-icon" aria-hidden>
-                  <Gift size={18} />
+              <button type="button" className="home-hub-cta home-hub-cta-compact" onClick={() => openCreateWishlist()}>
+                <span className="art-icon" aria-hidden>
+                  {FEATURE_ILLUSTRATIONS.lists}
                 </span>
-                <strong>New wishlist</strong>
+                <span className="home-hub-cta-compact-label">
+                  <strong>New wishlist</strong>
+                  <ArrowRight size={16} className="home-hub-cta-arrow" aria-hidden />
+                </span>
               </button>
-              <button type="button" className="home-hub-cta" onClick={newCollection}>
-                <span className="home-hub-cta-icon" aria-hidden>
-                  <Library size={18} />
+              <button type="button" className="home-hub-cta home-hub-cta-compact" onClick={newCollection}>
+                <span className="art-icon" aria-hidden>
+                  {FEATURE_ILLUSTRATIONS.collection}
                 </span>
-                <strong>New collection</strong>
+                <span className="home-hub-cta-compact-label">
+                  <strong>New collection</strong>
+                  <ArrowRight size={16} className="home-hub-cta-arrow" aria-hidden />
+                </span>
               </button>
-              <button type="button" className="home-hub-cta" onClick={() => openCreateBox()}>
-                <span className="home-hub-cta-icon" aria-hidden>
-                  <Package size={18} />
+              <button type="button" className="home-hub-cta home-hub-cta-compact" onClick={() => openCreateBox()}>
+                <span className="art-icon" aria-hidden>
+                  {FEATURE_ILLUSTRATIONS.boxes}
                 </span>
-                <strong>New box</strong>
+                <span className="home-hub-cta-compact-label">
+                  <strong>New box</strong>
+                  <ArrowRight size={16} className="home-hub-cta-arrow" aria-hidden />
+                </span>
               </button>
             </div>
           </div>
 
           {!isNew && recentLists.length > 0 && (
-            <section className="home-hub-continue" aria-label="Continue">
+            <section className="home-hub-continue tile tile-flush" aria-label="Continue">
               <p className="home-hub-continue-label">Continue</p>
               {recentLists.map((w) => (
                 <Link key={w.id} to={`/app/lists/${w.id}`} className="home-hub-continue-row">
@@ -224,31 +268,50 @@ export default function Home() {
                 </>
               )}
             </h1>
-            <p className="tile-sky-lead">{lead}</p>
-            {!isNew && (
-              <div className="sky-stats">
-                <Link to="/app/lists" className="sky-stat">
-                  <strong>{loading ? '–' : wishlists.length}</strong> {wishlists.length === 1 ? 'wishlist' : 'wishlists'}
-                </Link>
-                <Link to="/app/lists" className="sky-stat">
-                  <strong>{loading ? '–' : collections.length}</strong> {collections.length === 1 ? 'collection' : 'collections'}
-                </Link>
-                <Link to="/app/items" className="sky-stat">
-                  <strong>{loading ? '–' : items.length}</strong> saved
-                  {ownedCount > 0 && <span className="sky-stat-sub">· {ownedCount} you have</span>}
-                </Link>
-              </div>
-            )}
-            <div className="tile-sky-actions">
-              <Button variant="primary" icon={<Plus size={16} />} onClick={() => openAddItem()}>
-                Add item
-              </Button>
-              <Button icon={<Gift size={16} />} onClick={() => openCreateWishlist()}>
-                New wishlist
-              </Button>
-              <Button icon={<Library size={16} />} onClick={newCollection} className="hide-xs">
-                New collection
-              </Button>
+            <div className="tile-sky-add">
+              <label className="tile-sky-add-label" htmlFor="home-sky-link">
+                Add something you want
+              </label>
+              <form
+                className="tile-sky-add-form"
+                onSubmit={(e: FormEvent) => {
+                  e.preventDefault();
+                  const next = hubLink.trim();
+                  if (!next) {
+                    openAddItem({ mode: 'link' });
+                    return;
+                  }
+                  openAddItem({ mode: 'link', url: next });
+                  setHubLink('');
+                }}
+              >
+                <input
+                  id="home-sky-link"
+                  className="input"
+                  type="url"
+                  inputMode="url"
+                  autoComplete="off"
+                  enterKeyHint="go"
+                  placeholder="Paste a product link…"
+                  value={hubLink}
+                  onChange={(e) => setHubLink(e.target.value)}
+                  onPaste={(e) => {
+                    const pasted = e.clipboardData.getData('text').trim();
+                    if (isHttpUrl(pasted)) {
+                      e.preventDefault();
+                      setHubLink('');
+                      openAddItem({ mode: 'link', url: pasted });
+                    }
+                  }}
+                />
+                <Button type="submit" variant="primary" size="sm" icon={<Wand2 size={15} aria-hidden />}>
+                  Add
+                </Button>
+              </form>
+              <button type="button" className="tile-sky-add-more" onClick={() => openAddItem()}>
+                More options
+                <ArrowRight size={14} aria-hidden />
+              </button>
             </div>
           </div>
           <CloudBank className="tile-sky-bank" />
@@ -261,11 +324,17 @@ export default function Home() {
             </span>
             <h2 className="tile-title">Quick actions</h2>
           </div>
-          <div className="quick-actions-grid">
-            <QuickAction art={FEATURE_ILLUSTRATIONS.store} title="Scan a barcode" hint="In a store aisle" onClick={() => openAddItem({ mode: 'barcode' })} />
-            <QuickAction art={FEATURE_ILLUSTRATIONS.idea} title="Paste a link" hint="From any online store" onClick={() => openAddItem({ mode: 'link' })} />
-            <QuickAction art={ILLUSTRATED_ITEMS[0].art} title="Write an idea" hint="Experiences, wishes" onClick={() => openAddItem({ mode: 'idea' })} />
-            <QuickAction art={FEATURE_ILLUSTRATIONS.collection} title="Start a collection" hint="Things you already have" onClick={newCollection} tone="blush" />
+          <div className="quick-actions-body">
+            <div className="quick-actions-grid">
+              <QuickAction art={FEATURE_ILLUSTRATIONS.lists} title="New wishlist" hint="Gifts and wants" onClick={() => openCreateWishlist()} />
+              <QuickAction art={FEATURE_ILLUSTRATIONS.collection} title="New collection" hint="Things you already have" onClick={newCollection} tone="blush" />
+              <QuickAction art={FEATURE_ILLUSTRATIONS.boxes} title="New box" hint="Pack and label storage" onClick={() => openCreateBox()} />
+            </div>
+            <div className="quick-actions-grid">
+              <QuickAction art={FEATURE_ILLUSTRATIONS.store} title="Scan a barcode" hint="In a store aisle" onClick={() => openAddItem({ mode: 'barcode' })} />
+              <QuickAction art={FEATURE_ILLUSTRATIONS.idea} title="Write an idea" hint="Experiences, wishes" onClick={() => openAddItem({ mode: 'idea' })} />
+              <QuickAction art={FEATURE_ILLUSTRATIONS.share} title="Gift ideas" hint="Browse curated catalogs" onClick={() => navigate('/app/gifts')} />
+            </div>
           </div>
         </section>
 
