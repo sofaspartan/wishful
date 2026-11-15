@@ -8,6 +8,7 @@ import type {
   CircleKind,
   ClaimStatus,
   CoverArt,
+  FavoriteTargetType,
   Item,
   ListKind,
   PaymentMethod,
@@ -192,6 +193,19 @@ export interface CirclePersonRecord {
 /** Private My Circle book for one account (`circle/{userId}`). */
 export interface CircleDoc {
   people: CirclePersonRecord[];
+}
+
+/** One starred favorite (`favorites/{userId}`). */
+export interface FavoriteRecord {
+  id: string;
+  targetType: FavoriteTargetType;
+  targetId: string;
+  createdAt: string;
+}
+
+/** Private Favorites book for one account. */
+export interface FavoritesDoc {
+  entries: FavoriteRecord[];
 }
 
 /** One connected browser extension. The bearer token is `wfx_{userId}.{secret}`; only SHA-256 of the secret is kept. */

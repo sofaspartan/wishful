@@ -172,6 +172,8 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
       description: wishlist.description,
       coverImage: wishlist.coverImage,
       coverArt: wishlist.coverArt ?? null,
+      pageBackdrop: wishlist.pageBackdrop ?? null,
+      pageColors: wishlist.pageColors ?? null,
       accentColor: wishlist.accentColor,
       occasion: wishlist.occasion,
       eventDate: wishlist.eventDate,

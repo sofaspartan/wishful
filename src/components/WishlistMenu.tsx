@@ -3,6 +3,7 @@ import { Archive, ArchiveRestore, Copy, MoreHorizontal, Pencil, Share2, Trash2 }
 import type { Wishlist, WishlistSummary } from '../../shared/types';
 import { useInvalidate } from '../lib/queries';
 import { del, errorMessage, patch, post } from '../lib/api';
+import { FavoriteMenuItem } from './FavoriteToggle';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { useConfirm } from './ui/misc';
 import { useToast } from './ui/Toast';
@@ -59,6 +60,7 @@ export function WishlistCardMenu({ wishlist: w }: { wishlist: WishlistSummary })
   if (w.role !== 'owner') return null;
   return (
     <Menu label={`Actions for ${w.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm card-menu-btn">
+      <FavoriteMenuItem targetType="wishlist" targetId={w.id} name={w.title} />
       <MenuItem icon={<Pencil size={16} />} onSelect={() => navigate(`/app/lists/${w.id}?edit=1`)}>
         Edit details
       </MenuItem>

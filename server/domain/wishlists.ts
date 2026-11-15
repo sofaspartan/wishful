@@ -70,18 +70,41 @@ export function unlinkRecipient(draft: WishlistRecord, userId: string): void {
   if (draft.recipients) draft.recipients = draft.recipients.map((r) => (r.userId === userId ? { ...r, userId: null } : r));
 }
 
-/** Who each list is made for, with a linked friend's own photo filled in when the list has none. Lists made for their owner map to an empty array. When `includeOwner` is set, the owner leads the group. */
+/** Who each list is made for, with photos filled in from a linked friend or My Circle when the list has none. Lists made for their owner map to an empty array. When `includeOwner` is set, the owner leads the group. */
 export async function resolveRecipients(lists: WishlistRecord[]): Promise<Map<string, ListPerson[]>> {
   const linked = lists.flatMap((l) => (l.recipients ?? []).map((r) => r.userId)).filter((id): id is string => Boolean(id));
   const ownerIds = lists.filter((l) => l.includeOwner && (l.recipients?.length ?? 0) > 0).map((l) => l.ownerId);
   const users = linked.length || ownerIds.length ? await getUsers([...linked, ...ownerIds]) : new Map<string, PublicUser>();
+
+  // My Circle photos: lists store a snapshot at create/edit time; fall back to the live circle entry when empty.
+  const circleOwnerIds = [
+    ...new Set(
+      lists
+        .filter((l) => (l.recipients ?? []).some((r) => r.circlePersonId && !r.avatarUrl))
+        .map((l) => l.ownerId),
+    ),
+  ];
+  const circleByOwner = new Map<string, Map<string, string | null>>();
+  if (circleOwnerIds.length) {
+    await Promise.all(
+      circleOwnerIds.map(async (ownerId) => {
+        const res = await db('circle').get<{ people: Array<{ id: string; avatarUrl: string | null }> }>(ownerId);
+        const map = new Map<string, string | null>();
+        for (const p of res?.value?.people ?? []) map.set(p.id, p.avatarUrl);
+        circleByOwner.set(ownerId, map);
+      }),
+    );
+  }
+
   const people = new Map<string, ListPerson[]>();
   for (const l of lists) {
+    const circle = circleByOwner.get(l.ownerId);
     const others = (l.recipients ?? []).map((r) => {
       const linked = r.userId ? users.get(r.userId) : undefined;
+      const fromCircle = r.circlePersonId ? circle?.get(r.circlePersonId) : undefined;
       return {
         name: r.name,
-        avatarUrl: r.avatarUrl ?? linked?.avatarUrl ?? null,
+        avatarUrl: r.avatarUrl ?? linked?.avatarUrl ?? fromCircle ?? null,
         userId: r.userId,
         username: linked?.username ?? null,
       };
@@ -148,6 +171,8 @@ export async function createWishlist(owner: UserRecord, input: WishlistCreateInp
     description: input.description ?? '',
     coverImage: input.coverImage ?? null,
     coverArt: input.coverArt !== undefined ? input.coverArt : input.coverImage ? null : defaultCoverArt(input.kind ?? 'wishlist'),
+    pageBackdrop: input.pageBackdrop !== undefined ? input.pageBackdrop : 'match',
+    pageColors: input.pageColors !== undefined ? input.pageColors : null,
     accentColor: input.accentColor ?? ACCENT_COLORS[0].value,
     visibility: input.visibility ?? prefs.defaultVisibility,
     occasion: input.occasion ?? '',
@@ -238,6 +263,8 @@ export async function duplicateWishlist(source: WishlistRecord, owner: UserRecor
     description: source.description,
     coverImage: source.coverImage,
     coverArt: source.coverArt ?? null,
+    pageBackdrop: source.pageBackdrop ?? 'match',
+    pageColors: source.pageColors ?? null,
     accentColor: source.accentColor,
     visibility: 'private',
     occasion: source.occasion,
@@ -281,6 +308,8 @@ export async function summarize(lists: WishlistRecord[], viewerId: string): Prom
     description: l.description,
     coverImage: l.coverImage,
     coverArt: l.coverArt ?? null,
+    pageBackdrop: l.pageBackdrop ?? null,
+    pageColors: l.pageColors ?? null,
     accentColor: l.accentColor,
     visibility: l.visibility,
     occasion: l.occasion,

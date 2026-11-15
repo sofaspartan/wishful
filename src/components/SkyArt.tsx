@@ -3,7 +3,19 @@ import { Cloud } from './Cloud';
 import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from './ItemIllustrations';
 import { COVER_ILLUSTRATIONS } from './CoverIllustrations';
 
-export type SkyScene = 'hello' | 'wishlist' | 'collection' | 'items' | 'search' | 'friends' | 'invite' | 'shared' | 'invites' | 'gifts' | 'boxes';
+export type SkyScene =
+  | 'hello'
+  | 'wishlist'
+  | 'collection'
+  | 'items'
+  | 'search'
+  | 'friends'
+  | 'invite'
+  | 'shared'
+  | 'invites'
+  | 'gifts'
+  | 'boxes'
+  | 'favorites';
 
 const [camera, sweater, headphones, sneaker, watch, plant, book, mug] = ILLUSTRATED_ITEMS.map((i) => i.art);
 const F = FEATURE_ILLUSTRATIONS;
@@ -66,6 +78,11 @@ const SCENES: Record<SkyScene, Array<[ReactElement, number, number, number]>> = 
     [COVER_ILLUSTRATIONS.box, 52, 24, 16],
     [COVER_ILLUSTRATIONS.tote, 30, 0, 2],
     [mug, 30, 70, 44],
+  ],
+  favorites: [
+    [COVER_ILLUSTRATIONS.star, 52, 24, 16],
+    [COVER_ILLUSTRATIONS.heart, 30, 0, 2],
+    [F.surprise, 30, 70, 44],
   ],
 };
 

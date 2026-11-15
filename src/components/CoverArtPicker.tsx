@@ -82,7 +82,7 @@ export function CoverArtPicker({
   placeholder?: string;
   /** Turn off when the preview is shown elsewhere, like beside the form. */
   preview?: boolean;
-  /** Show only the background and frame, or only the icon picker, e.g. on separate tabs. */
+  /** Show only the cover background, or only icon + frame, e.g. on separate editor tabs. */
   part?: 'style' | 'icon';
 }) {
   const showStyle = part !== 'icon';
@@ -149,9 +149,9 @@ export function CoverArtPicker({
           <>
             <div className="cover-picker-group">
               <span className="cover-picker-label" id="cover-backdrop-label">
-                Background
+                Cover background
               </span>
-              <Segmented label="Background style" value={style} onChange={pickStyle} options={BACKGROUND_STYLES} />
+              <Segmented label="Cover background style" value={style} onChange={pickStyle} options={BACKGROUND_STYLES} />
               {style === 'scene' && (
                 <div className="cover-backdrops" role="radiogroup" aria-labelledby="cover-backdrop-label">
                   {COVER_BACKDROP_ORDER.map((b) => (
@@ -217,7 +217,10 @@ export function CoverArtPicker({
                 </>
               )}
             </div>
-
+          </>
+        )}
+        {showIcons && (
+          <>
             <div className="cover-picker-group">
               <span className="cover-picker-label">Icon frame</span>
               <div className="cover-frame-controls">
@@ -244,10 +247,7 @@ export function CoverArtPicker({
                 </div>
               )}
             </div>
-          </>
-        )}
-        {showIcons && (
-          <>
+
             <div className="cover-picker-group cover-icon-finder">
               <label className="cover-picker-label" htmlFor="cover-icon-search">
                 Icon

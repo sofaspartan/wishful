@@ -13,6 +13,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Wishlists = lazy(() => import('./pages/Wishlists'));
 const WishlistDetailPage = lazy(() => import('./pages/WishlistDetail'));
 const SavedItems = lazy(() => import('./pages/SavedItems'));
+const Favorites = lazy(() => import('./pages/Favorites'));
 const SharedWithMe = lazy(() => import('./pages/SharedWithMe'));
 const GiftIdeas = lazy(() => import('./pages/GiftIdeas'));
 const PublicGifts = lazy(() => import('./pages/PublicGifts'));
@@ -132,6 +133,7 @@ export function App() {
             <Route path="boxes" element={<Boxes />} />
             <Route path="boxes/:id" element={<BoxDetailPage />} />
             <Route path="items" element={<SavedItems />} />
+            <Route path="favorites" element={<Favorites />} />
             <Route path="shared" element={<SharedWithMe />} />
             <Route path="gifts" element={<GiftIdeas />} />
             <Route path="friends" element={<Friends />} />

@@ -115,7 +115,6 @@ export default function Boxes() {
         title="Your boxes"
         subtitle="Pack things into boxes, stick on a QR label, and scan it to see what’s inside without opening it."
         art={<SkyArt scene="boxes" />}
-        tone="kraft"
       >
         <div className="page-sky-actions">
           {active.length > 0 && tab === 'active' && (
@@ -146,7 +145,7 @@ export default function Boxes() {
           <Popover
             label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
             align="end"
-            buttonClassName={`btn btn-ghost toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
+            buttonClassName={`btn toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
             buttonContent={
               <>
                 <SlidersHorizontal size={18} aria-hidden />
@@ -215,7 +214,6 @@ export default function Boxes() {
           ) : pool.length === 0 ? (
             tab === 'active' ? (
               <EmptyState
-                tone="kraft"
                 art={<SkyArt scene="boxes" />}
                 title="No boxes yet"
                 action={

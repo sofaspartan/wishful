@@ -10,6 +10,7 @@ import { CollectionBadge, VisibilityBadge } from '../components/ItemVisuals';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { useLocalPref } from '../lib/prefs';
 import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
+import { FavoriteMenuItem } from '../components/FavoriteToggle';
 import { Menu, MenuItem } from '../components/ui/Menu';
 import { useToast } from '../components/ui/Toast';
 
@@ -69,6 +70,7 @@ export default function FriendProfile() {
               )}
             </div>
             <Menu label={`Options for ${data.user.displayName}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
+              <FavoriteMenuItem targetType="user" targetId={data.user.id} name={data.user.displayName} />
               <MenuItem icon={<UserMinus size={16} />} onSelect={unfriend} danger>
                 Remove friend
               </MenuItem>

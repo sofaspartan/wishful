@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Check, FileText, Palette, Shapes, Users } from 'lucide-react';
-import { VISIBILITIES, type CoverArt, type ListKind, type Visibility, type Wishlist } from '../../shared/types';
+import { Check, FileText, Image, Palette, Shapes, Users } from 'lucide-react';
+import { VISIBILITIES, type CoverArt, type ListKind, type PageBackdrop, type Visibility, type Wishlist } from '../../shared/types';
 import { ACCENT_COLORS, SUGGESTED_OCCASIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS, peopleForList, possessiveNames } from '../../shared/constants';
 import { wishlistCreateSchema, zodFieldErrors } from '../../shared/schemas';
 import { useQueryClient } from '@tanstack/react-query';
@@ -10,8 +10,9 @@ import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Field, FormError } from './ui/Field';
 import { ImagePicker } from './ImagePicker';
-import { CoverArtPicker, CoverHeaderPreview } from './CoverArtPicker';
+import { CoverArtPicker } from './CoverArtPicker';
 import { suggestCoverArt } from './CoverArt';
+import { PageBackdropPicker, PageThemePreview } from './PageTheme';
 import { ListCardPreview } from './WishlistCard';
 import { EditorLayout, PreviewBlock, firstInvalidTab, hasFieldError } from './ui/EditorLayout';
 import { Segmented } from './ui/misc';
@@ -20,12 +21,13 @@ import { RecipientFields, linkedRecipients, newRecipientDraft, type RecipientDra
 
 type CoverMode = 'none' | 'graphic' | 'photo';
 type ForWhom = 'me' | 'someone' | 'both';
-type Tab = 'details' | 'look' | 'icon' | 'sharing';
+type Tab = 'details' | 'icon' | 'cover' | 'page' | 'sharing';
 
 const TAB_FIELDS: Record<Tab, readonly string[]> = {
   details: ['title', 'description', 'occasion', 'eventDate'],
-  look: ['accentColor', 'coverImage', 'coverArt'],
   icon: [],
+  cover: ['accentColor', 'coverImage', 'coverArt'],
+  page: ['pageBackdrop', 'pageColors'],
   sharing: ['recipients', 'visibility', 'settings', 'surpriseMode'],
 };
 
@@ -70,6 +72,8 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [coverArt, setCoverArt] = useState<CoverArt | null>(null);
   const [coverMode, setCoverMode] = useState<CoverMode>('none');
+  const [pageBackdrop, setPageBackdrop] = useState<PageBackdrop | null>('match');
+  const [pageColors, setPageColors] = useState<string[] | null>(null);
   const [artTouched, setArtTouched] = useState(false);
   const [accentColor, setAccentColor] = useState<string>(ACCENT_COLORS[0].value);
   const [occasion, setOccasion] = useState('');
@@ -98,6 +102,8 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
     setCoverImage(wishlist?.coverImage ?? null);
     setCoverArt(wishlist ? (wishlist.coverArt ?? null) : suggestCoverArt('', kind));
     setCoverMode(wishlist ? (wishlist.coverImage ? 'photo' : wishlist.coverArt ? 'graphic' : 'none') : 'graphic');
+    setPageBackdrop(wishlist ? (wishlist.pageBackdrop ?? null) : 'match');
+    setPageColors(wishlist ? (wishlist.pageColors ?? null) : null);
     setArtTouched(!!wishlist);
     setAccentColor(wishlist?.accentColor ?? ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)].value);
     setOccasion(wishlist?.occasion ?? '');
@@ -122,9 +128,11 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const cover = {
+    const coverFields = {
       coverImage: coverMode === 'photo' ? coverImage : null,
       coverArt: coverMode === 'graphic' ? coverArt : null,
+      pageBackdrop,
+      pageColors: pageBackdrop === 'solid' || pageBackdrop === 'gradient' ? pageColors : null,
     };
     const forOthers = forWhom === 'someone' || forWhom === 'both';
     const who =
@@ -147,8 +155,8 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
           }
         : {};
     const body = collection
-      ? { title, description, ...cover, accentColor, visibility, settings: { showReviews }, ...who }
-      : { title, description, ...cover, accentColor, occasion, eventDate: eventDate || null, visibility, ...who };
+      ? { title, description, ...coverFields, accentColor, visibility, settings: { showReviews }, ...who }
+      : { title, description, ...coverFields, accentColor, occasion, eventDate: eventDate || null, visibility, ...who };
     const showErrors = (next: Record<string, string>) => {
       setErrors(next);
       const bad = firstInvalidTab(TAB_FIELDS, next);
@@ -234,7 +242,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
     </>
   );
 
-  const look = (
+  const cover = (
     <>
       <div className="field">
         <span className="field-label" id="accent-label">
@@ -267,7 +275,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
           onChange={(mode) => {
             setCoverMode(mode);
             if (mode === 'graphic' && !coverArt) setCoverArt(suggestCoverArt(occasion, kind));
-            if (mode !== 'graphic' && tab === 'icon') setTab('look');
+            if (mode !== 'graphic' && tab === 'icon') setTab('cover');
           }}
           options={[
             { value: 'none', label: 'None' },
@@ -276,11 +284,23 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
           ]}
         />
         {coverMode === 'none' && <span className="field-hint">The card uses your colour and the first letter of the name.</span>}
-        {coverMode === 'graphic' && <span className="field-hint">Pick the picture itself on the Icon tab.</span>}
+        {coverMode === 'graphic' && <span className="field-hint">Pick the icon and its frame on the Icon tab.</span>}
         {coverMode === 'graphic' && coverArt && <CoverArtPicker value={coverArt} onChange={pickArt} title={title} preview={false} part="style" />}
         {coverMode === 'photo' && <ImagePicker value={coverImage} onChange={setCoverImage} onUploadingChange={setUploading} label="Add a cover image" compact />}
       </div>
     </>
+  );
+
+  const page = (
+    <PageBackdropPicker
+      value={pageBackdrop}
+      colors={pageColors}
+      onChange={(next, colors) => {
+        setPageBackdrop(next);
+        setPageColors(colors ?? null);
+      }}
+      coverArt={coverMode === 'graphic' ? coverArt : null}
+    />
   );
 
   const sharing = (
@@ -377,11 +397,16 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
           placeholder={placeholder}
         />
       </PreviewBlock>
-      {coverMode === 'graphic' && coverArt && (
-        <PreviewBlock caption={`${collection ? 'Collection' : 'Wishlist'} page`} className="editor-preview-page">
-          <CoverHeaderPreview art={coverArt} title={title} placeholder={placeholder} />
-        </PreviewBlock>
-      )}
+      <PreviewBlock caption={`${collection ? 'Collection' : 'Wishlist'} page`} className="editor-preview-page">
+        <PageThemePreview
+          pageBackdrop={pageBackdrop}
+          pageColors={pageColors}
+          coverArt={coverMode === 'graphic' ? coverArt : null}
+          accentColor={accentColor}
+          title={title}
+          placeholder={placeholder}
+        />
+      </PreviewBlock>
     </>
   );
 
@@ -414,15 +439,16 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
           label={`${collection ? 'Collection' : 'Wishlist'} settings`}
           active={tab}
           onTabChange={setTab}
-          previewTabs={['look', 'icon']}
+          previewTabs={['icon', 'cover', 'page']}
           preview={preview}
           alert={<FormError message={formError} />}
           tabs={[
             { id: 'details', label: 'Details', icon: <FileText size={16} aria-hidden />, invalid: hasFieldError(TAB_FIELDS.details, errors), content: details },
-            { id: 'look', label: 'Look', icon: <Palette size={16} aria-hidden />, invalid: hasFieldError(TAB_FIELDS.look, errors), content: look },
             ...(coverMode === 'graphic' && coverArt
               ? [{ id: 'icon' as const, label: 'Icon', icon: <Shapes size={16} aria-hidden />, content: <CoverArtPicker value={coverArt} onChange={pickArt} preview={false} part="icon" /> }]
               : []),
+            { id: 'cover', label: 'Cover', icon: <Palette size={16} aria-hidden />, invalid: hasFieldError(TAB_FIELDS.cover, errors), content: cover },
+            { id: 'page', label: 'Page', icon: <Image size={16} aria-hidden />, invalid: hasFieldError(TAB_FIELDS.page, errors), content: page },
             { id: 'sharing', label: 'Sharing', icon: <Users size={16} aria-hidden />, invalid: hasFieldError(TAB_FIELDS.sharing, errors), content: sharing },
           ]}
         />

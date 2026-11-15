@@ -38,6 +38,7 @@ import { deleteWishlist, getWishlist, listOwnedWishlists, mutateWishlist, unlink
 import { listOwnedItems } from '../domain/items';
 import { deleteAllFriendships } from '../domain/friends';
 import { deleteCircle } from '../domain/circle';
+import { deleteFavorites } from '../domain/favorites';
 import { BRAND_NAME } from '../brand';
 
 const RESET_TTL_MS = 60 * 60 * 1000;
@@ -364,6 +365,7 @@ export async function deleteAccount(user: UserRecord): Promise<void> {
   }
   await deleteAllFriendships(user.id);
   await deleteCircle(user.id);
+  await deleteFavorites(user.id);
   await Promise.all(idx.imageIds.map((id) => images().delete(id)));
   if (user.avatarUrl?.startsWith('/api/images/')) await images().delete(user.avatarUrl.split('/').pop()!);
   await db('notifications').delete(user.id);

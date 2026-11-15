@@ -18,7 +18,6 @@ import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/Vi
 import { SiteFooter } from '../components/SiteFooter';
 import { Avatar, EmptyState, PageLoader } from '../components/ui/misc';
 import { Button } from '../components/ui/Button';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { useToast } from '../components/ui/Toast';
 
 export default function PublicProfile() {
@@ -90,7 +89,6 @@ export default function PublicProfile() {
         <Link to={me ? '/app' : '/register'} className="btn btn-sm">
           {me ? `My ${brand.name}` : 'Create your own wishlist'}
         </Link>
-        <ThemeToggle />
       </header>
       <main id="main" className="public-content" style={{ paddingTop: 'var(--s-6)' }}>
         {isLoading ? (

@@ -297,6 +297,29 @@ export interface CoverArt {
   frame?: CoverFrame;
 }
 
+/** Soft wash for the whole list/box page (not just the hero). `match` follows the cover scene. */
+export const PAGE_BACKDROP_MATCH = 'match' as const;
+export type PageBackdrop = CoverBackdrop | typeof PAGE_BACKDROP_MATCH;
+
+/** Resolve what the page wash should paint from a stored `pageBackdrop` + cover. */
+export function resolvePageTheme(input: {
+  pageBackdrop?: PageBackdrop | null;
+  /** Own colours when `pageBackdrop` is `solid` or `gradient`. */
+  pageColors?: string[] | null;
+  coverArt?: CoverArt | null;
+}): { kind: 'none' } | { kind: 'accent' } | { kind: 'backdrop'; backdrop: CoverBackdrop; colors?: string[] } {
+  const choice = input.pageBackdrop;
+  if (!choice) return { kind: 'none' };
+  if (choice === PAGE_BACKDROP_MATCH) {
+    if (input.coverArt) return { kind: 'backdrop', backdrop: input.coverArt.backdrop, colors: input.coverArt.colors };
+    return { kind: 'accent' };
+  }
+  if (choice === 'solid' || choice === 'gradient') {
+    return { kind: 'backdrop', backdrop: choice, colors: input.pageColors ?? undefined };
+  }
+  return { kind: 'backdrop', backdrop: choice };
+}
+
 export const ACQUIRED_VIA = ['bought', 'gift', 'other'] as const;
 export type AcquiredVia = (typeof ACQUIRED_VIA)[number];
 
@@ -576,6 +599,13 @@ export interface Wishlist {
   coverImage: string | null;
   /** Shown when there's no cover photo. Missing on lists created before cover graphics existed. */
   coverArt?: CoverArt | null;
+  /**
+   * Soft wash for the whole list page. `match` follows the cover; a backdrop paints that scene;
+   * null/undefined keeps the default app page. Missing on older lists.
+   */
+  pageBackdrop?: PageBackdrop | null;
+  /** #rrggbb colours for a solid/gradient page wash. Missing unless `pageBackdrop` is plain. */
+  pageColors?: string[] | null;
   accentColor: string;
   visibility: Visibility;
   occasion: string;
@@ -604,6 +634,8 @@ export interface WishlistSummary {
   description: string;
   coverImage: string | null;
   coverArt: CoverArt | null;
+  pageBackdrop: PageBackdrop | null;
+  pageColors: string[] | null;
   accentColor: string;
   visibility: Visibility;
   occasion: string;
@@ -714,6 +746,8 @@ export interface PublicWishlistView {
     description: string;
     coverImage: string | null;
     coverArt: CoverArt | null;
+    pageBackdrop: PageBackdrop | null;
+    pageColors: string[] | null;
     accentColor: string;
     occasion: string;
     eventDate: string | null;
@@ -827,6 +861,10 @@ export interface Box {
   /** Private notes, never shown to people who scan the code. */
   notes: string;
   coverArt: CoverArt;
+  /** Soft wash for the whole box page. Same meaning as on wishlists. Missing on older boxes. */
+  pageBackdrop?: PageBackdrop | null;
+  /** #rrggbb colours for a solid/gradient page wash. Missing unless `pageBackdrop` is plain. */
+  pageColors?: string[] | null;
   /** Items packed in it, most recently added first. `item.boxId` is the source of truth. */
   itemIds: string[];
   lines: BoxLine[];
@@ -858,7 +896,7 @@ export interface BoxDetail {
 
 /** What someone sees when they scan a box's code. */
 export interface PublicBoxView {
-  box: Pick<Box, 'name' | 'number' | 'color' | 'material' | 'size' | 'room' | 'fragile' | 'coverArt' | 'showPrices' | 'code' | 'updatedAt'> & {
+  box: Pick<Box, 'name' | 'number' | 'color' | 'material' | 'size' | 'room' | 'fragile' | 'coverArt' | 'pageBackdrop' | 'pageColors' | 'showPrices' | 'code' | 'updatedAt'> & {
     /** Only for the owner. */
     id: string | null;
     location: string | null;
@@ -924,6 +962,27 @@ export interface FriendProfileView {
   user: PublicUser & { bio: string };
   since: string;
   wishlists: FriendWishlistCard[];
+}
+
+/** What you can star on Favorites. */
+export const FAVORITE_TARGET_TYPES = ['wishlist', 'item', 'box', 'user', 'circle_person'] as const;
+export type FavoriteTargetType = (typeof FAVORITE_TARGET_TYPES)[number];
+
+export interface FavoriteEntry {
+  id: string;
+  targetType: FavoriteTargetType;
+  targetId: string;
+  createdAt: string;
+}
+
+/** One Favorites row with the live target hydrated when still accessible. */
+export interface FavoriteCard {
+  entry: FavoriteEntry;
+  wishlist: WishlistSummary | null;
+  item: Item | null;
+  box: BoxSummary | null;
+  user: PublicUser | null;
+  circlePerson: CirclePerson | null;
 }
 
 export type NotificationType =

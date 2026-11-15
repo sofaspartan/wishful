@@ -19,6 +19,7 @@ import { ItemDetailModal } from '../components/ItemDetailModal';
 import { CollectionBadge, StatusBadge } from '../components/ItemVisuals';
 import { CloudBank } from '../components/Cloud';
 import { CoverArt, CoverAvatar, suggestCoverArt } from '../components/CoverArt';
+import { ThemedPage } from '../components/PageTheme';
 import { CollectionStats } from '../components/CollectionStats';
 import { CashFundDisplay, ContributeDialog, MyContributions } from '../components/CashFund';
 import { PrioritySections } from '../components/PrioritySections';
@@ -28,7 +29,7 @@ import { Button } from '../components/ui/Button';
 import { Field, FormError } from '../components/ui/Field';
 import { Avatar, AvatarStack, EmptyState } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { PublicFooter } from '../components/PublicFooter';
 
 type Filter = 'all' | 'available' | 'mine';
 type Sort = 'order' | 'priority' | 'acquired' | 'rating' | 'price_asc' | 'price_desc';
@@ -199,7 +200,6 @@ function PublicHeader() {
           <span className="show-xs">Sign up free</span>
         </Link>
       )}
-      <ThemeToggle />
     </header>
   );
 }
@@ -343,7 +343,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
   );
 
   return (
-    <div className="public-shell" style={{ ['--wl-accent' as string]: w.accentColor }}>
+    <ThemedPage className="public-shell" pageBackdrop={w.pageBackdrop} pageColors={w.pageColors} coverArt={w.coverArt} accentColor={w.accentColor}>
       <PublicHeader />
 
       {viewer.isOwner && (
@@ -617,15 +617,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
         )}
       </main>
 
-      <footer className="public-footer">
-        <Logo to="/" size={22} />
-        <p style={{ marginTop: 8 }}>
-          {brand.tagline}{' '}
-          <Link to="/register" style={{ textDecoration: 'underline' }}>
-            Make your own wishlist
-          </Link>
-        </p>
-      </footer>
+      <PublicFooter />
 
       {openEntry && (
         <ItemDetailModal
@@ -638,7 +630,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
           {!collection && <GiftBox entry={openEntry} view={view} token={token} mine={mine.get(openEntry.id) ?? { claim: null, pledge: null }} onChange={refreshMine} />}
         </ItemDetailModal>
       )}
-    </div>
+    </ThemedPage>
   );
 }
 

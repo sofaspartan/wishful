@@ -166,49 +166,88 @@
   min-height: 100dvh;
   background: var(--bg);
 }
-.app-column[data-dashboard-scene='sky'] {
+.app-shell[data-dashboard-scene='plain'] .app-column {
   background:
-    radial-gradient(ellipse 90% 55% at 18% -5%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 58%),
-    linear-gradient(180deg, var(--hero-bg) 0%, color-mix(in srgb, var(--accent) 5%, var(--tint-base)) 55%, var(--bg) 100%);
+    radial-gradient(ellipse 90% 50% at 20% -5%, color-mix(in srgb, var(--page-tint, #9aa3b5) 16%, transparent), transparent 58%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page-tint, #9aa3b5) 10%, var(--bg)) 0%,
+      color-mix(in srgb, var(--page-tint-2, #b7becc) 5%, var(--bg)) 55%,
+      var(--bg) 100%
+    );
 }
-.app-column[data-dashboard-scene='blush'] {
+.app-shell[data-dashboard-scene='sky'] .app-column {
   background:
-    radial-gradient(ellipse 80% 50% at 82% 0%, color-mix(in srgb, var(--blush) 20%, transparent), transparent 55%),
-    linear-gradient(180deg, var(--blush-bg) 0%, color-mix(in srgb, var(--blush) 4%, var(--tint-base)) 55%, var(--bg) 100%);
+    radial-gradient(ellipse 90% 55% at 18% -5%, color-mix(in srgb, var(--page-tint, var(--accent)) 22%, transparent), transparent 58%),
+    linear-gradient(180deg, var(--hero-bg) 0%, color-mix(in srgb, var(--page-tint, var(--accent)) 5%, var(--tint-base)) 55%, var(--bg) 100%);
 }
-.app-column[data-dashboard-scene='kraft'] {
+.app-shell[data-dashboard-scene='blush'] .app-column {
   background:
-    radial-gradient(ellipse 75% 45% at 70% 8%, color-mix(in srgb, var(--kraft) 22%, transparent), transparent 55%),
-    linear-gradient(180deg, var(--kraft-bg) 0%, color-mix(in srgb, var(--kraft) 8%, var(--tint-base)) 55%, var(--bg) 100%);
+    radial-gradient(ellipse 80% 50% at 82% 0%, color-mix(in srgb, var(--page-tint, var(--blush)) 20%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--blush-bg) 0%, color-mix(in srgb, var(--page-tint, var(--blush)) 4%, var(--tint-base)) 55%, var(--bg) 100%);
 }
-:root[data-theme='dark'] .app-column[data-dashboard-scene='sky'] {
+.app-shell[data-dashboard-scene='kraft'] .app-column {
+  background:
+    radial-gradient(ellipse 75% 45% at 70% 8%, color-mix(in srgb, var(--page-tint, var(--kraft)) 22%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--kraft-bg) 0%, color-mix(in srgb, var(--page-tint, var(--kraft)) 8%, var(--tint-base)) 55%, var(--bg) 100%);
+}
+:root[data-theme='dark'] .app-shell[data-dashboard-scene='sky'] .app-column {
   background:
     var(--stars),
     radial-gradient(ellipse 80% 45% at 20% 0%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 55%),
     linear-gradient(180deg, var(--hero-bg) 0%, color-mix(in srgb, var(--accent) 8%, var(--tint-base)) 55%, var(--bg) 100%);
 }
-:root[data-theme='dark'] .app-column[data-dashboard-scene='blush'] {
+:root[data-theme='dark'] .app-shell[data-dashboard-scene='blush'] .app-column {
   background:
     var(--stars),
     radial-gradient(ellipse 70% 40% at 80% 5%, color-mix(in srgb, var(--blush) 26%, transparent), transparent 55%),
     linear-gradient(180deg, var(--blush-bg) 0%, color-mix(in srgb, var(--blush) 8%, var(--tint-base)) 55%, var(--bg) 100%);
 }
-:root[data-theme='dark'] .app-column[data-dashboard-scene='kraft'] {
+:root[data-theme='dark'] .app-shell[data-dashboard-scene='kraft'] .app-column {
   background:
     var(--stars),
     radial-gradient(ellipse 70% 40% at 72% 8%, color-mix(in srgb, var(--kraft) 28%, transparent), transparent 55%),
     linear-gradient(180deg, var(--kraft-bg) 0%, color-mix(in srgb, var(--kraft) 12%, var(--tint-base)) 55%, var(--bg) 100%);
 }
+/* Soft classics: tinted sidebar wash from --page-tint, no cloud bank. */
+@media (min-width: 1024px) {
+  .app-shell.dashboard-soft .sidebar,
+  .app-shell[data-dashboard-scene] .sidebar {
+    border-right-color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 28%, var(--border));
+    background:
+      var(--stars),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 16%, var(--tint-base)) 0%,
+        color-mix(in srgb, var(--page-tint-2, var(--page-tint, var(--dashboard-tint, var(--accent)))) 8%, var(--tint-base)) 70%
+      );
+    box-shadow: 1px 0 0 color-mix(in srgb, var(--ink) 5%, transparent);
+  }
+  .app-shell.dashboard-soft .sidebar-bank,
+  .app-shell[data-dashboard-scene] .sidebar-bank {
+    display: none;
+  }
+}
+
 .scene-picker-panel {
-  width: min(320px, calc(100vw - 24px));
+  width: min(360px, calc(100vw - 24px));
   padding: 0;
+  max-height: min(520px, calc(100dvh - 80px));
+  overflow: auto;
 }
 .scene-picker-head {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
   padding: var(--s-3) var(--s-4);
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+.scene-picker-head .segmented {
+  width: 100%;
 }
 .scene-picker-grid {
   display: grid;
@@ -216,6 +255,542 @@
   gap: var(--s-2);
   padding: var(--s-3);
 }
+.scene-picker-scenes {
+  padding: var(--s-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.scene-picker-paints {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-3);
+}
+/* Illustrated / painted washes for the whole signed-in shell (beyond Soft classics).
+   `.modal-root` mirrors the same tokens so portaled dialogs match the dashboard look. */
+.app-shell.dashboard-themed,
+.modal-root.dashboard-themed {
+  --page-wash: color-mix(in srgb, var(--page-tint, var(--tint-base)) 20%, var(--bg));
+  --page-wash-deep: color-mix(in srgb, var(--page-tint, var(--tint-base)) 10%, var(--bg));
+  --dashboard-tint: var(--page-tint, var(--accent));
+}
+.app-shell.dashboard-themed-paint,
+.modal-root.dashboard-themed-paint {
+  /* Mix solid colour stops — never color-mix() a gradient string in --page-paint. */
+  --page-wash: color-mix(in srgb, var(--page-tint) 48%, var(--bg));
+  --page-wash-deep: color-mix(in srgb, var(--page-tint-2, var(--page-tint)) 30%, var(--bg));
+  --dashboard-tint: var(--page-tint, var(--accent));
+}
+.app-shell.dashboard-themed-dark,
+.modal-root.dashboard-themed-dark {
+  --page-wash: color-mix(in srgb, var(--page-tint, var(--tint-base)) 38%, #121826);
+  --page-wash-deep: color-mix(in srgb, var(--page-tint, var(--tint-base)) 22%, #121826);
+  /* Lifted panels so cards sit above the wash instead of melting into it. */
+  --dash-panel: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 18%, #303848);
+  --dash-panel-2: color-mix(in srgb, var(--page-tint-2, var(--page-tint, var(--dashboard-tint, var(--accent)))) 12%, #272f40);
+  --dash-panel-border: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 34%, transparent);
+  --dash-panel-ink: #fff;
+  --dash-panel-muted: rgb(255 255 255 / 0.76);
+  --dash-panel-soft: color-mix(in srgb, #fff 11%, transparent);
+  --dash-panel-shadow: 0 1px 0 rgb(255 255 255 / 0.07) inset, 0 10px 28px rgb(0 0 0 / 0.26);
+  /* Shared with sidebar + greeting tile cloud banks */
+  --dash-cloud-back: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 24%, var(--tint-base));
+}
+.app-shell.dashboard-themed-dark.dashboard-themed-paint,
+.modal-root.dashboard-themed-dark.dashboard-themed-paint {
+  --page-wash: color-mix(in srgb, var(--page-tint) 62%, #121826);
+  --page-wash-deep: color-mix(in srgb, var(--page-tint-2, var(--page-tint)) 42%, #121826);
+  --dash-panel: color-mix(in srgb, var(--page-tint) 22%, #323a4c);
+  --dash-panel-2: color-mix(in srgb, var(--page-tint-2, var(--page-tint)) 16%, #292f40);
+}
+/* Illustrated / paint column washes — Soft classics keep their own scene washes below. */
+.app-shell.dashboard-themed:not(.dashboard-soft) .app-column {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(180deg, var(--page-wash) 0%, var(--page-wash-deep) 100%);
+}
+.app-shell.dashboard-themed-paint .app-column {
+  background: linear-gradient(
+    155deg,
+    var(--page-wash) 0%,
+    color-mix(in srgb, var(--page-tint) 24%, var(--page-wash-deep)) 48%,
+    var(--page-wash-deep) 100%
+  );
+}
+/* Full-column sky so the cloud bank lands near the bottom, not under the topbar. */
+.dashboard-theme-sky {
+  --cloud-bank-h: 88px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.42;
+}
+.dashboard-theme-sky .cover-art {
+  --cloud-bank-h: 88px;
+}
+.dashboard-theme-sky .cover-bank .cloud-bank-front {
+  fill: var(--page-wash-deep, var(--page-wash, var(--bg))) !important;
+}
+.app-shell.dashboard-themed .app-column > :not(.dashboard-theme-sky) {
+  position: relative;
+  z-index: 1;
+}
+/* Sidebar shares the theme but sits a touch deeper so it doesn’t blend with the page. */
+@media (min-width: 1024px) {
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar {
+    --sidebar-wash: color-mix(in srgb, var(--page-wash) 78%, var(--dashboard-tint));
+    --sidebar-wash-deep: color-mix(in srgb, var(--page-wash-deep) 72%, var(--dashboard-tint));
+    border-right-color: color-mix(in srgb, var(--dashboard-tint) 28%, var(--border));
+    background:
+      linear-gradient(to top, var(--cloud-fill) var(--sidebar-foot-h), transparent var(--sidebar-foot-h)),
+      linear-gradient(180deg, var(--sidebar-wash) 0%, var(--sidebar-wash-deep) 100%);
+    box-shadow: 1px 0 0 color-mix(in srgb, var(--ink) 5%, transparent);
+  }
+  .app-shell.dashboard-themed-dark .sidebar {
+    --sidebar-wash: color-mix(in srgb, var(--page-wash) 78%, #0a0e18);
+    --sidebar-wash-deep: color-mix(in srgb, var(--page-wash-deep) 70%, #0a0e18);
+    box-shadow: 1px 0 0 color-mix(in srgb, #000 35%, transparent);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar-bank .cloud-bank-back {
+    fill: color-mix(in srgb, var(--dashboard-tint) 24%, var(--tint-base));
+  }
+  /* Light looks: keep sidebar type as dark as main content (not tint-washed). */
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar .section-label {
+    color: var(--muted);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link {
+    color: var(--ink-2);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link svg {
+    color: color-mix(in srgb, var(--dashboard-tint) 42%, var(--ink-2));
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link:hover {
+    color: var(--ink);
+    background: color-mix(in srgb, var(--dashboard-tint) 10%, transparent);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link:hover svg {
+    color: var(--dashboard-tint);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link.active {
+    color: var(--ink);
+    border-color: color-mix(in srgb, var(--dashboard-tint) 22%, transparent);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link.active svg {
+    color: color-mix(in srgb, var(--dashboard-tint) 72%, var(--ink));
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar-list-link {
+    color: var(--ink-2);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar-list-link:hover {
+    color: var(--ink);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar-list-link.active {
+    color: var(--ink);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar .nav-count,
+  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar-list-link .nav-count {
+    color: var(--faint);
+  }
+  .app-shell.dashboard-themed .user-button:hover {
+    background: color-mix(in srgb, var(--dashboard-tint) 10%, var(--tint-base));
+  }
+  /* Logo mark follows the dashboard tint (gradient when both stops exist) — same idea as themed public headers. */
+  .app-shell.dashboard-themed .sidebar .logo-mark,
+  .app-shell.dashboard-themed .topbar .logo-mark {
+    background: linear-gradient(
+      135deg,
+      var(--page-tint, var(--dashboard-tint, var(--accent))) 0%,
+      var(--page-tint-2, var(--page-tint, var(--dashboard-tint, var(--accent)))) 100%
+    );
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--dashboard-tint, var(--accent)) 28%, transparent);
+  }
+  /* Dark washes: lighten chrome that sits on the wash (logo, nav, list titles). Account foot stays on the light cloud strip. */
+  .app-shell.dashboard-themed-dark .sidebar .logo,
+  .app-shell.dashboard-themed-dark .topbar .logo {
+    color: #fff;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .logo-mark,
+  .app-shell.dashboard-themed-dark .topbar .logo-mark {
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .logo-mark svg :is(path, circle),
+  .app-shell.dashboard-themed-dark .topbar .logo-mark svg :is(path, circle) {
+    fill: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  }
+  .app-shell.dashboard-themed-dark .sidebar .nav-link {
+    color: rgb(255 255 255 / 0.86);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .nav-link svg {
+    color: rgb(255 255 255 / 0.72);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .nav-link:hover {
+    color: #fff;
+    background: color-mix(in srgb, #fff 12%, transparent);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .nav-link:hover svg {
+    color: #fff;
+  }
+  .app-shell.dashboard-themed-dark .sidebar .nav-link.active {
+    color: color-mix(in srgb, var(--dashboard-tint) 55%, var(--ink));
+    background: var(--surface);
+    border-color: color-mix(in srgb, var(--dashboard-tint) 22%, transparent);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .nav-link.active svg {
+    color: color-mix(in srgb, var(--dashboard-tint) 75%, var(--ink));
+  }
+  .app-shell.dashboard-themed-dark .sidebar .section-label {
+    color: rgb(255 255 255 / 0.58);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .sidebar-list-link {
+    color: rgb(255 255 255 / 0.86);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .sidebar-list-link:hover {
+    color: #fff;
+    background: color-mix(in srgb, #fff 12%, transparent);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .sidebar-list-link.active {
+    color: var(--accent-ink);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .nav-count,
+  .app-shell.dashboard-themed-dark .sidebar .sidebar-list-link .nav-count {
+    color: rgb(255 255 255 / 0.48);
+  }
+  .app-shell.dashboard-themed-dark .sidebar .sidebar-list-link.active .nav-count {
+    color: color-mix(in srgb, var(--accent) 45%, var(--faint));
+  }
+  .app-shell.dashboard-themed-dark .sidebar-bank .cloud-bank-back {
+    fill: var(--dash-cloud-back);
+  }
+}
+/* Page headers / empty skies: keep theme tint but lift toward surface so they don’t melt into the page wash. */
+.app-shell.dashboard-themed .page-sky,
+.app-shell.dashboard-themed .empty-sky {
+  border-color: color-mix(in srgb, var(--dashboard-tint) 26%, var(--border));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.55) inset,
+    0 1px 2px color-mix(in srgb, var(--dashboard-tint) 8%, transparent),
+    0 10px 28px color-mix(in srgb, var(--dashboard-tint) 12%, transparent);
+}
+.app-shell.dashboard-themed .page-sky,
+.app-shell.dashboard-themed .empty-sky,
+.app-shell.dashboard-themed .page-sky-blush,
+.app-shell.dashboard-themed .page-sky-kraft,
+.app-shell.dashboard-themed .empty-sky.empty-blush,
+.app-shell.dashboard-themed .empty-sky.empty-kraft {
+  background:
+    var(--stars),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 16%, var(--surface)) 0%,
+      color-mix(
+          in srgb,
+          var(--page-tint-2, var(--page-tint, var(--dashboard-tint))) 9%,
+          color-mix(in srgb, var(--cloud-fill) 42%, var(--surface))
+        )
+        100%
+    );
+}
+.app-shell.dashboard-themed .page-sky .page-sky-eyebrow,
+.app-shell.dashboard-themed .page-sky-blush .page-sky-eyebrow,
+.app-shell.dashboard-themed .page-sky-kraft .page-sky-eyebrow {
+  color: color-mix(in srgb, var(--dashboard-tint) 45%, var(--accent-ink));
+}
+.app-shell.dashboard-themed .page-sky .page-sky-bank .cloud-bank-back,
+.app-shell.dashboard-themed .empty-sky .empty-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--dashboard-tint) 18%, var(--surface));
+}
+.app-shell.dashboard-themed .page-sky .page-sky-bank .cloud-bank-front,
+.app-shell.dashboard-themed .empty-sky .empty-bank .cloud-bank-front {
+  fill: color-mix(in srgb, var(--cloud-fill) 55%, var(--surface));
+}
+.app-shell.dashboard-themed .segmented.lists-switch,
+.app-shell.dashboard-themed .segmented.friends-switch {
+  border-color: color-mix(in srgb, var(--dashboard-tint) 20%, var(--border));
+  background:
+    radial-gradient(120% 80% at 12% 0%, color-mix(in srgb, var(--cloud-fill) 70%, transparent) 0%, transparent 55%),
+    radial-gradient(90% 70% at 88% 100%, color-mix(in srgb, var(--dashboard-tint) 12%, transparent) 0%, transparent 50%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 10%, var(--surface)) 0%,
+      color-mix(in srgb, var(--page-tint-2, var(--page-tint, var(--dashboard-tint))) 7%, var(--surface)) 100%
+    );
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.5) inset,
+    0 6px 18px color-mix(in srgb, var(--dashboard-tint) 10%, transparent);
+}
+.app-shell.dashboard-themed .segmented.lists-switch .art-icon-tab,
+.app-shell.dashboard-themed .segmented.friends-switch .art-icon-tab {
+  background: color-mix(in srgb, var(--cloud-fill) 45%, color-mix(in srgb, var(--dashboard-tint) 16%, var(--hero-bg)));
+}
+.app-shell.dashboard-themed-dark .page-sky,
+.app-shell.dashboard-themed-dark .empty-sky {
+  border-color: var(--dash-panel-border);
+  box-shadow: var(--dash-panel-shadow);
+}
+.app-shell.dashboard-themed-dark .page-sky,
+.app-shell.dashboard-themed-dark .empty-sky,
+.app-shell.dashboard-themed-dark .page-sky-blush,
+.app-shell.dashboard-themed-dark .page-sky-kraft,
+.app-shell.dashboard-themed-dark .empty-sky.empty-blush,
+.app-shell.dashboard-themed-dark .empty-sky.empty-kraft {
+  background:
+    var(--stars),
+    linear-gradient(180deg, var(--dash-panel) 0%, var(--dash-panel-2) 100%);
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .page-sky .page-title,
+.app-shell.dashboard-themed-dark .page-sky .page-sky-eyebrow,
+.app-shell.dashboard-themed-dark .empty-sky h3 {
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .page-sky .page-subtitle,
+.app-shell.dashboard-themed-dark .empty-sky p {
+  color: var(--dash-panel-muted);
+}
+.app-shell.dashboard-themed-dark .page-sky .page-sky-bank .cloud-bank-back,
+.app-shell.dashboard-themed-dark .empty-sky .empty-bank .cloud-bank-back {
+  fill: var(--dash-cloud-back);
+}
+.app-shell.dashboard-themed-dark .page-sky .page-sky-bank .cloud-bank-front,
+.app-shell.dashboard-themed-dark .empty-sky .empty-bank .cloud-bank-front {
+  fill: var(--cloud-fill);
+}
+
+/* Home bento: greeting sky, list tiles, and header icons follow the dashboard theme */
+.app-shell.dashboard-themed .tile-sky {
+  border-color: color-mix(in srgb, var(--dashboard-tint) 26%, var(--border));
+  background:
+    var(--stars),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 16%, var(--surface)) 0%,
+      color-mix(
+          in srgb,
+          var(--page-tint-2, var(--page-tint, var(--dashboard-tint))) 9%,
+          color-mix(in srgb, var(--cloud-fill) 42%, var(--surface))
+        )
+        100%
+    );
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.55) inset,
+    0 10px 28px color-mix(in srgb, var(--dashboard-tint) 12%, transparent);
+}
+.app-shell.dashboard-themed .tile-sky-date,
+.app-shell.dashboard-themed .tile-sky-add-label,
+.app-shell.dashboard-themed .tile-sky-add-more {
+  color: color-mix(in srgb, var(--dashboard-tint) 48%, var(--accent-ink));
+}
+.app-shell.dashboard-themed .tile-sky-name,
+.app-shell.dashboard-themed .tile-sky-add-more:hover {
+  color: color-mix(in srgb, var(--dashboard-tint) 70%, var(--accent-hover));
+}
+.app-shell.dashboard-themed .tile-sky-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--dashboard-tint) 20%, var(--surface));
+}
+.app-shell.dashboard-themed .tile-sky-bank .cloud-bank-front {
+  fill: color-mix(in srgb, var(--cloud-fill) 55%, var(--surface));
+}
+.app-shell.dashboard-themed .tile.tile-list-sky {
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--dashboard-tint) 20%, var(--border));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.5) inset,
+    0 8px 22px color-mix(in srgb, var(--dashboard-tint) 10%, transparent);
+}
+.app-shell.dashboard-themed .tile:not(.tile-sky):not(.tile-list-sky) {
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 6%, var(--surface));
+  border-color: color-mix(in srgb, var(--dashboard-tint) 18%, var(--border));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.5) inset,
+    0 8px 20px color-mix(in srgb, var(--dashboard-tint) 8%, transparent);
+}
+.app-shell.dashboard-themed .wl-card {
+  border-color: color-mix(in srgb, var(--dashboard-tint) 16%, var(--border));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.45) inset,
+    0 8px 20px color-mix(in srgb, var(--dashboard-tint) 8%, transparent);
+}
+/* When the dashboard is themed, blush accents follow the look instead of coral. */
+.app-shell.dashboard-themed .tile.tile-list-sky.tile-blush {
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--dashboard-tint) 20%, var(--border));
+}
+.app-shell.dashboard-themed .tile-header-icon,
+.app-shell.dashboard-themed .tile-note-icon {
+  background: color-mix(in srgb, var(--dashboard-tint) 16%, var(--surface));
+  color: color-mix(in srgb, var(--dashboard-tint) 58%, var(--ink));
+}
+.app-shell.dashboard-themed .tile-blush .tile-header-icon,
+.app-shell.dashboard-themed .quick-action-blush .art-icon,
+.app-shell.dashboard-themed .art-icon {
+  background: color-mix(in srgb, var(--dashboard-tint) 14%, var(--hero-bg));
+  color: color-mix(in srgb, var(--dashboard-tint) 58%, var(--ink));
+}
+.app-shell.dashboard-themed button.quick-action.quick-action-blush:hover {
+  background: color-mix(in srgb, var(--dashboard-tint) 6%, var(--surface));
+}
+/* Dark look: one elevated panel system for greeting, lists, and chrome tiles. */
+.app-shell.dashboard-themed-dark .tile-sky {
+  background:
+    var(--stars),
+    linear-gradient(180deg, var(--dash-panel) 0%, var(--dash-panel-2) 100%);
+  border-color: var(--dash-panel-border);
+  color: var(--dash-panel-ink);
+  box-shadow: var(--dash-panel-shadow);
+}
+.app-shell.dashboard-themed-dark .tile-sky-date,
+.app-shell.dashboard-themed-dark .tile-sky-add-label,
+.app-shell.dashboard-themed-dark .tile-sky-add-more,
+.app-shell.dashboard-themed-dark .tile-sky-name {
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .tile-sky-lead,
+.app-shell.dashboard-themed-dark .tile-sky .sky-stat {
+  color: var(--dash-panel-muted);
+}
+.app-shell.dashboard-themed-dark .tile-sky .sky-stat {
+  background: var(--dash-panel-soft);
+  border-color: color-mix(in srgb, #fff 14%, transparent);
+}
+.app-shell.dashboard-themed-dark .tile-sky .sky-stat strong {
+  color: var(--dash-panel-ink);
+}
+/* Shared cloud bank: sidebar, greeting tile, page headers, empty skies. */
+.app-shell.dashboard-themed-dark:not(.dashboard-soft) .sidebar-bank .cloud-bank-back,
+.app-shell.dashboard-themed-dark .tile-sky-bank .cloud-bank-back,
+.app-shell.dashboard-themed-dark .page-sky .page-sky-bank .cloud-bank-back,
+.app-shell.dashboard-themed-dark .empty-sky .empty-bank .cloud-bank-back {
+  fill: var(--dash-cloud-back);
+}
+.app-shell.dashboard-themed-dark .tile-sky-bank .cloud-bank-front,
+.app-shell.dashboard-themed-dark .page-sky .page-sky-bank .cloud-bank-front,
+.app-shell.dashboard-themed-dark .empty-sky .empty-bank .cloud-bank-front {
+  fill: var(--cloud-fill);
+}
+.app-shell.dashboard-themed-dark .tile.tile-list-sky,
+.app-shell.dashboard-themed-dark .tile.tile-list-sky.tile-blush,
+.app-shell.dashboard-themed-dark .tile:not(.tile-sky):not(.tile-list-sky) {
+  background: var(--dash-panel);
+  border-color: var(--dash-panel-border);
+  color: var(--dash-panel-ink);
+  box-shadow: var(--dash-panel-shadow);
+}
+.app-shell.dashboard-themed-dark .tile .tile-header,
+.app-shell.dashboard-themed-dark .tile-list-sky .tile-header {
+  background: color-mix(in srgb, #fff 6%, transparent);
+  border-bottom-color: color-mix(in srgb, #fff 12%, transparent);
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .tile-header.inline {
+  background: transparent;
+  border-bottom: 0;
+}
+.app-shell.dashboard-themed-dark .tile-title,
+.app-shell.dashboard-themed-dark .tile-label,
+.app-shell.dashboard-themed-dark .tile .section-link,
+.app-shell.dashboard-themed-dark .tile-list-sky .tile-title,
+.app-shell.dashboard-themed-dark .tile-list-sky .section-link,
+.app-shell.dashboard-themed-dark .quick-action strong,
+.app-shell.dashboard-themed-dark .mini-item-title,
+.app-shell.dashboard-themed-dark .tile-row strong {
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .tile .muted,
+.app-shell.dashboard-themed-dark .tile .faint,
+.app-shell.dashboard-themed-dark .tile .text-sm.muted,
+.app-shell.dashboard-themed-dark .quick-action span span,
+.app-shell.dashboard-themed-dark .tile-row .muted,
+.app-shell.dashboard-themed-dark .tile-row .faint,
+.app-shell.dashboard-themed-dark .tile-note,
+.app-shell.dashboard-themed-dark .mini-item-price,
+.app-shell.dashboard-themed-dark .page .muted,
+.app-shell.dashboard-themed-dark .page .faint,
+.app-shell.dashboard-themed-dark .page .text-sm.muted,
+.app-shell.dashboard-themed-dark .gift-more .muted,
+.app-shell.dashboard-themed-dark .gift-disclosure,
+.app-shell.dashboard-themed-dark .gift-disclosure.faint {
+  color: var(--dash-panel-muted);
+}
+.app-shell.dashboard-themed-dark .page .section-title,
+.app-shell.dashboard-themed-dark .page .section-header .section-title {
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .page .section-link {
+  color: var(--dash-panel-muted);
+}
+.app-shell.dashboard-themed-dark .page .section-link:hover {
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .tile-list-sky .tile-row,
+.app-shell.dashboard-themed-dark .tile .tile-row {
+  background: color-mix(in srgb, #fff 5%, transparent);
+  border-top-color: color-mix(in srgb, #fff 10%, transparent);
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .tile-list-sky a.tile-row:hover,
+.app-shell.dashboard-themed-dark a.tile-row:hover {
+  background: color-mix(in srgb, #fff 10%, transparent);
+}
+.app-shell.dashboard-themed-dark .mini-item-media {
+  background: color-mix(in srgb, #fff 8%, transparent);
+  border-color: color-mix(in srgb, #fff 14%, transparent);
+}
+.app-shell.dashboard-themed-dark .mini-item:hover .mini-item-media {
+  border-color: color-mix(in srgb, #fff 28%, transparent);
+}
+.app-shell.dashboard-themed-dark .tile-header-icon,
+.app-shell.dashboard-themed-dark .tile-note-icon,
+.app-shell.dashboard-themed-dark .art-icon,
+.app-shell.dashboard-themed-dark .tile-blush .tile-header-icon,
+.app-shell.dashboard-themed-dark .quick-action-blush .art-icon {
+  background: color-mix(in srgb, var(--dashboard-tint) 26%, #3d465c);
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .quick-action {
+  box-shadow: 1px 0 0 color-mix(in srgb, #fff 10%, transparent), 0 1px 0 color-mix(in srgb, #fff 10%, transparent);
+}
+.app-shell.dashboard-themed-dark button.quick-action:hover,
+.app-shell.dashboard-themed-dark button.quick-action.quick-action-blush:hover {
+  background: color-mix(in srgb, #fff 8%, transparent);
+}
+.app-shell.dashboard-themed-dark .segmented.view-toggle {
+  background: color-mix(in srgb, #000 22%, transparent);
+  border-color: color-mix(in srgb, #fff 14%, transparent);
+}
+.app-shell.dashboard-themed-dark .segmented.view-toggle button {
+  color: var(--dash-panel-muted);
+}
+.app-shell.dashboard-themed-dark .segmented.view-toggle button[aria-pressed='true'] {
+  background: color-mix(in srgb, #fff 16%, transparent);
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .tile-list-footer .btn,
+.app-shell.dashboard-themed-dark .tile .btn:not(.btn-primary):not(.btn-danger) {
+  background: color-mix(in srgb, #fff 10%, transparent);
+  border-color: color-mix(in srgb, #fff 16%, transparent);
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .wl-card {
+  background: color-mix(in srgb, var(--dash-panel-2) 70%, #1a2030);
+  border-color: color-mix(in srgb, #fff 12%, transparent);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 8px 20px rgb(0 0 0 / 0.22);
+}
+.app-shell.dashboard-themed-dark .tile .empty-sky {
+  color: var(--dash-panel-ink);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.app-shell.dashboard-themed-dark .tile .empty-sky h3 {
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .tile .empty-sky p {
+  color: var(--dash-panel-muted);
+}
+
 .scene-swatch {
   display: flex;
   flex-direction: column;
@@ -237,11 +812,46 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .scene-swatch-preview {
+  position: relative;
   display: block;
   width: 100%;
   height: 52px;
   border-radius: var(--radius-sm);
   overflow: hidden;
+}
+.scene-picker-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.scene-picker-check {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
+}
+.scene-swatch-preview .scene-picker-check,
+.cover-backdrop-thumb .scene-picker-check,
+.cover-paint-swatch .scene-picker-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 1px 3px rgb(16 38 92 / 0.22);
+  z-index: 1;
+}
+.segmented .scene-picker-check {
+  width: 14px;
+  height: 14px;
+}
+.segmented .scene-picker-check svg {
+  width: 9px;
+  height: 9px;
 }
 .scene-mini {
   display: block;
@@ -283,8 +893,44 @@
   -webkit-backdrop-filter: saturate(1.4) blur(10px);
   border-bottom: 1px solid transparent;
 }
-.app-column[data-dashboard-scene]:not([data-dashboard-scene='plain']) > .topbar {
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
+.app-shell[data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar,
+.app-shell.dashboard-themed .app-column > .topbar {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--border) 75%, transparent);
+}
+.topbar .btn-ghost {
+  color: var(--ink);
+}
+.topbar .btn-ghost:hover {
+  background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+}
+.topbar .btn-ghost svg {
+  color: inherit;
+}
+/* Dark looks: keep the bar on the wash and force light chrome (search, icons, kbd). */
+.app-shell.dashboard-themed-dark .app-column > .topbar {
+  background: color-mix(in srgb, var(--dash-panel) 82%, transparent);
+  border-bottom-color: color-mix(in srgb, #fff 12%, transparent);
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .topbar .btn-ghost,
+.app-shell.dashboard-themed-dark .topbar .btn-ghost svg {
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .topbar .btn-ghost:hover {
+  background: color-mix(in srgb, #fff 12%, transparent);
+}
+.app-shell.dashboard-themed-dark .search-trigger {
+  background: color-mix(in srgb, #fff 12%, transparent);
+  border-color: color-mix(in srgb, #fff 18%, transparent);
+  color: var(--dash-panel-muted);
+}
+.app-shell.dashboard-themed-dark .search-trigger > svg,
+.app-shell.dashboard-themed-dark .search-trigger kbd {
+  color: var(--dash-panel-muted);
+}
+.app-shell.dashboard-themed-dark .search-trigger:hover {
+  border-color: color-mix(in srgb, #fff 34%, transparent);
 }
 .topbar.scrolled {
   border-bottom-color: var(--border);
@@ -309,19 +955,41 @@
 .search-trigger {
   display: none;
   align-items: center;
-  gap: var(--s-2);
+  gap: 10px;
   height: 38px;
+  min-height: 38px;
   width: min(420px, 100%);
-  padding: 0 var(--s-3);
-  border: 1px solid var(--border);
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--faint);
-  font-size: var(--text-sm);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: 1.25;
   text-align: left;
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+.search-trigger > svg {
+  flex-shrink: 0;
+  color: var(--faint);
+}
+.search-trigger > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .search-trigger:hover {
-  border-color: var(--border-strong);
+  border-color: var(--faint);
+}
+.search-trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
 }
 .search-trigger kbd {
   margin-left: auto;
@@ -845,11 +1513,16 @@
 .toolbar-filters-btn {
   gap: 6px;
   height: 38px;
-  padding-inline: 10px;
+  padding-inline: 12px;
   position: relative;
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--border-strong);
+  font-weight: 550;
 }
 .toolbar-filters-btn.is-active {
   color: var(--accent-ink);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-strong));
   background: color-mix(in srgb, var(--accent) 10%, var(--surface));
 }
 .toolbar-filters-dot {
@@ -1797,6 +2470,42 @@ a.sky-stat {
   place-items: center;
   background: var(--surface-sunken);
   color: var(--faint);
+  overflow: hidden;
+}
+.item-placeholder-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+/* Empty item media: theme color wash only (no illustrated cover art). */
+.app-shell.dashboard-themed .item-placeholder-wash,
+.page-themed .item-placeholder-wash {
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 24%, var(--surface)) 0%,
+      color-mix(in srgb, var(--page-tint-2, var(--page-tint, var(--dashboard-tint, var(--accent)))) 12%, var(--surface)) 100%
+    );
+  color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 52%, var(--ink));
+}
+.app-shell.dashboard-themed-dark .item-placeholder-wash,
+.page-themed-dark .item-placeholder-wash {
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 34%, #1c2438) 0%,
+      color-mix(in srgb, var(--page-tint-2, var(--page-tint, var(--dashboard-tint))) 20%, #151b2c) 100%
+    );
+  color: rgb(255 255 255 / 0.82);
+}
+/* Plain wishlist covers (no photo / art / mosaic) follow the dashboard wash. */
+.app-shell.dashboard-themed .wl-cover:not(:has(img)):not(:has(.cover-art)):not(:has(.wl-mosaic)) .wl-cover-tint {
+  background: linear-gradient(
+    155deg,
+    var(--page-tint, var(--dashboard-tint, var(--wl-accent))) 0%,
+    var(--page-tint-2, var(--page-tint, var(--dashboard-tint, var(--wl-accent)))) 100%
+  );
 }
 .item-status {
   position: absolute;
@@ -2179,80 +2888,59 @@ button.tile:hover {
   gap: 0;
   overflow: hidden;
 }
-/* After .tile so sky background isn't overridden by surface */
+/* Home list tiles — surface cards (no cloud bank); pick up dashboard tint when themed */
 .tile.tile-list-sky {
-  --cloud-bank-h: 48px;
   isolation: isolate;
   min-height: 320px;
-  background: var(--stars), linear-gradient(180deg, var(--hero-bg) 0%, color-mix(in srgb, var(--accent) 5%, var(--tint-base)) 100%);
-  border-color: color-mix(in srgb, var(--accent) 14%, var(--border));
+  background: var(--surface);
+  border-color: var(--border);
 }
 .tile.tile-list-sky.tile-blush {
-  background: var(--stars), linear-gradient(180deg, var(--blush-bg) 0%, color-mix(in srgb, var(--blush) 4%, var(--tint-base)) 100%);
-  border-color: color-mix(in srgb, var(--blush) 18%, var(--border));
+  background: color-mix(in srgb, var(--blush) 6%, var(--surface));
+  border-color: color-mix(in srgb, var(--blush) 16%, var(--border));
 }
 .tile-list-sky .tile-header {
   position: relative;
-  z-index: 4;
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
-  border-bottom-color: color-mix(in srgb, var(--border) 70%, transparent);
-  backdrop-filter: blur(6px);
-}
-.tile-list-sky .tile-header .view-toggle,
-.tile-list-sky .tile-header .row {
-  position: relative;
-  z-index: 1;
+  z-index: 2;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-bottom-color: var(--border);
 }
 .tile-list-body {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   padding-top: var(--s-4);
-  padding-bottom: calc(var(--cloud-bank-h) - 6px);
+  padding-bottom: var(--s-4);
 }
 .tile-list-footer {
   position: relative;
-  z-index: 3;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: auto;
-  padding: var(--s-2) var(--s-5) calc(var(--cloud-bank-h) - 4px);
+  padding: var(--s-2) var(--s-5) var(--s-4);
 }
 .tile-list-footer .btn {
   gap: 6px;
 }
-.tile-list-bank {
-  z-index: 1;
-}
-.tile-list-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--accent) 18%, var(--tint-base));
-}
-.tile-list-bank .cloud-bank-front {
-  fill: var(--cloud-fill);
-}
-.tile.tile-list-sky.tile-blush .tile-list-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--blush) 20%, var(--tint-base));
-}
 .tile-list-sky .tile-row {
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
 }
 .tile-list-sky a.tile-row:hover {
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: var(--surface-2);
 }
 .tile-list-sky .wl-card {
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(4px);
+  background: var(--surface);
 }
-/* Nested empty sky: keep illustration, use the tile’s bank/background */
 .tile-list-sky .empty-sky,
 .tile-list-sky .empty-sky.empty-blush {
   background: transparent;
   border: 0;
-  padding-bottom: calc(var(--cloud-bank-h) + var(--s-4));
+  padding-bottom: var(--s-5);
 }
 .tile-list-sky .empty-bank {
   display: none;
@@ -3144,6 +3832,7 @@ button.empty:hover {
   display: flex;
   align-items: center;
   gap: var(--s-3);
+  width: 100%;
   height: 60px;
   padding: 0 var(--s-4);
   max-width: var(--content-max);
@@ -3156,6 +3845,7 @@ button.empty:hover {
 }
 .public-hero {
   position: relative;
+  width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
   padding: 0 var(--s-4);
@@ -3281,6 +3971,225 @@ button.empty:hover {
   /* Soft tint carries the profile style down the page under the sky band. */
   background: linear-gradient(180deg, color-mix(in srgb, var(--profile-tint, var(--tint-base)) 28%, var(--bg)) 0%, var(--bg) 42%);
 }
+
+/* Soft page wash for list/box pages (ThemedPage) — full-height tint + optional sky band.
+   Reset --page-tint so list chrome doesn’t inherit the shell dashboard look; page-bg-* / inline paint re-set it. */
+.page-themed {
+  --page-tint: var(--wl-accent, var(--accent));
+  --page-tint-2: var(--page-tint);
+  --list-tint: var(--page-tint);
+  --list-tint-2: var(--page-tint-2, var(--page-tint));
+  --page-wash: color-mix(in srgb, var(--page-tint, var(--tint-base)) 22%, var(--bg));
+  --page-wash-deep: color-mix(in srgb, var(--page-tint, var(--tint-base)) 14%, var(--bg));
+  position: relative;
+  z-index: 0;
+  min-height: 100%;
+  background: linear-gradient(180deg, var(--page-wash) 0%, var(--page-wash-deep) 100%);
+}
+.page-themed-paint {
+  --page-wash: color-mix(in srgb, var(--page-tint) 58%, var(--bg));
+  --page-wash-deep: color-mix(in srgb, var(--page-tint-2, var(--page-tint)) 42%, var(--bg));
+  background: linear-gradient(
+    155deg,
+    var(--page-wash) 0%,
+    color-mix(in srgb, var(--page-tint) 28%, var(--page-wash-deep)) 48%,
+    var(--page-wash-deep) 100%
+  );
+}
+.page-themed-accent {
+  --page-tint: var(--wl-accent, var(--accent));
+}
+.page-themed-dark {
+  --page-wash: color-mix(in srgb, var(--page-tint, var(--tint-base)) 42%, #121826);
+  --page-wash-deep: color-mix(in srgb, var(--page-tint, var(--tint-base)) 28%, #121826);
+}
+.page-themed-dark.page-themed-paint {
+  --page-wash: color-mix(in srgb, var(--page-tint) 72%, #121826);
+  --page-wash-deep: color-mix(in srgb, var(--page-tint-2, var(--page-tint)) 55%, #121826);
+}
+.page-themed > :not(.page-theme-sky) {
+  position: relative;
+  z-index: 1;
+}
+/* Full-page scene so the cloud bank sits at the bottom of the list / public shell. */
+.page-theme-sky {
+  --cloud-bank-h: 88px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.48;
+}
+.page-theme-sky .cover-art {
+  --cloud-bank-h: 88px;
+}
+.page-theme-sky .cover-bank .cloud-bank-front {
+  fill: var(--page-wash-deep, var(--page-wash, var(--bg))) !important;
+}
+/* Public footer owns the bottom cloud seam — hide the full-page sky bank there. */
+.public-shell.page-themed .page-theme-sky .cover-bank {
+  display: none;
+}
+.page.page-themed {
+  min-height: calc(100dvh - var(--topbar-h, 60px));
+}
+.public-shell.page-themed {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.public-shell.page-themed > .public-content,
+.public-shell.page-themed > main {
+  flex: 1 1 auto;
+  width: 100%;
+}
+/* Only chrome sitting on the wash flips light — not text inside cards, inputs, or selects. */
+.page-themed-dark .public-header .logo {
+  color: #fff;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+.page-themed:not(.page-themed-dark) .public-header .logo-mark {
+  background: linear-gradient(
+    135deg,
+    var(--page-tint, var(--wl-accent, var(--accent))) 0%,
+    var(--page-tint-2, var(--page-tint, var(--wl-accent, var(--accent)))) 100%
+  );
+}
+.page-themed-dark .public-header .logo-mark {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+.page-themed-dark .public-header .logo-mark svg :is(path, circle) {
+  fill: var(--page-tint, var(--wl-accent, var(--accent)));
+}
+.page-themed-dark .public-header .btn:not(.btn-primary):not(.btn-danger) {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  color: var(--ink);
+}
+.page-themed-dark .section-link,
+.page-themed-dark .page-subtitle,
+.page-themed-dark .toolbar > .muted,
+.page-themed-dark .toolbar-sort,
+.page-themed-dark > .muted,
+.page-themed-dark > .text-sm.muted {
+  color: rgb(255 255 255 / 0.78);
+}
+.page-themed-dark .section-link:hover {
+  color: #fff;
+}
+.page-themed-dark .page-title,
+.page-themed-dark > .section-header .section-title {
+  color: #fff;
+}
+.page-themed-dark .input,
+.page-themed-dark .select,
+.page-themed-dark .textarea,
+.page-themed-dark .toolbar-sort .select,
+.page-themed-dark .toolbar-sort .input {
+  color: var(--ink);
+}
+.page-themed-dark .notice {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: var(--ink);
+}
+.page-theme-preview {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.page-theme-preview-back {
+  margin: 0;
+  justify-self: start;
+  pointer-events: none;
+}
+.page-theme-preview .cover-picker-preview {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.page-theme-preview-hero {
+  display: grid;
+  align-content: end;
+  min-height: 120px;
+  padding: var(--s-4);
+  border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--wl-accent, var(--accent)) 55%, #fff), var(--wl-accent, var(--accent)));
+  color: #fff;
+}
+.page-theme-preview-title {
+  font-size: var(--text-lg);
+  font-weight: 650;
+}
+.page-theme-preview-card {
+  display: grid;
+  gap: 8px;
+  padding: var(--s-4);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.page-theme-preview-line {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border);
+  width: 72%;
+}
+.page-theme-preview-line.short {
+  width: 44%;
+}
+.page-bg-sky {
+  --page-tint: color-mix(in srgb, var(--accent) 70%, #7eb6f0);
+}
+.page-bg-blush {
+  --page-tint: var(--blush, #e8a090);
+}
+.page-bg-mint {
+  --page-tint: #5f9e6e;
+}
+.page-bg-lilac {
+  --page-tint: #7c6cf0;
+}
+.page-bg-sunset {
+  --page-tint: #f9c9b4;
+}
+.page-bg-night {
+  --page-tint: #344a8c;
+}
+.page-bg-snow {
+  --page-tint: #4f86d8;
+}
+.page-bg-confetti {
+  --page-tint: #f2c14e;
+}
+.page-bg-spring {
+  --page-tint: #9fd18f;
+}
+.page-bg-summer {
+  --page-tint: #6fc3ee;
+}
+.page-bg-autumn {
+  --page-tint: #e7a463;
+}
+.page-bg-hearts {
+  --page-tint: #f4b0c0;
+}
+.page-bg-spooky {
+  --page-tint: #573a82;
+}
+.page-bg-shamrock {
+  --page-tint: #93cf95;
+}
+.page-bg-hanukkah {
+  --page-tint: #4479cf;
+}
+.page-bg-harvest {
+  --page-tint: #efad68;
+}
 .public-shell-styled > :not(.profile-page-sky) {
   position: relative;
   z-index: 1;
@@ -3309,7 +4218,12 @@ button.empty:hover {
   color: var(--ink);
   text-shadow: 0 1px 2px rgb(255 255 255 / 0.45);
 }
-.public-shell-styled .public-header .logo-mark {
+.public-shell-styled:not(.public-shell-styled-dark) .public-header .logo-mark {
+  background: linear-gradient(
+    135deg,
+    var(--page-tint, var(--profile-tint, var(--accent))) 0%,
+    var(--page-tint-2, var(--page-tint, var(--profile-tint, var(--accent)))) 100%
+  );
   box-shadow: 0 1px 3px rgba(16, 38, 92, 0.18);
 }
 .public-shell-styled-dark .public-header .logo {
@@ -3321,7 +4235,7 @@ button.empty:hover {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
 }
 .public-shell-styled-dark .public-header .logo-mark svg :is(path, circle) {
-  fill: var(--accent);
+  fill: var(--page-tint, var(--profile-tint, var(--accent)));
 }
 .public-shell-styled .public-header .btn {
   background: color-mix(in srgb, var(--surface) 88%, transparent);
@@ -3456,6 +4370,7 @@ button.empty:hover {
   padding-top: var(--s-4);
 }
 .public-content {
+  width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
   padding: var(--s-8) var(--s-4) var(--s-16);
@@ -3689,6 +4604,72 @@ button.empty:hover {
   background:
     radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
     linear-gradient(180deg, var(--hero-bg), var(--surface));
+}
+/* Cash fund follows the list page theme only — never the shell dashboard look. */
+.page-themed .cash-fund-banner {
+  --cash-tint: var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent))));
+  --cash-tint-2: var(--list-tint-2, var(--page-tint-2, var(--cash-tint)));
+  border-color: color-mix(in srgb, var(--cash-tint) 26%, var(--border));
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--cash-tint) 18%, transparent), transparent 55%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cash-tint) 14%, var(--surface)) 0%,
+      color-mix(in srgb, var(--cash-tint-2) 6%, var(--surface)) 100%
+    );
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.45) inset,
+    0 8px 22px color-mix(in srgb, var(--cash-tint) 10%, transparent);
+}
+.page-themed-dark .cash-fund-banner {
+  border-color: color-mix(in srgb, var(--cash-tint) 34%, transparent);
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--cash-tint) 28%, transparent), transparent 55%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cash-tint) 26%, #1c2438) 0%,
+      color-mix(in srgb, var(--cash-tint-2) 14%, #151b2c) 100%
+    );
+  color: rgb(255 255 255 / 0.92);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 10px 28px rgb(0 0 0 / 0.28);
+}
+.page-themed-dark .cash-fund-banner .cash-fund-title,
+.page-themed-dark .cash-fund-banner .cash-fund-amounts {
+  color: #fff;
+}
+.page-themed-dark .cash-fund-banner .cash-fund-note,
+.page-themed-dark .cash-fund-banner .muted {
+  color: rgb(255 255 255 / 0.72);
+}
+.page-themed .cash-fund-bar {
+  background: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 14%, var(--surface-sunken));
+}
+.page-themed .cash-fund-bar-banner {
+  background: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 18%, var(--surface-sunken));
+}
+.page-themed .cash-fund-bar > span {
+  background: linear-gradient(
+    90deg,
+    var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))),
+    var(--list-tint-2, var(--page-tint-2, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent))))))
+  );
+}
+.page-themed .cash-fund-media {
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 50% 20%,
+      color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 18%, transparent),
+      transparent 55%
+    ),
+    color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 8%, var(--media-bg));
+}
+.page-themed .cash-fund-card {
+  border-color: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 18%, var(--border));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.4) inset,
+    0 8px 20px color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 8%, transparent);
 }
 .cash-fund-banner .cash-fund-edit {
   top: var(--s-3);
@@ -3925,11 +4906,89 @@ button.empty:hover {
   color: var(--ink-2);
 }
 .public-footer {
-  border-top: 1px solid var(--border);
-  padding: var(--s-8) var(--s-4);
+  --cloud-bank-h: 64px;
+  --public-footer-bg: color-mix(in srgb, var(--cloud-fill) 70%, var(--surface));
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  margin-top: auto;
+  border-top: 0;
+  padding: var(--s-8) var(--s-4) var(--s-8);
   text-align: center;
   color: var(--muted);
   font-size: var(--text-sm);
+  background: var(--public-footer-bg);
+}
+/* Sit the bank on the top edge so clouds rise into the page above the footer. */
+.public-footer-bank {
+  top: calc(-1 * var(--cloud-bank-h) + 1px);
+  bottom: auto;
+  z-index: 0;
+}
+.public-footer-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--accent) 18%, var(--tint-base));
+}
+.public-footer-bank .cloud-bank-front {
+  fill: var(--public-footer-bg);
+}
+.public-footer-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.public-footer-inner p {
+  margin: 0;
+  max-width: 36rem;
+}
+.public-footer-inner a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.page-themed .public-footer {
+  --public-footer-bg: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 10%, var(--surface));
+  color: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--ink)))) 28%, var(--ink-2));
+}
+.page-themed .public-footer-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 24%, var(--tint-base));
+}
+.page-themed .public-footer a:not(.logo) {
+  color: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 45%, var(--ink));
+}
+.page-themed:not(.page-themed-dark) .public-footer .logo {
+  color: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--ink)))) 35%, var(--ink));
+}
+.page-themed:not(.page-themed-dark) .public-footer .logo-mark {
+  background: linear-gradient(
+    135deg,
+    var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 0%,
+    var(--list-tint-2, var(--page-tint-2, var(--page-tint, var(--wl-accent, var(--accent))))) 100%
+  );
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--list-tint, var(--page-tint, var(--accent))) 28%, transparent);
+}
+.page-themed-dark .public-footer {
+  --public-footer-bg: color-mix(in srgb, var(--list-tint, var(--page-tint)) 16%, #151b2c);
+  color: rgb(255 255 255 / 0.72);
+}
+.page-themed-dark .public-footer-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--list-tint, var(--page-tint)) 30%, #1c2438);
+}
+.page-themed-dark .public-footer a:not(.logo) {
+  color: rgb(255 255 255 / 0.92);
+  text-decoration-color: rgb(255 255 255 / 0.45);
+}
+.page-themed-dark .public-footer .logo {
+  color: #fff;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+}
+.page-themed-dark .public-footer .logo-mark {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+.page-themed-dark .public-footer .logo-mark svg :is(path, circle) {
+  fill: var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent))));
 }
 
 /* Item detail (public & app) — image left, title/content/actions right */
@@ -6052,15 +7111,107 @@ button.empty:hover {
   flex-shrink: 0;
 }
 .error-page {
+  --error-tint: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  --error-tint-2: var(--page-tint-2, var(--page-tint, var(--dashboard-tint, var(--accent))));
+  position: relative;
+  isolation: isolate;
   min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: var(--s-6);
-  background: var(--bg);
+  overflow: hidden;
+  background:
+    var(--stars, none),
+    radial-gradient(ellipse 90% 55% at 18% -5%, color-mix(in srgb, var(--error-tint) 22%, transparent), transparent 58%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--error-tint) 16%, var(--tint-base, var(--bg))) 0%,
+      color-mix(in srgb, var(--error-tint-2) 8%, var(--bg)) 55%,
+      var(--bg) 100%
+    );
+}
+.error-page.dashboard-themed-paint {
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--error-tint) 42%, var(--bg)) 0%,
+    color-mix(in srgb, var(--error-tint) 18%, var(--bg)) 48%,
+    color-mix(in srgb, var(--error-tint-2) 28%, var(--bg)) 100%
+  );
+}
+.error-page.dashboard-themed-dark {
+  background:
+    var(--stars, none),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--error-tint) 32%, #1c2438) 0%,
+      color-mix(in srgb, var(--error-tint-2) 18%, #151b2c) 100%
+    );
+  color: rgb(255 255 255 / 0.92);
+}
+.error-page-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+}
+.error-page-scene .cover-art {
+  --cloud-bank-h: 88px;
+}
+.error-page-scene .cover-bank .cloud-bank-front {
+  fill: color-mix(in srgb, var(--error-tint-2) 12%, var(--bg)) !important;
+}
+.error-page-clouds {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.error-cloud {
+  position: absolute;
+  left: 0;
+  will-change: transform;
+  animation-name: cover-cloud-cross;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.error-cloud .cloud-back {
+  fill: color-mix(in srgb, var(--error-tint) 22%, var(--tint-base, var(--surface)));
+}
+.error-cloud-a {
+  top: 10%;
+  width: clamp(120px, 16vw, 240px);
+  animation-duration: 48s;
+  animation-delay: -8s;
+}
+.error-cloud-b {
+  top: 28%;
+  width: clamp(100px, 14vw, 200px);
+  opacity: 0.85;
+  animation-duration: 64s;
+  animation-delay: -24s;
+  animation-direction: reverse;
+}
+.error-cloud-c {
+  top: 52%;
+  width: clamp(140px, 18vw, 280px);
+  opacity: 0.75;
+  animation-duration: 56s;
+  animation-delay: -16s;
+}
+.error-cloud-d {
+  top: 72%;
+  width: clamp(110px, 15vw, 220px);
+  opacity: 0.7;
+  animation-duration: 72s;
+  animation-delay: -40s;
+  animation-direction: reverse;
 }
 .error-sky {
   --cloud-bank-h: 56px;
   position: relative;
+  z-index: 1;
   isolation: isolate;
   overflow: hidden;
   container-type: inline-size;
@@ -6070,20 +7221,43 @@ button.empty:hover {
   width: min(100%, 720px);
   min-height: 320px;
   padding: var(--s-8) var(--s-6) calc(var(--cloud-bank-h) + var(--s-6));
-  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--error-tint) 22%, var(--border));
   border-radius: var(--radius-lg);
-  background: var(--stars), linear-gradient(180deg, var(--hero-bg) 0%, color-mix(in srgb, var(--accent) 6%, var(--tint-base)) 100%);
+  background:
+    var(--stars, none),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--error-tint) 14%, var(--surface)) 0%,
+      color-mix(in srgb, var(--error-tint-2) 7%, color-mix(in srgb, var(--cloud-fill) 40%, var(--surface))) 100%
+    );
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.5) inset,
+    0 16px 40px color-mix(in srgb, var(--error-tint) 14%, transparent);
   text-align: left;
 }
-.error-sky-crash {
-  border-color: color-mix(in srgb, var(--blush) 20%, transparent);
-  background: var(--stars), linear-gradient(180deg, var(--blush-bg) 0%, color-mix(in srgb, var(--blush) 6%, var(--tint-base)) 100%);
+.error-page.dashboard-themed-dark .error-sky {
+  background:
+    var(--stars, none),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--error-tint) 28%, #1c2438) 0%,
+      color-mix(in srgb, var(--error-tint-2) 16%, #151b2c) 100%
+    );
+  border-color: color-mix(in srgb, var(--error-tint) 34%, transparent);
+  color: rgb(255 255 255 / 0.92);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 16px 40px rgb(0 0 0 / 0.35);
 }
-.error-sky-crash .page-sky-eyebrow {
-  color: var(--blush-ink);
+.error-sky .page-sky-eyebrow {
+  color: color-mix(in srgb, var(--error-tint) 45%, var(--accent-ink));
 }
-.error-sky-crash .error-sky-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--blush) 22%, var(--tint-base));
+.error-page.dashboard-themed-dark .error-sky .page-sky-eyebrow,
+.error-page.dashboard-themed-dark .error-sky-title {
+  color: #fff;
+}
+.error-page.dashboard-themed-dark .error-sky-body {
+  color: rgb(255 255 255 / 0.78);
 }
 .error-sky-copy {
   position: relative;
@@ -6124,10 +7298,22 @@ button.empty:hover {
   z-index: 0;
 }
 .error-sky-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--accent) 20%, var(--tint-base));
+  fill: color-mix(in srgb, var(--error-tint) 20%, var(--tint-base, var(--surface)));
 }
 .error-sky-bank .cloud-bank-front {
-  fill: var(--cloud-fill);
+  fill: color-mix(in srgb, var(--cloud-fill) 55%, var(--surface));
+}
+.error-page.dashboard-themed-dark .error-sky-bank .cloud-bank-front {
+  fill: color-mix(in srgb, #151b2c 80%, #121826);
+}
+@media (prefers-reduced-motion: reduce) {
+  .error-cloud {
+    animation: none;
+  }
+  .error-cloud-a { left: 12%; }
+  .error-cloud-b { left: 68%; }
+  .error-cloud-c { left: 38%; }
+  .error-cloud-d { left: 55%; }
 }
 @container (max-width: 560px) {
   .error-sky {
@@ -6186,6 +7372,57 @@ button.empty:hover {
   position: absolute;
   inset: 0;
   animation: cover-fall 6s ease-in-out infinite alternate;
+}
+/* Seasonal particles: real fall / rise through the cover (snow, leaves, confetti, hearts…). */
+.cover-particle {
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+.cover-particle-fall {
+  top: -12%;
+  animation: cover-particle-fall var(--fall-dur, 8s) linear infinite;
+  animation-delay: var(--fall-delay, 0s);
+}
+.cover-particle-rise {
+  top: 112%;
+  animation: cover-particle-rise var(--fall-dur, 8s) linear infinite;
+  animation-delay: var(--fall-delay, 0s);
+}
+.cover-snowflake {
+  overflow: visible;
+  filter: drop-shadow(0 0 0.4cqh rgb(255 255 255 / 0.85));
+}
+@keyframes cover-particle-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift, 10%), 130cqh, 0) rotate(var(--spin, 360deg));
+    opacity: 0.7;
+  }
+}
+@keyframes cover-particle-rise {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.85);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(var(--drift, -8%), -130cqh, 0) rotate(var(--spin, -200deg)) scale(1.05);
+    opacity: 0.55;
+  }
 }
 .cover-bank {
   z-index: -1;
@@ -6302,6 +7539,57 @@ button.empty:hover {
 }
 .cover-cloud-b {
   animation: cover-drift 20s ease-in-out infinite alternate-reverse;
+}
+/* Extra puffs only on full-page theme skies — cards keep the original pair. */
+.cover-cloud-c,
+.cover-cloud-d {
+  display: none;
+}
+/* Page / dashboard washes: single clouds cruise across at staggered heights. */
+.dashboard-theme-sky .cover-cloud,
+.page-theme-sky .cover-cloud {
+  left: 0 !important;
+  display: block;
+  will-change: transform;
+  animation-name: cover-cloud-cross;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.dashboard-theme-sky .cover-cloud-a,
+.page-theme-sky .cover-cloud-a {
+  top: 12% !important;
+  animation-duration: 48s;
+  animation-delay: -6s;
+}
+.dashboard-theme-sky .cover-cloud-b,
+.page-theme-sky .cover-cloud-b {
+  top: 28% !important;
+  animation-duration: 64s;
+  animation-delay: -22s;
+  animation-direction: reverse;
+}
+.dashboard-theme-sky .cover-cloud-c,
+.page-theme-sky .cover-cloud-c {
+  top: 48% !important;
+  opacity: 0.78;
+  animation-duration: 56s;
+  animation-delay: -14s;
+}
+.dashboard-theme-sky .cover-cloud-d,
+.page-theme-sky .cover-cloud-d {
+  top: 68% !important;
+  opacity: 0.7;
+  animation-duration: 72s;
+  animation-delay: -40s;
+  animation-direction: reverse;
+}
+@keyframes cover-cloud-cross {
+  from {
+    transform: translateX(-35cqw);
+  }
+  to {
+    transform: translateX(135cqw);
+  }
 }
 /* Desktop title cards: keep the far-right cloud, nudge the near cloud + sun up and right clear of the avatar. */
 @media (min-width: 640px) {
@@ -6467,13 +7755,40 @@ button.empty:hover {
 @media (prefers-reduced-motion: reduce) {
   .cover-cloud-a,
   .cover-cloud-b,
+  .cover-cloud-c,
+  .cover-cloud-d,
+  .dashboard-theme-sky .cover-cloud,
+  .page-theme-sky .cover-cloud,
   .cover-flakes,
   .cover-rise,
+  .cover-particle-fall,
+  .cover-particle-rise,
   .cover-summer-rays,
   .cover-star,
   .cover-bat,
   .cover-glow {
     animation: none;
+  }
+  .dashboard-theme-sky .cover-cloud-a,
+  .page-theme-sky .cover-cloud-a {
+    left: 18% !important;
+  }
+  .dashboard-theme-sky .cover-cloud-b,
+  .page-theme-sky .cover-cloud-b {
+    left: 72% !important;
+  }
+  .dashboard-theme-sky .cover-cloud-c,
+  .page-theme-sky .cover-cloud-c {
+    left: 42% !important;
+  }
+  .dashboard-theme-sky .cover-cloud-d,
+  .page-theme-sky .cover-cloud-d {
+    left: 58% !important;
+  }
+  .cover-particle-fall,
+  .cover-particle-rise {
+    top: 40%;
+    opacity: 0.85;
   }
 }
 
@@ -6579,6 +7894,7 @@ button.empty:hover {
   gap: 8px;
 }
 .cover-paint-swatch {
+  position: relative;
   aspect-ratio: 1;
   border: 2px solid var(--surface);
   border-radius: 12px;
@@ -6662,6 +7978,10 @@ button.empty:hover {
   aspect-ratio: 16 / 9;
   border-radius: 8px;
   overflow: hidden;
+}
+.cover-backdrop-thumb .scene-picker-check {
+  /* sit above the thumb art */
+  pointer-events: none;
 }
 .cover-backdrop-thumb .cover-art * {
   animation: none;
@@ -7002,6 +8322,32 @@ button.empty:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.app-shell.dashboard-themed-dark .gift-cat {
+  color: var(--dash-panel-muted);
+}
+.app-shell.dashboard-themed-dark .gift-cat-label {
+  color: inherit;
+}
+.app-shell.dashboard-themed-dark .gift-cat[aria-pressed='true'] {
+  color: var(--dash-panel-ink);
+}
+.app-shell.dashboard-themed-dark .gift-cat-art {
+  background: color-mix(in srgb, #fff 10%, transparent);
+  border-color: color-mix(in srgb, #fff 16%, transparent);
+}
+.app-shell.dashboard-themed-dark .gift-cat:hover .gift-cat-art {
+  border-color: color-mix(in srgb, #fff 30%, transparent);
+}
+.app-shell.dashboard-themed-dark .gift-cat[aria-pressed='true'] .gift-cat-art {
+  background: color-mix(in srgb, var(--dashboard-tint) 28%, #1a2030);
+  border-color: color-mix(in srgb, var(--dashboard-tint) 55%, #fff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dashboard-tint) 50%, transparent);
+}
+.app-shell.dashboard-themed-dark .gift-cats-arrow {
+  background: color-mix(in srgb, var(--dash-panel) 88%, transparent);
+  border-color: color-mix(in srgb, #fff 16%, transparent);
+  color: var(--dash-panel-ink);
 }
 .gift-cats-wrap + .section {
   margin-top: var(--s-5);
@@ -7563,11 +8909,15 @@ button.empty:hover {
     transform var(--dur-slow) var(--ease),
     opacity var(--dur-slow) var(--ease);
 }
-.theme-toggle-sun {
-  color: #e2a23b;
+.theme-toggle-sun,
+.theme-toggle-moon {
+  color: var(--ink-2);
+}
+.theme-toggle:hover .theme-toggle-sun,
+.theme-toggle:hover .theme-toggle-moon {
+  color: var(--ink);
 }
 .theme-toggle-moon {
-  color: #f3d77a;
   opacity: 0;
   transform: translateY(18px) rotate(-40deg);
 }
@@ -8864,12 +10214,6 @@ button.empty:hover {
 
 /* ── Boxes ─────────────────────────────────────────────────────────────── */
 
-.lists-switch {
-  margin-bottom: var(--s-4);
-}
-.friends-switch {
-  flex-wrap: wrap;
-}
 .segmented a,
 .segmented > button {
   display: inline-flex;
@@ -8888,15 +10232,169 @@ button.empty:hover {
   white-space: nowrap;
   cursor: pointer;
 }
-.segmented a:hover,
-.segmented > button:hover {
-  color: var(--ink);
+@media (hover: hover) and (pointer: fine) {
+  .segmented:not(.lists-switch):not(.friends-switch) a:hover,
+  .segmented:not(.lists-switch):not(.friends-switch) > button:hover {
+    color: var(--ink);
+  }
 }
-.segmented a[aria-current='page'],
-.segmented > button[aria-current='page'] {
+.segmented:not(.lists-switch):not(.friends-switch) a[aria-current='page'],
+.segmented:not(.lists-switch):not(.friends-switch) > button[aria-current='page'] {
   background: var(--surface);
   color: var(--ink);
   box-shadow: 0 0 0 1px var(--border);
+}
+
+/* Page section tabs (Lists / Friends) — soft cloudy pill bar. */
+.segmented.lists-switch,
+.segmented.friends-switch {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: var(--s-5);
+  padding: 5px;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border));
+  border-radius: calc(var(--radius-lg) + 6px);
+  background:
+    radial-gradient(120% 80% at 12% 0%, color-mix(in srgb, var(--cloud-fill) 70%, transparent) 0%, transparent 55%),
+    radial-gradient(90% 70% at 88% 100%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 50%),
+    linear-gradient(180deg, color-mix(in srgb, var(--hero-bg) 88%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 6%, var(--tint-base)) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
+.segmented.lists-switch::-webkit-scrollbar,
+.segmented.friends-switch::-webkit-scrollbar {
+  display: none;
+}
+.segmented.lists-switch a,
+.segmented.lists-switch > button,
+.segmented.friends-switch a,
+.segmented.friends-switch > button {
+  flex: 1 1 0;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 48px;
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  box-shadow: none;
+  font-weight: 650;
+  color: var(--muted);
+  transition:
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.segmented.lists-switch a:hover,
+.segmented.lists-switch > button:hover,
+.segmented.friends-switch a:hover,
+.segmented.friends-switch > button:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+}
+.segmented.lists-switch a[aria-current='page'],
+.segmented.lists-switch > button[aria-current='page'],
+.segmented.friends-switch a[aria-current='page'],
+.segmented.friends-switch > button[aria-current='page'] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.8) inset,
+    0 1px 2px rgb(16 38 92 / 0.06),
+    0 6px 16px rgb(16 38 92 / 0.08);
+}
+.segmented.lists-switch .art-icon-tab,
+.segmented.friends-switch .art-icon-tab {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cloud-fill) 55%, var(--hero-bg));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.segmented.lists-switch .art-icon-tab svg,
+.segmented.friends-switch .art-icon-tab svg {
+  width: 22px;
+  height: 22px;
+}
+.segmented.lists-switch a[aria-current='page'] .art-icon-tab,
+.segmented.lists-switch > button[aria-current='page'] .art-icon-tab,
+.segmented.friends-switch a[aria-current='page'] .art-icon-tab,
+.segmented.friends-switch > button[aria-current='page'] .art-icon-tab {
+  background: color-mix(in srgb, var(--accent) 12%, var(--hero-bg));
+}
+.segmented.lists-switch a[aria-current='page'] .art-icon-tab svg,
+.segmented.lists-switch > button[aria-current='page'] .art-icon-tab svg,
+.segmented.friends-switch a[aria-current='page'] .art-icon-tab svg,
+.segmented.friends-switch > button[aria-current='page'] .art-icon-tab svg {
+  transform: translateY(-1px) rotate(-4deg);
+}
+.segmented.lists-switch .faint,
+.segmented.lists-switch .nav-badge,
+.segmented.friends-switch .faint,
+.segmented.friends-switch .nav-badge {
+  font-weight: 600;
+}
+@media (max-width: 479px) {
+  .segmented.lists-switch a,
+  .segmented.lists-switch > button,
+  .segmented.friends-switch a,
+  .segmented.friends-switch > button {
+    flex-direction: column;
+    gap: 2px;
+    height: 58px;
+    font-size: var(--text-xs);
+    padding: 0 var(--s-2);
+    border-radius: calc(var(--radius-lg) - 2px);
+  }
+}
+@media (min-width: 640px) {
+  .segmented.lists-switch,
+  .segmented.friends-switch {
+    padding: 6px;
+    gap: 6px;
+    border-radius: calc(var(--radius-lg) + 8px);
+  }
+  .segmented.lists-switch a,
+  .segmented.lists-switch > button,
+  .segmented.friends-switch a,
+  .segmented.friends-switch > button {
+    height: 52px;
+    font-size: var(--text-base);
+    gap: 10px;
+    padding: 0 var(--s-4);
+  }
+  .segmented.lists-switch .art-icon-tab,
+  .segmented.friends-switch .art-icon-tab {
+    width: 34px;
+    height: 34px;
+  }
+  .segmented.lists-switch .art-icon-tab svg,
+  .segmented.friends-switch .art-icon-tab svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+:root[data-theme='dark'] .segmented.lists-switch,
+:root[data-theme='dark'] .segmented.friends-switch {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+}
+:root[data-theme='dark'] .segmented.lists-switch a[aria-current='page'],
+:root[data-theme='dark'] .segmented.lists-switch > button[aria-current='page'],
+:root[data-theme='dark'] .segmented.friends-switch a[aria-current='page'],
+:root[data-theme='dark'] .segmented.friends-switch > button[aria-current='page'] {
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 6px 18px rgb(0 0 0 / 0.28);
 }
 .box-dot {
   display: inline-block;

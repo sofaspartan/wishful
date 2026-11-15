@@ -526,8 +526,10 @@
     background var(--dur) var(--ease),
     color var(--dur) var(--ease);
 }
-.segmented button:hover {
-  color: var(--ink);
+@media (hover: hover) and (pointer: fine) {
+  .segmented button:hover {
+    color: var(--ink);
+  }
 }
 .segmented button[aria-pressed='true'],
 .segmented button[aria-selected='true'] {
@@ -931,6 +933,64 @@
   padding-bottom: var(--safe-bottom);
   overflow: hidden;
   isolation: isolate;
+}
+/* Dashboard look carries into portaled dialogs via `.modal-root.dashboard-themed`. */
+.modal-root.dashboard-themed .modal {
+  border-color: color-mix(in srgb, var(--dashboard-tint, var(--accent)) 22%, var(--border));
+  background:
+    radial-gradient(
+      ellipse 90% 55% at 12% -8%,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 18%, transparent),
+      transparent 58%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 10%, var(--surface)) 0%,
+      color-mix(in srgb, var(--page-tint-2, var(--page-tint, var(--dashboard-tint, var(--accent)))) 4%, var(--surface)) 42%
+    );
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.45) inset,
+    var(--shadow-lg);
+}
+.modal-root.dashboard-themed-dark .modal {
+  background:
+    radial-gradient(
+      ellipse 90% 55% at 12% -8%,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 28%, transparent),
+      transparent 58%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 22%, #1c2438) 0%,
+      color-mix(in srgb, var(--page-tint-2, var(--page-tint, var(--dashboard-tint))) 12%, #151b2c) 48%
+    );
+  border-color: color-mix(in srgb, var(--dashboard-tint) 34%, transparent);
+  color: rgb(255 255 255 / 0.92);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 18px 48px rgb(0 0 0 / 0.45);
+}
+.modal-root.dashboard-themed .modal::before {
+  background: color-mix(in srgb, var(--dashboard-tint, var(--accent)) 34%, var(--border-strong));
+}
+.modal-root.dashboard-themed .modal-header-icon {
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 16%, var(--surface));
+  color: color-mix(in srgb, var(--dashboard-tint, var(--accent)) 58%, var(--ink));
+}
+.modal-root.dashboard-themed .modal .segmented button[aria-pressed='true'],
+.modal-root.dashboard-themed .modal .segmented button[aria-selected='true'],
+.modal-root.dashboard-themed .modal .segmented button[aria-checked='true'] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dashboard-tint, var(--accent)) 28%, var(--border));
+}
+.modal-root.dashboard-themed-dark .modal-title,
+.modal-root.dashboard-themed-dark .modal-header-icon {
+  color: #fff;
+}
+.modal-root.dashboard-themed-dark .modal-subtitle {
+  color: rgb(255 255 255 / 0.72);
+}
+.modal-root.dashboard-themed-dark .modal-header-icon {
+  background: color-mix(in srgb, var(--dashboard-tint) 28%, #121826);
 }
 .modal:focus {
   outline: none;

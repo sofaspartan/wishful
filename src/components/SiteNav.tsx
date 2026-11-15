@@ -3,7 +3,6 @@ import { ArrowRight } from 'lucide-react';
 import { useMe } from '../lib/queries';
 import { brand } from '../config/brand';
 import { Logo } from './Logo';
-import { ThemeToggle } from './ThemeToggle';
 
 interface SiteNavProps {
   current?: 'home' | 'gifts' | 'knowledge';
@@ -44,7 +43,6 @@ export function SiteNav({ current, next }: SiteNavProps) {
           </Link>
         </>
       )}
-      <ThemeToggle />
     </header>
   );
 }

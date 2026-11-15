@@ -25,6 +25,7 @@ export const RATE_LIMITS = {
   invite: { limit: 30, windowSec: 60 * 60 },
   friend: { limit: 40, windowSec: 60 * 60 },
   circle: { limit: 60, windowSec: 60 * 60 },
+  favorites: { limit: 120, windowSec: 60 * 60 },
   extensionConnect: { limit: 20, windowSec: 60 * 60 },
   extensionSave: { limit: 300, windowSec: 60 * 60 },
   extensionImport: { limit: 120, windowSec: 60 * 60 },

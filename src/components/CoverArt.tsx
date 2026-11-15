@@ -538,6 +538,11 @@ const FLAKES: Array<[number, number, number]> = [
   [120, 76, 2.4],
   [272, 96, 2.2],
   [190, 84, 1.6],
+  [80, 30, 1.5],
+  [170, 12, 2.1],
+  [310, 70, 1.8],
+  [48, 60, 1.4],
+  [230, 8, 2.3],
 ];
 const CONFETTI: Array<[number, number, number, string]> = [
   [24, 26, 20, '#e8745b'],
@@ -651,6 +656,30 @@ const at = (x: number, y: number, extra?: CSSProperties): CSSProperties => ({ le
 const u = (n: number) => `calc(${n} * var(--u))`;
 const dot = (r: number) => `calc(${((r * 2) / 1.8).toFixed(2)} * var(--u) + 1px)`;
 
+/** Staggered fall/rise for seasonal cover particles — x stays; motion is CSS. */
+const particleStyle = (
+  x: number,
+  size: string,
+  i: number,
+  kind: 'fall' | 'rise' = 'fall',
+  extra?: CSSProperties,
+): CSSProperties => {
+  const drift = (i % 2 ? 1 : -1) * (5 + (i % 5) * 2.5);
+  const dur = kind === 'rise' ? 7 + (i % 4) * 1.2 : 6.5 + (i % 5) * 1.5;
+  return {
+    left: `${x / 3.2}%`,
+    width: size,
+    ['--fall-delay' as string]: `${-(i * 0.75 + (i % 3) * 0.35)}s`,
+    ['--fall-dur' as string]: `${dur}s`,
+    ['--drift' as string]: `${drift}%`,
+    ['--spin' as string]: `${(i % 2 ? 1 : -1) * (220 + i * 35)}deg`,
+    ...extra,
+  };
+};
+
+const SNOWFLAKE_PATH =
+  'M12 2v20M4.9 6.5l14.2 11M4.9 17.5l14.2-11M12 2l2.4 2.4M12 2L9.6 4.4M12 22l2.4-2.4M12 22l-2.4-2.4M4.9 6.5l3.2.4M4.9 6.5l.4 3.2M19.1 17.5l-3.2-.4M19.1 17.5l-.4-3.2M19.1 6.5l-3.2.4M19.1 6.5l-.4 3.2M4.9 17.5l3.2-.4M4.9 17.5l.4-3.2';
+
 const CloudPiece = ({ x, y, w, className }: { x: number; y: number; w: number; className: string }) => (
   <svg className={`cover-piece cover-cloud ${className}`} style={at(x, y, { width: u(w) })} viewBox="20 8 176 96" focusable="false">
     <circle cx="52" cy="70" r="30" />
@@ -676,6 +705,8 @@ function Decor({ backdrop }: { backdrop: CoverBackdrop }) {
         <>
           <CloudPiece x={30} y={86} w={44} className="cover-cloud-a" />
           <CloudPiece x={292} y={68} w={34} className="cover-cloud-b" />
+          <CloudPiece x={150} y={130} w={30} className="cover-cloud-c" />
+          <CloudPiece x={70} y={48} w={24} className="cover-cloud-d" />
         </>
       )}
       {backdrop === 'spooky' && (
@@ -699,18 +730,28 @@ function Decor({ backdrop }: { backdrop: CoverBackdrop }) {
         </>
       )}
       {backdrop === 'shamrock' && (
-        <div className="cover-flakes">
-          {CLOVERS.map(([x, y, w, rot, fill], i) => (
-            <svg key={i} className="cover-piece" style={at(x, y, { width: u(w), rotate: `${rot}deg` })} viewBox="-10 -10 20 20" focusable="false">
+        <>
+          {CLOVERS.map(([x, , w, rot, fill], i) => (
+            <svg
+              key={i}
+              className="cover-piece cover-particle cover-particle-fall"
+              style={particleStyle(x, u(w), i, 'fall', { ['--spin' as string]: `${rot + (i % 2 ? 180 : -180)}deg` })}
+              viewBox="-10 -10 20 20"
+              focusable="false"
+            >
               {[0, -115, 115].map((a) => (
                 <path key={a} d={CLOVER_LEAF} transform={`rotate(${a})`} fill={fill} />
               ))}
             </svg>
           ))}
-          {COINS.map(([x, y, r], i) => (
-            <span key={i} className="cover-piece cover-dot cover-coin" style={at(x, y, { width: dot(r) })} />
+          {COINS.map(([x, , r], i) => (
+            <span
+              key={`c${i}`}
+              className="cover-piece cover-dot cover-coin cover-particle cover-particle-fall"
+              style={particleStyle(x, dot(r), i + 8)}
+            />
           ))}
-        </div>
+        </>
       )}
       {backdrop === 'hanukkah' && (
         <>
@@ -758,35 +799,46 @@ function Decor({ backdrop }: { backdrop: CoverBackdrop }) {
           <Twinkle x={214} y={40} w={5.5} delay="-1.4s" />
         </>
       )}
-      {backdrop === 'snow' && (
-        <div className="cover-flakes">
-          {FLAKES.map(([x, y, r], i) => (
-            <span key={i} className="cover-piece cover-dot" style={at(x, y, { width: dot(r) })} />
-          ))}
-        </div>
-      )}
-      {backdrop === 'autumn' && (
-        <div className="cover-flakes">
-          {LEAVES.map(([x, y, w, rot, fill], i) => (
-            <svg key={i} className="cover-piece" style={at(x, y, { width: u(w), rotate: `${rot}deg` })} viewBox="0 0 20 24" focusable="false">
-              <path d="M10 1c7 5 9 12 7 17-1.5 3-4 4.5-7 5-3-.5-5.5-2-7-5C1 13 3 6 10 1z" fill={fill} />
-              <path d="M10 5v18" stroke="rgba(0,0,0,.16)" strokeWidth="1.3" strokeLinecap="round" />
-            </svg>
-          ))}
-        </div>
-      )}
-      {backdrop === 'spring' && (
-        <div className="cover-flakes">
-          {BLOSSOMS.map(([x, y, w, fill], i) => (
-            <svg key={i} className="cover-piece" style={at(x, y, { width: u(w) })} viewBox="-10 -10 20 20" focusable="false">
-              {PETALS.map(([cx, cy], k) => (
-                <circle key={k} cx={cx} cy={cy} r="4.4" fill={fill} />
-              ))}
-              <circle r="2.6" fill="#f2c14e" />
-            </svg>
-          ))}
-        </div>
-      )}
+      {backdrop === 'snow' &&
+        FLAKES.map(([x, , r], i) => (
+          <svg
+            key={i}
+            className="cover-piece cover-particle cover-particle-fall cover-snowflake"
+            style={particleStyle(x, u(r * 2.4), i)}
+            viewBox="0 0 24 24"
+            focusable="false"
+          >
+            <path d={SNOWFLAKE_PATH} fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        ))}
+      {backdrop === 'autumn' &&
+        LEAVES.map(([x, , w, rot, fill], i) => (
+          <svg
+            key={i}
+            className="cover-piece cover-particle cover-particle-fall"
+            style={particleStyle(x, u(w), i, 'fall', { ['--spin' as string]: `${rot + 360}deg` })}
+            viewBox="0 0 20 24"
+            focusable="false"
+          >
+            <path d="M10 1c7 5 9 12 7 17-1.5 3-4 4.5-7 5-3-.5-5.5-2-7-5C1 13 3 6 10 1z" fill={fill} />
+            <path d="M10 5v18" stroke="rgba(0,0,0,.16)" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        ))}
+      {backdrop === 'spring' &&
+        BLOSSOMS.map(([x, , w, fill], i) => (
+          <svg
+            key={i}
+            className="cover-piece cover-particle cover-particle-fall"
+            style={particleStyle(x, u(w), i)}
+            viewBox="-10 -10 20 20"
+            focusable="false"
+          >
+            {PETALS.map(([cx, cy], k) => (
+              <circle key={k} cx={cx} cy={cy} r="4.4" fill={fill} />
+            ))}
+            <circle r="2.6" fill="#f2c14e" />
+          </svg>
+        ))}
       {backdrop === 'summer' && (
         <>
           <svg className="cover-piece cover-summer-sun" style={at(52, 62, { width: u(40) })} viewBox="-24 -24 48 48" focusable="false">
@@ -795,6 +847,8 @@ function Decor({ backdrop }: { backdrop: CoverBackdrop }) {
             <circle r="12" fill="none" stroke="#fff3b0" strokeWidth="2" opacity=".6" />
           </svg>
           <CloudPiece x={286} y={84} w={32} className="cover-cloud-b" />
+          <CloudPiece x={48} y={100} w={28} className="cover-cloud-c" />
+          <CloudPiece x={180} y={52} w={22} className="cover-cloud-d" />
           <svg className="cover-piece cover-gull" style={at(236, 34, { width: u(9) })} viewBox="0 0 14 6" focusable="false">
             <path d="M1 5q3-4 6 0q3-4 6 0" />
           </svg>
@@ -803,21 +857,27 @@ function Decor({ backdrop }: { backdrop: CoverBackdrop }) {
           </svg>
         </>
       )}
-      {backdrop === 'hearts' && (
-        <div className="cover-rise">
-          {HEARTS.map(([x, y, w, fill], i) => (
-            <svg key={i} className="cover-piece" style={at(x, y, { width: u(w) })} viewBox="0 0 20 18" focusable="false">
-              <path d="M10 17.5L2.2 10A4.9 4.9 0 0 1 9.2 3.1l.8.8.8-.8A4.9 4.9 0 0 1 17.8 10z" fill={fill} />
-            </svg>
-          ))}
-        </div>
-      )}
+      {backdrop === 'hearts' &&
+        HEARTS.map(([x, , w, fill], i) => (
+          <svg
+            key={i}
+            className="cover-piece cover-particle cover-particle-rise"
+            style={particleStyle(x, u(w), i, 'rise')}
+            viewBox="0 0 20 18"
+            focusable="false"
+          >
+            <path d="M10 17.5L2.2 10A4.9 4.9 0 0 1 9.2 3.1l.8.8.8-.8A4.9 4.9 0 0 1 17.8 10z" fill={fill} />
+          </svg>
+        ))}
       {backdrop === 'confetti' &&
-        CONFETTI.map(([x, y, rot, fill], i) => (
+        CONFETTI.map(([x, , rot, fill], i) => (
           <span
             key={i}
-            className={`cover-piece ${i % 3 === 2 ? 'cover-dot' : 'cover-confetti'}`}
-            style={at(x, y, { background: fill, rotate: `${rot}deg`, width: u(i % 3 === 2 ? 3.8 : 6.8) })}
+            className={`cover-piece cover-particle cover-particle-fall ${i % 3 === 2 ? 'cover-dot' : 'cover-confetti'}`}
+            style={particleStyle(x, u(i % 3 === 2 ? 3.8 : 6.8), i, 'fall', {
+              background: fill,
+              ['--spin' as string]: `${rot + (i % 2 ? 540 : -540)}deg`,
+            })}
           />
         ))}
     </div>

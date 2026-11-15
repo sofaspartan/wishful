@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Info, Link2Off, Lock, MapPin, Package, Pencil, ScanLine, Search, Truck } from 'lucide-react';
 import { formatBoxCode, isBoxCode, isDarkCover, normalizeBoxCode, type PublicBoxView } from '../../shared/types';
@@ -7,8 +7,9 @@ import { useMe, usePublicBox } from '../lib/queries';
 import { ApiError, errorMessage } from '../lib/api';
 import { brand } from '../config/brand';
 import { Logo } from '../components/Logo';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { CloudBank } from '../components/Cloud';
 import { CoverArt, CoverAvatar } from '../components/CoverArt';
+import { ThemedPage } from '../components/PageTheme';
 import { ItemCard, ItemCardSkeleton } from '../components/ItemCard';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { BoxNumberBadge, FragileBadge, boxDisplayName, thingCount } from '../components/BoxVisuals';
@@ -32,7 +33,6 @@ function ScanHeader() {
           <span className="show-xs">Sign up free</span>
         </Link>
       )}
-      <ThemeToggle />
     </header>
   );
 }
@@ -161,7 +161,14 @@ function BoxScanView({ view }: { view: PublicBoxView }) {
   }, [box]);
 
   return (
-    <div className="public-shell box-scan" style={{ ['--box-color' as string]: box.color }}>
+    <ThemedPage
+      className="public-shell box-scan"
+      pageBackdrop={box.pageBackdrop}
+      pageColors={box.pageColors}
+      coverArt={box.coverArt}
+      accentColor={box.color}
+      style={{ ['--box-color' as string]: box.color } as CSSProperties}
+    >
       <ScanHeader />
 
       {viewer.isOwner && box.id && (
@@ -272,19 +279,20 @@ function BoxScanView({ view }: { view: PublicBoxView }) {
       </main>
 
       <footer className="public-footer">
-        <p className="box-scan-code">
-          Box code <strong>{formatBoxCode(box.code)}</strong>
-        </p>
-        <Logo to="/" size={22} />
-        <p style={{ marginTop: 8 }}>
-          Organized with {brand.name}.{' '}
-          <Link to="/register" style={{ textDecoration: 'underline' }}>
-            Label your own boxes
-          </Link>
-        </p>
+        <CloudBank className="public-footer-bank" />
+        <div className="public-footer-inner">
+          <p className="box-scan-code">
+            Box code <strong>{formatBoxCode(box.code)}</strong>
+          </p>
+          <Logo to="/" size={22} />
+          <p>
+            Organized with {brand.name}.{' '}
+            <Link to="/register">Label your own boxes</Link>
+          </p>
+        </div>
       </footer>
 
       <ItemDetailModal item={openItem} onClose={() => setOpenId(null)} />
-    </div>
+    </ThemedPage>
   );
 }

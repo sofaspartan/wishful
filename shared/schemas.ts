@@ -19,6 +19,7 @@ import {
   CASH_FUND_DISPLAY_MODES,
   CIRCLE_KINDS,
   COVER_ICONS,
+  FAVORITE_TARGET_TYPES,
   ITEM_ORDERS,
   ITEM_TYPES,
   LIST_KINDS,
@@ -367,6 +368,8 @@ const wishlistFields = {
   description: z.string().trim().max(2000).optional(),
   coverImage: optionalImageUrlSchema.optional(),
   coverArt: coverArtSchema.nullable().optional(),
+  pageBackdrop: z.union([z.enum(COVER_BACKDROPS), z.literal('match')]).nullable().optional(),
+  pageColors: z.array(colorSchema).min(1).max(2).nullable().optional(),
   accentColor: colorSchema.optional(),
   visibility: visibilitySchema.optional(),
   occasion: z.string().trim().max(60).optional(),
@@ -404,13 +407,29 @@ const wishlistFields = {
   cashFund: cashFundSchema.nullable().optional(),
 };
 
-export const wishlistCreateSchema = z.object({ ...wishlistFields, kind: listKindSchema.optional() });
+function refinePageTheme(
+  v: { pageBackdrop?: string | null; pageColors?: string[] | null },
+  ctx: z.RefinementCtx,
+) {
+  if (v.pageBackdrop === 'solid' && v.pageColors?.length !== 1) {
+    ctx.addIssue({ code: 'custom', path: ['pageColors'], message: 'Pick a colour' });
+  }
+  if (v.pageBackdrop === 'gradient' && v.pageColors?.length !== 2) {
+    ctx.addIssue({ code: 'custom', path: ['pageColors'], message: 'Pick both colours' });
+  }
+}
 
-export const wishlistUpdateSchema = z.object({
-  ...wishlistFields,
-  title: wishlistFields.title.optional(),
-  archived: z.boolean().optional(),
-});
+export const wishlistCreateSchema = z
+  .object({ ...wishlistFields, kind: listKindSchema.optional() })
+  .superRefine(refinePageTheme);
+
+export const wishlistUpdateSchema = z
+  .object({
+    ...wishlistFields,
+    title: wishlistFields.title.optional(),
+    archived: z.boolean().optional(),
+  })
+  .superRefine(refinePageTheme);
 
 export const orderSchema = z.object({ ids: z.array(idSchema).max(5000) });
 
@@ -458,17 +477,21 @@ const boxFields = {
   fragile: z.boolean().optional(),
   notes: z.string().trim().max(LIMITS.notes).optional(),
   coverArt: coverArtSchema.optional(),
+  pageBackdrop: z.union([z.enum(COVER_BACKDROPS), z.literal('match')]).nullable().optional(),
+  pageColors: z.array(colorSchema).min(1).max(2).nullable().optional(),
   access: z.enum(BOX_ACCESS).optional(),
   showPrices: z.boolean().optional(),
   lines: z.array(boxLineSchema).max(MAX_BOX_LINES, `A box can list up to ${MAX_BOX_LINES} other things`).optional(),
 };
 
-export const boxCreateSchema = z.object(boxFields);
-export const boxUpdateSchema = z.object({
-  ...boxFields,
-  name: boxFields.name.optional(),
-  archived: z.boolean().optional(),
-});
+export const boxCreateSchema = z.object(boxFields).superRefine(refinePageTheme);
+export const boxUpdateSchema = z
+  .object({
+    ...boxFields,
+    name: boxFields.name.optional(),
+    archived: z.boolean().optional(),
+  })
+  .superRefine(refinePageTheme);
 
 /** Pack items into a box, or take them out of whatever box they're in (`boxId: null`). */
 export const boxItemsSchema = z.object({ itemIds: z.array(idSchema).min(1).max(MAX_BOX_ITEMS), boxId: idSchema.nullable() });
@@ -541,6 +564,18 @@ export const playshelfConnectSchema = z.object({
 export const notificationsReadSchema = z.object({
   ids: z.array(z.string().max(64)).max(200).optional(),
   all: z.boolean().optional(),
+});
+
+export const favoriteTargetTypeSchema = z.enum(FAVORITE_TARGET_TYPES);
+
+export const favoriteCreateSchema = z.object({
+  targetType: favoriteTargetTypeSchema,
+  targetId: idSchema,
+});
+
+export const favoriteRemoveSchema = z.object({
+  targetType: favoriteTargetTypeSchema,
+  targetId: idSchema,
 });
 
 export const circleKindSchema = z.enum(CIRCLE_KINDS);

@@ -14,8 +14,10 @@ export function ItemImage({ src, type, alt = '', iconSize = 28, cover }: { src: 
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
-      <div className="item-placeholder" data-type={type}>
-        <ItemTypeIcon type={type} size={iconSize} />
+      <div className="item-placeholder item-placeholder-wash" data-type={type}>
+        <span className="item-placeholder-icon">
+          <ItemTypeIcon type={type} size={iconSize} />
+        </span>
       </div>
     );
   }

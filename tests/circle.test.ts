@@ -89,6 +89,49 @@ describe('My Circle', () => {
     expect(linkPet.data.error.message).toMatch(/pet/i);
   });
 
+  it('shows My Circle photos on lists and public pages even when the list snapshot has none', async () => {
+    const { agent } = await signUp();
+    const photo = 'https://cdn.example.com/ava.jpg';
+    const circle = await agent.post('/api/circle', { name: 'Ava', kind: 'person', avatarUrl: photo });
+    const personId = circle.data.person.id;
+
+    // Client sends no avatarUrl — server copies from My Circle onto the stored recipient.
+    const list = await createList(agent, {
+      title: 'Ava turns 6',
+      recipients: [{ name: 'Ava', circlePersonId: personId }],
+    });
+    expect(list.recipients[0].avatarUrl).toBe(photo);
+
+    const bare = await createList(agent, {
+      title: 'Ava Christmas',
+      recipients: [{ name: 'Ava', circlePersonId: personId }],
+    });
+
+    // Person listed before they had a photo — later My Circle photo should appear everywhere.
+    const noPhoto = await agent.post('/api/circle', { name: 'Leo', kind: 'person' });
+    const leoList = await createList(agent, {
+      title: 'Leo turns 4',
+      recipients: [{ name: 'Leo', circlePersonId: noPhoto.data.person.id }],
+    });
+    expect(leoList.recipients[0].avatarUrl).toBeNull();
+
+    const leoPhoto = 'https://cdn.example.com/leo.jpg';
+    expect((await agent.patch(`/api/circle/${noPhoto.data.person.id}`, { avatarUrl: leoPhoto })).status).toBe(200);
+
+    const summaries = await agent.get('/api/wishlists');
+    const leoSummary = summaries.data.wishlists.find((w: { id: string }) => w.id === leoList.id);
+    expect(leoSummary.recipients[0].avatarUrl).toBe(leoPhoto);
+
+    const detail = await agent.get(`/api/wishlists/${leoList.id}`);
+    expect(detail.data.recipients[0].avatarUrl).toBe(leoPhoto);
+
+    const pub = await agent.get(`/api/public/lists/${leoList.shareToken}`);
+    expect(pub.data.recipients[0].avatarUrl).toBe(leoPhoto);
+
+    const avaPub = await agent.get(`/api/public/lists/${bare.shareToken}`);
+    expect(avaPub.data.recipients[0].avatarUrl).toBe(photo);
+  });
+
   it('requires auth for My Circle', async () => {
     expect((await new Agent().get('/api/circle')).status).toBe(401);
     expect((await new Agent().post('/api/circle', { name: 'Ava' })).status).toBe(401);

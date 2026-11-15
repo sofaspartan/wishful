@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bookmark, BookOpen, Gift, House, LayoutTemplate, List, LogOut, Menu as MenuIcon, Moon, Search, Settings, Smartphone, Sun, User, UserRoundPlus } from 'lucide-react';
+import { BookOpen, Gift, House, LayoutTemplate, List, LogOut, Menu as MenuIcon, Package, Search, Settings, Smartphone, Star, User, UserRoundPlus } from 'lucide-react';
+import { coverPaint } from '../../shared/types';
 import { useFriends, useMe, useWishlists } from '../lib/queries';
 import { post } from '../lib/api';
-import { setTheme, useTheme } from '../lib/theme';
-import { useDashboardScene } from '../lib/dashboardScene';
+import { CLASSIC_DASHBOARD_TINTS, dashboardLookIsDark, useDashboardLook } from '../lib/dashboardScene';
 import { useLayoutMode, useStandaloneDisplayAttr } from '../lib/layoutMode';
 import { Logo } from './Logo';
 import { CloudBank } from './Cloud';
@@ -20,13 +20,22 @@ import { WishlistFormModal } from './WishlistFormModal';
 import { SearchPalette } from './SearchPalette';
 import { NotificationsButton } from './NotificationsButton';
 import { DashboardScenePicker } from './DashboardScenePicker';
-import { ThemeToggle } from './ThemeToggle';
 import { InstallTip } from './InstallTip';
 
-const NAV = [
+/** Desktop sidebar — includes Lists (boxes live under lists). */
+const SIDEBAR_NAV = [
   { to: '/app', label: 'Home', icon: House, end: true },
-  { to: '/app/lists', label: 'My Lists', short: 'Lists', icon: List },
-  { to: '/app/items', label: 'Saved Items', short: 'Saved', icon: Bookmark },
+  { to: '/app/lists', label: 'My Lists', icon: List },
+  { to: '/app/items', label: 'Items', icon: Package },
+  { to: '/app/favorites', label: 'Favorites', icon: Star },
+  { to: '/app/friends', label: 'Friends', icon: UserRoundPlus },
+];
+
+/** Mobile bottom bar: Home · Items · [Add] · Favorites · Friends */
+const BOTTOM_NAV = [
+  { to: '/app', label: 'Home', icon: House, end: true },
+  { to: '/app/items', label: 'Items', icon: Package },
+  { to: '/app/favorites', label: 'Favorites', icon: Star },
   { to: '/app/friends', label: 'Friends', icon: UserRoundPlus },
 ];
 
@@ -34,9 +43,7 @@ export function AppLayout() {
   const { data: user } = useMe();
   const { data: wishlists } = useWishlists();
   const { data: friends } = useFriends();
-  const theme = useTheme();
-  const dark = theme === 'dark';
-  const [dashboardScene] = useDashboardScene();
+  const [dashboardLook] = useDashboardLook();
   const [layoutMode, setLayoutMode] = useLayoutMode();
   useStandaloneDisplayAttr();
   const requestCount = friends?.incoming.length ?? 0;
@@ -111,16 +118,56 @@ export function AppLayout() {
     </>
   );
 
+  /* Soft classics share card/sidebar chrome tinting; scenes & paints keep their own washes. */
+  const themed = true;
+  const soft = dashboardLook.mode === 'classic';
+  const paint = dashboardLook.mode === 'solid' || dashboardLook.mode === 'gradient';
+  const softTints = soft ? CLASSIC_DASHBOARD_TINTS[dashboardLook.scene] : null;
+  const shellStyle: CSSProperties | undefined =
+    soft && softTints
+      ? {
+          ['--page-tint' as string]: softTints.tint,
+          ['--page-tint-2' as string]: softTints.tint2,
+        }
+      : dashboardLook.mode === 'solid'
+        ? {
+            ['--page-tint' as string]: dashboardLook.color,
+            ['--page-tint-2' as string]: dashboardLook.color,
+            ['--page-paint' as string]: dashboardLook.color,
+          }
+        : dashboardLook.mode === 'gradient'
+          ? {
+              ['--page-tint' as string]: dashboardLook.colors[0],
+              ['--page-tint-2' as string]: dashboardLook.colors[1],
+              ['--page-paint' as string]:
+                coverPaint({ backdrop: 'gradient', colors: dashboardLook.colors }) ?? undefined,
+            }
+          : undefined;
+
   return (
     <AppActionsContext.Provider value={actions}>
-      <div className="app-shell" data-layout-mode={layoutMode}>
+      <div
+        className={[
+          'app-shell',
+          themed && 'dashboard-themed',
+          soft && 'dashboard-soft',
+          paint && 'dashboard-themed-paint',
+          dashboardLook.mode === 'scene' && `page-bg-${dashboardLook.backdrop}`,
+          themed && !soft && dashboardLookIsDark(dashboardLook) && 'dashboard-themed-dark',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        data-layout-mode={layoutMode}
+        data-dashboard-scene={soft ? dashboardLook.scene : undefined}
+        style={shellStyle}
+      >
         <aside className="sidebar" aria-label="Sidebar">
           <div className="sidebar-brand">
             <Logo to="/app" />
           </div>
           <CreateMenu variant="add" block align="left" />
           <nav className="sidebar-nav" aria-label="Main" style={{ marginTop: 12 }}>
-            {NAV.map(({ to, label, icon: Icon, end }) => (
+            {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -177,10 +224,15 @@ export function AppLayout() {
               {userMenuItems}
             </Menu>
           </div>
-          <CloudBank className="sidebar-bank" />
+          {dashboardLook.mode !== 'classic' && <CloudBank className="sidebar-bank" />}
         </aside>
 
-        <div className="app-column" data-dashboard-scene={dashboardScene}>
+        <div className="app-column">
+          {dashboardLook.mode === 'scene' && (
+            <div className="dashboard-theme-sky" aria-hidden>
+              <CoverArt art={{ icon: 'gift', backdrop: dashboardLook.backdrop }} showIcon={false} />
+            </div>
+          )}
           <header className={`topbar${scrolled ? ' scrolled' : ''}`}>
             <div className="topbar-brand">
               <Logo to="/app" size={28} />
@@ -194,7 +246,6 @@ export function AppLayout() {
             <div className="hide-mobile row" style={{ gap: 'var(--s-1)' }}>
               <DashboardScenePicker />
               <NotificationsButton />
-              <ThemeToggle />
             </div>
             <div className="hide-desktop topbar-mobile-actions">
               <DashboardScenePicker />
@@ -205,9 +256,6 @@ export function AppLayout() {
                 </MenuItem>
                 <MenuItem icon={<Gift size={16} />} onSelect={() => navigate('/app/gifts')}>
                   Gift ideas
-                </MenuItem>
-                <MenuItem icon={dark ? <Sun size={16} /> : <Moon size={16} />} onSelect={() => setTheme(dark ? 'light' : 'dark')}>
-                  {dark ? 'Light mode' : 'Dark mode'}
                 </MenuItem>
                 <MenuItem
                   icon={layoutMode === 'mobile' ? <LayoutTemplate size={16} /> : <Smartphone size={16} />}
@@ -227,25 +275,20 @@ export function AppLayout() {
         </div>
 
         <nav className="bottom-nav" aria-label="Main">
-          {NAV.slice(0, 2).map(({ to, short, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) => `bottom-link${isActive || (to === '/app/lists' && pathname.startsWith('/app/boxes')) ? ' active' : ''}`}
-            >
+          {BOTTOM_NAV.slice(0, 2).map(({ to, label, icon: Icon, end }) => (
+            <NavLink key={to} to={to} end={end} className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
               <Icon size={21} aria-hidden />
-              {short ?? label}
+              {label}
             </NavLink>
           ))}
           <CreateMenu variant="fab" />
-          {NAV.slice(2).map(({ to, short, label, icon: Icon }) => (
+          {BOTTOM_NAV.slice(2).map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
               <span className="bottom-icon">
                 <Icon size={21} aria-hidden />
                 {badgeFor(to)}
               </span>
-              {short ?? label}
+              {label}
             </NavLink>
           ))}
         </nav>

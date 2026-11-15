@@ -3,6 +3,7 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Printer, Trash2 } from
 import type { BoxSummary } from '../../shared/types';
 import { useInvalidate } from '../lib/queries';
 import { del, errorMessage, patch } from '../lib/api';
+import { FavoriteMenuItem } from './FavoriteToggle';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { useConfirm } from './ui/misc';
 import { useToast } from './ui/Toast';
@@ -50,6 +51,7 @@ export function BoxCardMenu({ box }: { box: BoxSummary }) {
   const actions = useBoxActions();
   return (
     <Menu label={`Actions for ${box.name}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm card-menu-btn">
+      <FavoriteMenuItem targetType="box" targetId={box.id} name={box.name} />
       <MenuItem icon={<Pencil size={16} />} onSelect={() => navigate(`/app/boxes/${box.id}?edit=1`)}>
         Edit details
       </MenuItem>

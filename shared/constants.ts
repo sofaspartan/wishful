@@ -203,6 +203,8 @@ export const LIMITS = {
   circlePeople: 100,
   /** Short note on a My Circle entry. */
   circleNote: 200,
+  /** Starred favorites across lists, items, boxes, and people. */
+  favorites: 200,
 } as const;
 
 /** "Ava", "Ava & Leo", "Ava, Leo & Mia". */

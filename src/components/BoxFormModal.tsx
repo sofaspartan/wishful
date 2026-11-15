@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Check, FileText, Palette, QrCode, Shapes } from 'lucide-react';
+import { Check, FileText, Image, Palette, QrCode, Shapes } from 'lucide-react';
 import {
   BOX_MATERIALS,
   BOX_SIZES,
@@ -9,6 +9,7 @@ import {
   type BoxMaterial,
   type BoxSize,
   type CoverArt,
+  type PageBackdrop,
 } from '../../shared/types';
 import { BOX_COLORS, BOX_MATERIAL_ICONS, BOX_MATERIAL_LABELS, BOX_SIZE_LABELS, SUGGESTED_ROOMS, defaultBoxCoverArt } from '../../shared/constants';
 import { boxCreateSchema, zodFieldErrors } from '../../shared/schemas';
@@ -19,17 +20,19 @@ import { Button } from './ui/Button';
 import { Field, FormError } from './ui/Field';
 import { Segmented } from './ui/misc';
 import { useToast } from './ui/Toast';
-import { ColorField, CoverArtPicker, CoverHeaderPreview } from './CoverArtPicker';
+import { ColorField, CoverArtPicker } from './CoverArtPicker';
 import { COVER_ICON_ART } from './CoverArt';
+import { PageBackdropPicker, PageThemePreview } from './PageTheme';
 import { BoxCardPreview } from './BoxVisuals';
 import { EditorLayout, PreviewBlock, firstInvalidTab, hasFieldError } from './ui/EditorLayout';
 
-type Tab = 'details' | 'look' | 'icon' | 'label';
+type Tab = 'details' | 'icon' | 'cover' | 'page' | 'label';
 
 const TAB_FIELDS: Record<Tab, readonly string[]> = {
   details: ['name', 'number', 'material', 'size', 'location', 'notes'],
-  look: ['color', 'coverArt'],
   icon: [],
+  cover: ['color', 'coverArt'],
+  page: ['pageBackdrop', 'pageColors'],
   label: ['room', 'fragile', 'access', 'showPrices'],
 };
 
@@ -61,6 +64,8 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
   const [fragile, setFragile] = useState(false);
   const [notes, setNotes] = useState('');
   const [coverArt, setCoverArt] = useState<CoverArt>(defaultBoxCoverArt('cardboard'));
+  const [pageBackdrop, setPageBackdrop] = useState<PageBackdrop | null>('match');
+  const [pageColors, setPageColors] = useState<string[] | null>(null);
   const [artTouched, setArtTouched] = useState(false);
   const [access, setAccess] = useState<BoxAccess>('link');
   const [showPrices, setShowPrices] = useState(false);
@@ -87,6 +92,8 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
     setFragile(box?.fragile ?? false);
     setNotes(box?.notes ?? '');
     setCoverArt(box?.coverArt ?? defaultBoxCoverArt('cardboard'));
+    setPageBackdrop(box ? (box.pageBackdrop ?? null) : 'match');
+    setPageColors(box ? (box.pageColors ?? null) : null);
     setArtTouched(Boolean(box));
     setAccess(box?.access ?? 'link');
     setShowPrices(box?.showPrices ?? false);
@@ -122,6 +129,8 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
       fragile,
       notes,
       coverArt,
+      pageBackdrop,
+      pageColors: pageBackdrop === 'solid' || pageBackdrop === 'gradient' ? pageColors : null,
       access,
       showPrices,
     };
@@ -230,7 +239,7 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
     </>
   );
 
-  const look = (
+  const cover = (
     <>
       <div className="field">
         <span className="field-label" id="box-color-label">
@@ -258,10 +267,22 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
 
       <div className="field">
         <span className="field-label">Label art</span>
-        <span className="field-hint">Pick the picture itself on the Icon tab.</span>
+        <span className="field-hint">Pick the icon and its frame on the Icon tab.</span>
         <CoverArtPicker value={coverArt} onChange={pickArt} title={name} placeholder="Your box" preview={false} part="style" />
       </div>
     </>
+  );
+
+  const page = (
+    <PageBackdropPicker
+      value={pageBackdrop}
+      colors={pageColors}
+      onChange={(next, colors) => {
+        setPageBackdrop(next);
+        setPageColors(colors ?? null);
+      }}
+      coverArt={coverArt}
+    />
   );
 
   const label = (
@@ -331,7 +352,14 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
         />
       </PreviewBlock>
       <PreviewBlock caption="Box page" className="editor-preview-page">
-        <CoverHeaderPreview art={coverArt} title={name} placeholder="Your box" />
+        <PageThemePreview
+          pageBackdrop={pageBackdrop}
+          pageColors={pageColors}
+          coverArt={coverArt}
+          accentColor={color}
+          title={name}
+          placeholder="Your box"
+        />
       </PreviewBlock>
     </>
   );
@@ -359,7 +387,7 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
           label="Box settings"
           active={tab}
           onTabChange={setTab}
-          previewTabs={['look', 'icon']}
+          previewTabs={['icon', 'cover', 'page']}
           preview={preview}
           alert={<FormError message={formError} />}
           tabs={[
@@ -370,13 +398,14 @@ export function BoxFormModal({ open, onClose, onSaved, box }: Props) {
               invalid: hasFieldError(TAB_FIELDS.details, errors),
               content: details,
             },
-            { id: 'look', label: 'Look', icon: <Palette size={16} aria-hidden />, invalid: hasFieldError(TAB_FIELDS.look, errors), content: look },
             {
               id: 'icon',
               label: 'Icon',
               icon: <Shapes size={16} aria-hidden />,
               content: <CoverArtPicker value={coverArt} onChange={pickArt} preview={false} part="icon" />,
             },
+            { id: 'cover', label: 'Cover', icon: <Palette size={16} aria-hidden />, invalid: hasFieldError(TAB_FIELDS.cover, errors), content: cover },
+            { id: 'page', label: 'Page', icon: <Image size={16} aria-hidden />, invalid: hasFieldError(TAB_FIELDS.page, errors), content: page },
             {
               id: 'label',
               label: 'Label',

@@ -13,7 +13,6 @@ import { FEATURE_ILLUSTRATIONS, ILLUSTRATED_ITEMS } from '../components/ItemIllu
 import { Button } from '../components/ui/Button';
 import { Field, FormError, FormNote } from '../components/ui/Field';
 import { useToast } from '../components/ui/Toast';
-import { ThemeToggle } from '../components/ThemeToggle';
 
 type Mode = 'login' | 'register' | 'forgot' | 'reset';
 
@@ -49,7 +48,6 @@ export default function AuthPages({ mode }: { mode: Mode }) {
       <CloudPuff className="auth-cloud-1" />
       <CloudPuff className="auth-cloud-2" />
       <CloudPuff className="auth-cloud-3" />
-      <ThemeToggle className="auth-theme-toggle" />
       <div className="auth-panel">
         <Logo to="/" />
         <div className="auth-form-wrap">

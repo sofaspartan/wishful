@@ -90,6 +90,8 @@ export async function createBox(owner: UserRecord, input: BoxCreateInput): Promi
     fragile: input.fragile ?? false,
     notes: input.notes ?? '',
     coverArt: input.coverArt ?? defaultBoxCoverArt(material),
+    pageBackdrop: input.pageBackdrop !== undefined ? input.pageBackdrop : 'match',
+    pageColors: input.pageColors !== undefined ? input.pageColors : null,
     itemIds: [],
     lines: cleanLines(input.lines ?? []),
     code: await createCode(id),
@@ -119,6 +121,8 @@ export function updateBox(box: BoxRecord, input: BoxUpdateInput): Promise<BoxRec
     if (input.fragile !== undefined) b.fragile = input.fragile;
     if (input.notes !== undefined) b.notes = input.notes;
     if (input.coverArt !== undefined) b.coverArt = input.coverArt;
+    if (input.pageBackdrop !== undefined) b.pageBackdrop = input.pageBackdrop;
+    if (input.pageColors !== undefined) b.pageColors = input.pageColors;
     if (input.access !== undefined) b.access = input.access;
     if (input.showPrices !== undefined) b.showPrices = input.showPrices;
     if (input.lines !== undefined) b.lines = cleanLines(input.lines);
@@ -272,6 +276,8 @@ export async function buildPublicBoxView(box: BoxRecord, viewer: UserRecord | nu
       room: box.room,
       fragile: box.fragile,
       coverArt: box.coverArt,
+      pageBackdrop: box.pageBackdrop ?? null,
+      pageColors: box.pageColors ?? null,
       showPrices: box.showPrices,
       code: box.code,
       updatedAt: box.updatedAt,

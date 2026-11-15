@@ -10,6 +10,8 @@ import type {
   ExtensionConnection,
   FriendProfileView,
   CirclePerson,
+  FavoriteCard,
+  FavoriteTargetType,
   FriendsOverview,
   Item,
   Priority,
@@ -34,6 +36,8 @@ export const keys = {
   friends: ['friends'] as const,
   friend: (id: string) => ['friend', id] as const,
   circle: ['circle'] as const,
+  favorites: ['favorites'] as const,
+  favoriteIndex: ['favorites', 'index'] as const,
   extensionConnections: ['extension-connections'] as const,
   brickfolio: ['integrations', 'brickfolio'] as const,
   playshelf: ['integrations', 'playshelf'] as const,
@@ -130,6 +134,25 @@ export function useCircle(enabled = true) {
   });
 }
 
+export function useFavorites(enabled = true) {
+  return useQuery({
+    queryKey: keys.favorites,
+    queryFn: () => get<{ favorites: FavoriteCard[] }>('/api/favorites').then((r) => r.favorites),
+    enabled,
+  });
+}
+
+export function useFavoriteIndex(enabled = true) {
+  return useQuery({
+    queryKey: keys.favoriteIndex,
+    queryFn: () =>
+      get<{ favorites: Array<{ targetType: FavoriteTargetType; targetId: string; id: string }> }>('/api/favorites/index').then(
+        (r) => r.favorites,
+      ),
+    enabled,
+  });
+}
+
 export function useFriendProfile(id: string | undefined) {
   return useQuery({
     queryKey: keys.friend(id ?? ''),
@@ -213,6 +236,8 @@ export function invalidateContent(qc: QueryClient, wishlistIds: string[] = []) {
   void qc.invalidateQueries({ queryKey: keys.shared });
   void qc.invalidateQueries({ queryKey: keys.items });
   void qc.invalidateQueries({ queryKey: keys.boxes });
+  void qc.invalidateQueries({ queryKey: keys.favorites });
+  void qc.invalidateQueries({ queryKey: keys.favoriteIndex });
   void qc.invalidateQueries({ queryKey: ['box'] });
   if (wishlistIds.length) for (const id of wishlistIds) void qc.invalidateQueries({ queryKey: keys.wishlist(id) });
   else void qc.invalidateQueries({ queryKey: ['wishlist'] });

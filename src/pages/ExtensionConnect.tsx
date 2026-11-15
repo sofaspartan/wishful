@@ -10,7 +10,6 @@ import { keys, useMe } from '../lib/queries';
 import { Button } from '../components/ui/Button';
 import { Logo, LogoMark } from '../components/Logo';
 import { CloudBank, CloudPuff } from '../components/Cloud';
-import { ThemeToggle } from '../components/ThemeToggle';
 
 type Status = 'checking' | 'missing' | 'ready' | 'connecting' | 'done' | 'failed';
 
@@ -97,7 +96,6 @@ export default function ExtensionConnect() {
       <CloudPuff className="auth-cloud-1" />
       <CloudPuff className="auth-cloud-2" />
       <CloudPuff className="auth-cloud-3" />
-      <ThemeToggle className="auth-theme-toggle" />
       <div className="connect-top">
         <Logo to="/app" />
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronRight, Copy, Eye, Inbox, Plus, Search, Send, UserRound, UserRoundPlus, Users, X } from 'lucide-react';
+import { Check, ChevronRight, Copy, Eye, Inbox, Plus, Search, Send, UserRoundPlus, X } from 'lucide-react';
 import type { FriendsOverview, PeopleSearchHit, ProfileVisibility, SelfUser } from '../../shared/types';
 import { PROFILE_VISIBILITY_LABELS, isDiscoverableProfile } from '../../shared/constants';
 import { keys, useCircle, useFriends, useMe } from '../lib/queries';
@@ -15,6 +15,7 @@ import { useToast } from '../components/ui/Toast';
 import { Cloud } from '../components/Cloud';
 import { PageSky } from '../components/PageSky';
 import { SkyArt } from '../components/SkyArt';
+import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
 import { MyCirclePanel } from '../components/MyCirclePanel';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 
@@ -22,10 +23,10 @@ type RequestResult = { status: 'requested' | 'already_requested' | 'accepted'; o
 type Tab = 'search' | 'friends' | 'circle';
 type PeopleView = CardListView;
 
-const TABS: Array<{ id: Tab; label: string; icon: typeof Search }> = [
-  { id: 'search', label: 'Search', icon: Search },
-  { id: 'friends', label: 'Your friends', icon: Users },
-  { id: 'circle', label: 'My Circle', icon: UserRound },
+const TABS: Array<{ id: Tab; label: string; art: keyof typeof FEATURE_ILLUSTRATIONS }> = [
+  { id: 'search', label: 'Search', art: 'share' },
+  { id: 'friends', label: 'Your friends', art: 'together' },
+  { id: 'circle', label: 'My Circle', art: 'phone' },
 ];
 
 const TAB_SKY: Record<Tab, { eyebrow: string; title: string; subtitle: string; scene: 'friends' | 'search' | 'invite' }> = {
@@ -199,18 +200,17 @@ export default function Friends() {
   return (
     <div className="page">
       <nav className="segmented lists-switch friends-switch" aria-label="Friends sections">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          return (
-            <button key={t.id} type="button" aria-current={tab === t.id ? 'page' : undefined} onClick={() => setTab(t.id)}>
-              <Icon size={15} aria-hidden />
-              {t.label}
-              {t.id === 'friends' && incoming > 0 && <span className="nav-badge">{incoming}</span>}
-              {t.id === 'friends' && !incoming && data && data.friends.length > 0 && <span className="faint">{data.friends.length}</span>}
-              {t.id === 'circle' && circle && circle.length > 0 && <span className="faint">{circle.length}</span>}
-            </button>
-          );
-        })}
+        {TABS.map((t) => (
+          <button key={t.id} type="button" aria-current={tab === t.id ? 'page' : undefined} onClick={() => setTab(t.id)}>
+            <span className="art-icon art-icon-tab" aria-hidden>
+              {FEATURE_ILLUSTRATIONS[t.art]}
+            </span>
+            {t.label}
+            {t.id === 'friends' && incoming > 0 && <span className="nav-badge">{incoming}</span>}
+            {t.id === 'friends' && !incoming && data && data.friends.length > 0 && <span className="faint">{data.friends.length}</span>}
+            {t.id === 'circle' && circle && circle.length > 0 && <span className="faint">{circle.length}</span>}
+          </button>
+        ))}
       </nav>
 
       <PageSky eyebrow={sky.eyebrow} title={sky.title} subtitle={sky.subtitle} art={<SkyArt scene={sky.scene} />}>

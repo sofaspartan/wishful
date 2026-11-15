@@ -25,18 +25,23 @@ function current(): Theme {
   return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 }
 
-/** Light/dark theme. Light until the user picks one; the choice is kept in localStorage. */
-export function setTheme(theme: Theme) {
+/** Light/dark used to be user-toggled; the product now relies on dashboard / page looks only. */
+export function setTheme(_theme: Theme) {
+  apply('light');
   try {
-    localStorage.setItem(STORAGE_KEY, theme);
+    localStorage.setItem(STORAGE_KEY, 'light');
   } catch {
     /* ignore */
   }
-  apply(theme);
 }
 
 export function initTheme() {
-  apply(stored() ?? 'light');
+  apply('light');
+  try {
+    localStorage.setItem(STORAGE_KEY, 'light');
+  } catch {
+    /* ignore */
+  }
 }
 
 function subscribe(listener: () => void) {

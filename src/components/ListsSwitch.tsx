@@ -1,5 +1,5 @@
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { Library, List, Package } from 'lucide-react';
+import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 
 /** Wishlists, collections and boxes share the Lists tab; this switches among the three. */
 export function ListsSwitch() {
@@ -14,13 +14,22 @@ export function ListsSwitch() {
   return (
     <nav className="segmented lists-switch" aria-label="Wishlists, collections, or boxes">
       <Link to={`/app/lists?kind=wishlist${statusQuery}`} aria-current={onLists && kind === 'wishlist' ? 'page' : undefined}>
-        <List size={15} aria-hidden /> Wishlists
+        <span className="art-icon art-icon-tab" aria-hidden>
+          {FEATURE_ILLUSTRATIONS.lists}
+        </span>
+        Wishlists
       </Link>
       <Link to={`/app/lists?kind=collection${statusQuery}`} aria-current={onLists && kind === 'collection' ? 'page' : undefined}>
-        <Library size={15} aria-hidden /> Collections
+        <span className="art-icon art-icon-tab" aria-hidden>
+          {FEATURE_ILLUSTRATIONS.collection}
+        </span>
+        Collections
       </Link>
       <Link to={statusQuery ? `/app/boxes?status=${status}` : '/app/boxes'} aria-current={onBoxes ? 'page' : undefined}>
-        <Package size={15} aria-hidden /> Boxes
+        <span className="art-icon art-icon-tab" aria-hidden>
+          {FEATURE_ILLUSTRATIONS.boxes}
+        </span>
+        Boxes
       </Link>
     </nav>
   );

@@ -136,6 +136,8 @@ export async function resolveRecipientCircleIds(
   if (!input.length) return [];
   const stamp = nowIso();
   const createdIds: Array<string | null> = input.map(() => null);
+  /** Live My Circle avatar for each recipient index (existing pick or newly created). */
+  const circleAvatars: Array<string | null | undefined> = input.map(() => undefined);
 
   await atomicUpdate<CircleDoc>(db('circle'), ownerId, (current) => {
     const people = [...(current?.people ?? [])];
@@ -143,11 +145,13 @@ export async function resolveRecipientCircleIds(
 
     for (const [i, person] of input.entries()) {
       if (person.circlePersonId) {
-        if (!byId.has(person.circlePersonId)) {
+        const existing = byId.get(person.circlePersonId);
+        if (!existing) {
           throw badRequest('That My Circle person isn’t available.', {
             [`recipients.${i}.circlePersonId`]: 'Pick someone from My Circle.',
           });
         }
+        circleAvatars[i] = existing.avatarUrl;
         continue;
       }
       if (!person.saveToCircle) continue;
@@ -167,13 +171,14 @@ export async function resolveRecipientCircleIds(
       people.push(record);
       byId.set(record.id, record);
       createdIds[i] = record.id;
+      circleAvatars[i] = record.avatarUrl;
     }
     return { people };
   });
 
   return input.map((person, i) => ({
     name: person.name,
-    avatarUrl: person.avatarUrl ?? null,
+    avatarUrl: person.avatarUrl ?? circleAvatars[i] ?? null,
     userId: person.userId ?? null,
     canEdit: person.canEdit,
     circlePersonId: person.circlePersonId ?? createdIds[i] ?? null,

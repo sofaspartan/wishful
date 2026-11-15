@@ -65,6 +65,7 @@ export const isLocalDev = () => getDriver().name !== 'netlify';
  *   boxes          {boxId}                        → BoxRecord (storage box; contents in itemIds + lines)
  *   box-codes      {code}                         → BoxCodeRecord (the printed QR code → box)
  *   circle         {userId}                       → CircleDoc (My Circle people & pets)
+ *   favorites      {userId}                       → FavoritesDoc (starred lists, items, boxes, people)
  */
 export const COLLECTIONS = [
   'users',
@@ -89,6 +90,7 @@ export const COLLECTIONS = [
   'boxes',
   'box-codes',
   'circle',
+  'favorites',
 ] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 

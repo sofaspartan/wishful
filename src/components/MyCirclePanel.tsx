@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Camera, Link2, PawPrint, Pencil, Plus, Search, Trash2, UserRound } from 'lucide-react';
+import { Camera, Link2, MoreHorizontal, PawPrint, Pencil, Plus, Search, Trash2, UserRound } from 'lucide-react';
 import type { CircleKind, CirclePerson, FriendSummary } from '../../shared/types';
 import { LIMITS } from '../../shared/constants';
 import { keys } from '../lib/queries';
@@ -10,6 +10,8 @@ import { useLocalPref } from '../lib/prefs';
 import { Button } from './ui/Button';
 import { Field } from './ui/Field';
 import { Modal } from './ui/Modal';
+import { FavoriteMenuItem } from './FavoriteToggle';
+import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { Avatar, EmptyState, PageLoader, Segmented } from './ui/misc';
 import { useToast } from './ui/Toast';
 import { Cloud } from './Cloud';
@@ -34,8 +36,6 @@ export function MyCirclePanel({ people, loading, friends, openAddTick = 0 }: Pro
   const [view, setView] = useLocalPref<CardListView>('friends.circleView', 'grid', CARD_LIST_VIEWS);
   const [editor, setEditor] = useState<CirclePerson | 'new' | null>(null);
   const [linking, setLinking] = useState<CirclePerson | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-
   const refresh = () => void qc.invalidateQueries({ queryKey: keys.circle });
 
   useEffect(() => {
@@ -57,15 +57,12 @@ export function MyCirclePanel({ people, loading, friends, openAddTick = 0 }: Pro
 
   const remove = async (person: CirclePerson) => {
     if (!window.confirm(`Remove ${person.name} from My Circle? Lists that mention them keep the name.`)) return;
-    setBusy(`del:${person.id}`);
     try {
       await del(`/api/circle/${person.id}`);
       refresh();
       toast.success(`Removed ${person.name}`);
     } catch (err) {
       toast.error(errorMessage(err));
-    } finally {
-      setBusy(null);
     }
   };
 
@@ -144,26 +141,21 @@ export function MyCirclePanel({ people, loading, friends, openAddTick = 0 }: Pro
                 </span>
               </div>
               <div className="item-row-side">
-                {person.kind === 'person' && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    icon={<Link2 size={14} />}
-                    onClick={() => setLinking(person)}
-                    title={person.userId ? 'Change linked account' : 'Link Wishful account'}
-                  >
-                    {person.userId ? 'Linked' : 'Link'}
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" icon={<Pencil size={14} />} onClick={() => setEditor(person)} aria-label={`Edit ${person.name}`} />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  icon={<Trash2 size={14} />}
-                  loading={busy === `del:${person.id}`}
-                  onClick={() => remove(person)}
-                  aria-label={`Remove ${person.name}`}
-                />
+                <Menu label={`Actions for ${person.name}`} icon={<MoreHorizontal size={16} />} buttonClassName="btn btn-icon btn-sm">
+                  <FavoriteMenuItem targetType="circle_person" targetId={person.id} name={person.name} />
+                  {person.kind === 'person' && (
+                    <MenuItem icon={<Link2 size={16} />} onSelect={() => setLinking(person)}>
+                      {person.userId ? 'Change linked account' : 'Link Wishful account'}
+                    </MenuItem>
+                  )}
+                  <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditor(person)}>
+                    Edit
+                  </MenuItem>
+                  <MenuSeparator />
+                  <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => void remove(person)}>
+                    Remove
+                  </MenuItem>
+                </Menu>
               </div>
             </div>
           ))}
@@ -186,26 +178,21 @@ export function MyCirclePanel({ people, loading, friends, openAddTick = 0 }: Pro
                 {person.note ? <span className="friend-card-since truncate">{person.note}</span> : null}
               </div>
               <div className="circle-card-actions">
-                {person.kind === 'person' && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    icon={<Link2 size={14} />}
-                    onClick={() => setLinking(person)}
-                    title={person.userId ? 'Change linked account' : 'Link Wishful account'}
-                  >
-                    {person.userId ? 'Linked' : 'Link'}
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" icon={<Pencil size={14} />} onClick={() => setEditor(person)} aria-label={`Edit ${person.name}`} />
-                <Button
-                  size="sm"
-                  variant="danger-ghost"
-                  icon={<Trash2 size={14} />}
-                  loading={busy === `del:${person.id}`}
-                  onClick={() => void remove(person)}
-                  aria-label={`Remove ${person.name}`}
-                />
+                <Menu label={`Actions for ${person.name}`} icon={<MoreHorizontal size={16} />} buttonClassName="btn btn-icon btn-sm">
+                  <FavoriteMenuItem targetType="circle_person" targetId={person.id} name={person.name} />
+                  {person.kind === 'person' && (
+                    <MenuItem icon={<Link2 size={16} />} onSelect={() => setLinking(person)}>
+                      {person.userId ? 'Change linked account' : 'Link Wishful account'}
+                    </MenuItem>
+                  )}
+                  <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditor(person)}>
+                    Edit
+                  </MenuItem>
+                  <MenuSeparator />
+                  <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => void remove(person)}>
+                    Remove
+                  </MenuItem>
+                </Menu>
               </div>
             </article>
           ))}

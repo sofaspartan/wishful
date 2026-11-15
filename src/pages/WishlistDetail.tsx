@@ -60,6 +60,8 @@ import { GotItDialog } from '../components/GotItDialog';
 import { SkyArt } from '../components/SkyArt';
 import { CoverArt, CoverAvatar, suggestCoverArt } from '../components/CoverArt';
 import { CloudBank } from '../components/Cloud';
+import { ThemedPage } from '../components/PageTheme';
+import { FavoriteMenuItem } from '../components/FavoriteToggle';
 import { WishlistFormModal } from '../components/WishlistFormModal';
 import { CashFundDisplay } from '../components/CashFund';
 import { CashFundDialog, CollaboratorsDialog, EntrySettingsDialog, GiftSettingsDialog, MoveEntryDialog, ShareDialog } from '../components/WishlistDialogs';
@@ -310,6 +312,7 @@ function WishlistView({ detail }: { detail: Detail }) {
   const itemMenu = (r: Row) =>
     canEdit ? (
       <Menu label={`Actions for ${r.item.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm">
+        {isOwner && <FavoriteMenuItem targetType="item" targetId={r.item.id} name={r.item.title} />}
         <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditingItem(r.item)}>
           Edit item
         </MenuItem>
@@ -373,14 +376,13 @@ function WishlistView({ detail }: { detail: Detail }) {
   const days = countdownLabel(w.eventDate);
 
   return (
-    <div className="page">
+    <ThemedPage className="page" pageBackdrop={w.pageBackdrop} pageColors={w.pageColors} coverArt={w.coverArt} accentColor={w.accentColor}>
       <Link to={isOwner ? '/app/lists' : '/app/lists?status=shared'} className="section-link" style={{ marginLeft: 0, marginBottom: 'var(--s-3)' }}>
         <ArrowLeft size={14} /> {isOwner ? 'My Lists' : 'Shared'}
       </Link>
 
       <header
         className={['wl-hero', !w.coverImage && isDarkCover(w.coverArt) && 'wl-hero-dark'].filter(Boolean).join(' ')}
-        style={{ ['--wl-accent' as string]: w.accentColor }}
       >
         <div className="wl-hero-bg" aria-hidden>
           {!w.coverImage && w.coverArt ? (
@@ -500,11 +502,14 @@ function WishlistView({ detail }: { detail: Detail }) {
                 )}
               </Menu>
             )}
+            {isOwner && (
+              <Button icon={<Pencil size={16} />} onClick={() => setEditingList(true)}>
+                Edit
+              </Button>
+            )}
             {isOwner ? (
               <Menu label="More list actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
-                <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditingList(true)}>
-                  Edit details
-                </MenuItem>
+                <FavoriteMenuItem targetType="wishlist" targetId={w.id} name={w.title} />
                 {!collection && (
                   <MenuItem icon={<Gift size={16} />} onSelect={() => setGiftSettings(true)}>
                     Gift settings
@@ -531,9 +536,12 @@ function WishlistView({ detail }: { detail: Detail }) {
                 </MenuItem>
               </Menu>
             ) : (
-              <Button variant="ghost" icon={<LogOut size={16} />} onClick={leave}>
-                Leave
-              </Button>
+              <Menu label="List actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
+                <FavoriteMenuItem targetType="wishlist" targetId={w.id} name={w.title} />
+                <MenuItem icon={<LogOut size={16} />} onSelect={leave}>
+                  Leave
+                </MenuItem>
+              </Menu>
             )}
           </div>
           </div>
@@ -681,7 +689,7 @@ function WishlistView({ detail }: { detail: Detail }) {
               <Popover
                 label={filtersActive ? 'Filters (active)' : 'Filters'}
                 align="end"
-                buttonClassName={`btn btn-ghost toolbar-filters-btn${filtersActive ? ' is-active' : ''}`}
+                buttonClassName={`btn toolbar-filters-btn${filtersActive ? ' is-active' : ''}`}
                 buttonContent={
                   <>
                     <SlidersHorizontal size={18} aria-hidden />
@@ -727,7 +735,6 @@ function WishlistView({ detail }: { detail: Detail }) {
             <>
               {cashFundCard ? <div className="grid-items">{cashFundCard}</div> : null}
               <EmptyState
-                tone={collection ? 'blush' : undefined}
                 art={<SkyArt scene={collection ? 'collection' : 'wishlist'} />}
                 title={collection ? 'Nothing in this collection yet' : cashFundCard ? 'No items yet' : 'This list is empty'}
                 action={
@@ -912,6 +919,6 @@ function WishlistView({ detail }: { detail: Detail }) {
         </>
       )}
       <CollaboratorsDialog open={collaborators} onClose={() => setCollaborators(false)} detail={detail} />
-    </div>
+    </ThemedPage>
   );
 }

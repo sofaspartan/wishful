@@ -33,6 +33,8 @@ import { ItemCard } from '../components/ItemCard';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { EditItemModal } from '../components/EditItemModal';
 import { CoverArt, CoverAvatar } from '../components/CoverArt';
+import { ThemedPage } from '../components/PageTheme';
+import { FavoriteMenuItem } from '../components/FavoriteToggle';
 import { BoxFormModal } from '../components/BoxFormModal';
 import { BoxCodeDialog, PackItemsDialog, PutInBoxDialog } from '../components/BoxDialogs';
 import { useBoxActions } from '../components/BoxMenu';
@@ -145,7 +147,7 @@ function BoxView({ detail }: { detail: Detail }) {
   const facts = [BOX_MATERIAL_LABELS[box.material], box.size ? BOX_SIZE_LABELS[box.size] : null].filter(Boolean).join(' · ');
 
   return (
-    <div className="page">
+    <ThemedPage className="page" pageBackdrop={box.pageBackdrop} pageColors={box.pageColors} coverArt={box.coverArt} accentColor={box.color}>
       <Link to="/app/boxes" className="section-link" style={{ marginLeft: 0, marginBottom: 'var(--s-3)' }}>
         <ArrowLeft size={14} /> Boxes
       </Link>
@@ -203,6 +205,7 @@ function BoxView({ detail }: { detail: Detail }) {
                 </>
               )}
               <Menu label="More box actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
+                <FavoriteMenuItem targetType="box" targetId={box.id} name={box.name} />
                 <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditing(true)}>
                   Edit details
                 </MenuItem>
@@ -362,7 +365,7 @@ function BoxView({ detail }: { detail: Detail }) {
       <PackItemsDialog box={box} open={packing} onClose={() => setPacking(false)} />
       <BoxCodeDialog box={box} open={showCode} onClose={() => setShowCode(false)} />
       <BoxFormModal open={editing} onClose={() => setEditing(false)} onSaved={() => setEditing(false)} box={box} />
-    </div>
+    </ThemedPage>
   );
 }
 

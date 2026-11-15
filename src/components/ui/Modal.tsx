@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { dashboardLookSurface, useDashboardLook } from '../../lib/dashboardScene';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -30,6 +31,8 @@ export function Modal({ open, onClose, title, subtitle, icon, children, footer, 
   const ref = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const [dashboardLook] = useDashboardLook();
+  const lookSurface = dashboardLookSurface(dashboardLook);
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +92,11 @@ export function Modal({ open, onClose, title, subtitle, icon, children, footer, 
 
   if (!open) return null;
   return createPortal(
-    <div className="modal-root">
+    <div
+      className={['modal-root', lookSurface.className].filter(Boolean).join(' ')}
+      style={lookSurface.style as CSSProperties | undefined}
+      data-dashboard-scene={dashboardLook.mode === 'classic' ? dashboardLook.scene : undefined}
+    >
       <div className="modal-backdrop" onClick={onClose} aria-hidden />
       <div
         ref={ref}

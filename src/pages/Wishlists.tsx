@@ -133,7 +133,6 @@ export default function Wishlists() {
             : 'Lists for birthdays, holidays, and everything you’re hoping for.'
         }
         art={<SkyArt scene={collectionsOnly ? 'collection' : 'wishlist'} />}
-        tone={collectionsOnly ? 'blush' : undefined}
       >
         <div className="page-sky-actions">
           <CreateMenu />
@@ -157,7 +156,7 @@ export default function Wishlists() {
           <Popover
             label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
             align="end"
-            buttonClassName={`btn btn-ghost toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
+            buttonClassName={`btn toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
             buttonContent={
               <>
                 <SlidersHorizontal size={18} aria-hidden />
@@ -195,7 +194,6 @@ export default function Wishlists() {
         ) : tab === 'active' ? (
           collectionsOnly ? (
             <EmptyState
-              tone="blush"
               art={<SkyArt scene="collection" />}
               title="No collections yet"
               action={

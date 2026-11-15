@@ -251,6 +251,8 @@ export function registerWishlistRoutes(router: Router) {
       if (input.description !== undefined) w.description = input.description;
       if (input.coverImage !== undefined) w.coverImage = input.coverImage;
       if (input.coverArt !== undefined) w.coverArt = input.coverArt;
+      if (input.pageBackdrop !== undefined) w.pageBackdrop = input.pageBackdrop;
+      if (input.pageColors !== undefined) w.pageColors = input.pageColors;
       if (input.accentColor !== undefined) w.accentColor = input.accentColor;
       if (input.visibility !== undefined) w.visibility = input.visibility;
       if (input.occasion !== undefined) w.occasion = input.occasion;

@@ -20,6 +20,7 @@ import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/misc';
 
 const LIST_ROWS = 4;
+const HOME_LISTS_VIEW_KEY = 'wishful.pref.home.listsView';
 
 function plural(n: number, word: string) {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -27,7 +28,7 @@ function plural(n: number, word: string) {
 
 function hasStoredListsView(): boolean {
   try {
-    return localStorage.getItem('wishful.pref.home.listsView') != null;
+    return localStorage.getItem(HOME_LISTS_VIEW_KEY) != null;
   } catch {
     return false;
   }
@@ -42,8 +43,15 @@ export default function Home() {
   const { openAddItem, openCreateWishlist, openCreateBox } = useAppActions();
   const navigate = useNavigate();
   const captureHub = useCaptureHub();
-  const [listsViewPref, setListsView] = useLocalPref<CardListView>('home.listsView', 'grid', CARD_LIST_VIEWS);
-  const listsView: CardListView = captureHub && !hasStoredListsView() ? 'list' : listsViewPref;
+  const [listsViewPref, setListsViewPref] = useLocalPref<CardListView>('home.listsView', 'grid', CARD_LIST_VIEWS);
+  /* Mobile hub defaults to list until the user picks — track that in React so tapping
+     Card isn’t a no-op when the stored pref is still the unused grid fallback. */
+  const [useHubListDefault, setUseHubListDefault] = useState(() => captureHub && !hasStoredListsView());
+  const listsView: CardListView = useHubListDefault ? 'list' : listsViewPref;
+  const setListsView = (v: CardListView) => {
+    setUseHubListDefault(false);
+    setListsViewPref(v);
+  };
   const [hubLink, setHubLink] = useState('');
 
   const active = useMemo(() => (lists ?? []).filter((w) => !w.archivedAt), [lists]);
@@ -91,7 +99,6 @@ export default function Home() {
         }
       />
       <ListTile
-        tone="blush"
         title="Collections"
         icon={<Library size={15} />}
         lists={collections}
@@ -100,7 +107,6 @@ export default function Home() {
         onViewChange={setListsView}
         empty={
           <EmptyState
-            tone="blush"
             art={<SkyArt scene="collection" />}
             title="No collections yet"
             action={
@@ -304,7 +310,7 @@ export default function Home() {
           <div className="quick-actions-body">
             <div className="quick-actions-grid">
               <QuickAction art={FEATURE_ILLUSTRATIONS.lists} title="New wishlist" hint="Gifts and wants" onClick={() => openCreateWishlist()} />
-              <QuickAction art={FEATURE_ILLUSTRATIONS.collection} title="New collection" hint="Things you already have" onClick={newCollection} tone="blush" />
+              <QuickAction art={FEATURE_ILLUSTRATIONS.collection} title="New collection" hint="Things you already have" onClick={newCollection} />
               <QuickAction art={FEATURE_ILLUSTRATIONS.boxes} title="New box" hint="Pack and label storage" onClick={() => openCreateBox()} />
             </div>
             <div className="quick-actions-grid">
@@ -371,7 +377,7 @@ export default function Home() {
 
         {!isNew && (
           <section className="tile span-4">
-            <TileHeader title="Recently added" icon={<Sparkles size={15} />} to="/app/items" linkLabel="Saved items" inline />
+            <TileHeader title="Recently added" icon={<Sparkles size={15} />} to="/app/items" linkLabel="Items" inline />
             {itemsLoading ? (
               <div className="mini-items">
                 {Array.from({ length: 3 }, (_, i) => (
@@ -495,14 +501,13 @@ function ListTile({
           </Link>
         </div>
       )}
-      <CloudBank className="tile-list-bank" />
     </section>
   );
 }
 
-function QuickAction({ art, title, hint, onClick, tone }: { art: ReactElement; title: string; hint: string; onClick: () => void; tone?: 'blush' }) {
+function QuickAction({ art, title, hint, onClick }: { art: ReactElement; title: string; hint: string; onClick: () => void }) {
   return (
-    <button type="button" className={`quick-action${tone ? ` quick-action-blush` : ''}`} onClick={onClick}>
+    <button type="button" className="quick-action" onClick={onClick}>
       <span className="art-icon" aria-hidden>
         {art}
       </span>

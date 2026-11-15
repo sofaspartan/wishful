@@ -210,7 +210,7 @@ function PersonFields({ index, value, onChange, onRemove, friends, circle, hasFr
   return (
     <div className="recipient-card stack">
       <div className="avatar-edit">
-        <Avatar name={value.name || '?'} src={value.avatarUrl ?? friend?.avatarUrl} size={64} />
+        <Avatar name={value.name || '?'} src={value.avatarUrl ?? circleMatch?.avatarUrl ?? friend?.avatarUrl} size={64} />
         <Field label="Their name" error={error('name')}>
           <input
             className="input"

@@ -74,7 +74,7 @@ export const KB_ARTICLES: KbArticle[] = [
         paragraphs: [
           'On a phone (or when Mobile app layout is on), Home is a capture hub: Scan barcode, Add item, and shortcuts for a new wishlist, collection, or box sit first, with recent lists and your Wishlists / Collections below.',
           'On a wide screen with Responsive layout, Home greets you with a summary of your lists and saved items, plus a Quick actions card for pasting a link, scanning, or starting a collection.',
-          'Use the paint-palette icon in the top bar (before notifications) to pick a soft dashboard look: Calm gray, Sky, Blush, or Kraft — matching the washes used on list heroes. Dark mode switches each look to a night version with stars.',
+          'Use the paint-palette icon in the top bar (before notifications) to pick a dashboard look: soft washes (Calm, Sky, Blush, Kraft), illustrated scenes, solid colours, or gradients — the same fun backgrounds lists can use. Soft looks switch to night versions in dark mode.',
         ],
       },
     ],
@@ -207,7 +207,7 @@ export const KB_ARTICLES: KbArticle[] = [
       {
         paragraphs: [
           'Every list can have a photo cover or an illustrated cover (icon + backdrop). Accents help lists stand out in grids and the sidebar.',
-          'The whole app supports light and dark mode from the top bar. Dashboard looks (Calm, Sky, Blush, Kraft) only change the soft background wash behind your signed-in pages — they don’t change list covers.',
+          'The whole app supports light and dark mode from the top bar. Dashboard looks only change the background wash behind your signed-in pages — they don’t change list covers.',
         ],
       },
     ],

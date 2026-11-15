@@ -18,6 +18,7 @@ import { PageSky } from '../components/PageSky';
 import { SkyArt } from '../components/SkyArt';
 import { effectivePrice } from '../components/ItemForm';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
+import { FavoriteMenuItem } from '../components/FavoriteToggle';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { Popover } from '../components/ui/Popover';
 import { Button } from '../components/ui/Button';
@@ -179,6 +180,7 @@ export default function SavedItems() {
 
   const menu = (item: Item) => (
     <Menu label={`Actions for ${item.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm">
+      <FavoriteMenuItem targetType="item" targetId={item.id} name={item.title} />
       <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditing(item)}>
         Edit
       </MenuItem>
@@ -224,7 +226,7 @@ export default function SavedItems() {
     <div className="page">
       <PageSky
         eyebrow="Items"
-        title="Saved Items"
+        title="Items"
         subtitle="Everything you’ve saved — things you want and things you have, on a list or not. Edit once, updated everywhere."
         art={<SkyArt scene="items" />}
       >
@@ -241,17 +243,17 @@ export default function SavedItems() {
           <input
             className="input"
             type="search"
-            placeholder="Search saved items"
+            placeholder="Search items"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search saved items"
+            aria-label="Search items"
           />
         </div>
         <div className="toolbar-items-mobile-actions">
           <Popover
             label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
             align="end"
-            buttonClassName={`btn btn-ghost toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
+            buttonClassName={`btn toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
             buttonContent={
               <>
                 <SlidersHorizontal size={18} aria-hidden />
