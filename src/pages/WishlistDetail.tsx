@@ -10,7 +10,6 @@ import {
   ExternalLink,
   EyeOff,
   Gift,
-  LayoutGrid,
   ListChecks,
   ListPlus,
   LogOut,
@@ -21,11 +20,11 @@ import {
   Pencil,
   Plus,
   RefreshCw,
-  Rows3,
   ScanBarcode,
   Search,
   Settings2,
   Share2,
+  SlidersHorizontal,
   Trash2,
   Undo2,
   Users,
@@ -71,8 +70,10 @@ import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { BoxChip, useBoxMap } from '../components/BoxVisuals';
 import { PutInBoxDialog } from '../components/BoxDialogs';
 import { Button, buttonClass } from '../components/ui/Button';
+import { Popover } from '../components/ui/Popover';
 import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
 import { useToast } from '../components/ui/Toast';
+import { ViewToggle } from '../components/ViewToggle';
 
 const SORTS = ['custom', 'priority', 'acquired', 'rating', 'price_asc', 'price_desc', 'newest', 'name'] as const;
 type Sort = (typeof SORTS)[number];
@@ -624,58 +625,84 @@ function WishlistView({ detail }: { detail: Detail }) {
         return null;
       })()}
 
-      {rows.length > 0 && (
-        <div className="toolbar">
-          <div className="input-group">
-            <Search size={16} aria-hidden />
-            <input className="input" type="search" placeholder="Search this list" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search this list" />
+      {rows.length > 0 && (() => {
+        const filtersActive =
+          (showPriority && priorityFilter !== 'all') ||
+          effectiveSort !== 'custom' ||
+          (isOwner && !collection && layout !== 'grouped');
+        const filterControls = (
+          <>
+            {isOwner && !collection && (
+              <select
+                className="select"
+                value={layout}
+                onChange={(e) => void setLayout(e.target.value as PriorityLayout)}
+                aria-label="Arrange items"
+                title="How this list is arranged — for you and everyone you share it with"
+              >
+                {PRIORITY_LAYOUTS.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            {showPriority && (
+              <select className="select" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as Priority | 'all')} aria-label="Filter by priority">
+                <option value="all">All priorities</option>
+                {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
+                  <option key={p} value={p}>
+                    {PRIORITY_LABELS[p]}
+                  </option>
+                ))}
+              </select>
+            )}
+            <label className="row text-sm muted toolbar-sort">
+              <span>Sort</span>
+              <select className="select" value={effectiveSort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort items">
+                <option value="custom">{collection ? 'Custom order' : 'List order'}</option>
+                {collection && <option value="acquired">Recently acquired</option>}
+                {collection && <option value="rating">Top rated</option>}
+                <option value="price_asc">Price: low to high</option>
+                <option value="price_desc">Price: high to low</option>
+                <option value="newest">Recently added</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
+          </>
+        );
+        return (
+          <div className="toolbar toolbar-items">
+            <div className="input-group toolbar-items-search">
+              <Search size={16} aria-hidden />
+              <input className="input" type="search" placeholder="Search this list" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search this list" />
+            </div>
+            <div className="toolbar-items-mobile-actions">
+              <Popover
+                label={filtersActive ? 'Filters (active)' : 'Filters'}
+                align="end"
+                buttonClassName={`btn btn-ghost toolbar-filters-btn${filtersActive ? ' is-active' : ''}`}
+                buttonContent={
+                  <>
+                    <SlidersHorizontal size={18} aria-hidden />
+                    <span>Filters</span>
+                    {filtersActive && <span className="toolbar-filters-dot" aria-hidden />}
+                  </>
+                }
+                className="toolbar-filters-panel"
+              >
+                {() => (
+                  <div className="toolbar-filters-stack">
+                    <strong className="toolbar-filters-title">Filters &amp; sort</strong>
+                    {filterControls}
+                  </div>
+                )}
+              </Popover>
+              <ViewToggle value={view} onChange={setView} labels="grid" />
+            </div>
           </div>
-          {isOwner && !collection && (
-            <select
-              className="select"
-              value={layout}
-              onChange={(e) => setLayout(e.target.value as PriorityLayout)}
-              aria-label="Arrange items"
-              title="How this list is arranged — for you and everyone you share it with"
-            >
-              {PRIORITY_LAYOUTS.map((l) => (
-                <option key={l.value} value={l.value}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
-          )}
-          {showPriority && (
-            <select className="select" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as Priority | 'all')} aria-label="Filter by priority">
-              <option value="all">All priorities</option>
-              {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
-                <option key={p} value={p}>
-                  {PRIORITY_LABELS[p]}
-                </option>
-              ))}
-            </select>
-          )}
-          <select className="select" value={effectiveSort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort items">
-            <option value="custom">{collection ? 'Custom order' : 'List order'}</option>
-            {collection && <option value="acquired">Recently acquired</option>}
-            {collection && <option value="rating">Top rated</option>}
-            <option value="price_asc">Price: low to high</option>
-            <option value="price_desc">Price: high to low</option>
-            <option value="newest">Recently added</option>
-            <option value="name">Name</option>
-          </select>
-          <div className="segmented" role="group" aria-label="View">
-            <button type="button" aria-pressed={view === 'grid'} onClick={() => setView('grid')} title="Grid view">
-              <LayoutGrid size={16} aria-hidden />
-              <span className="sr-only">Grid view</span>
-            </button>
-            <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')} title="List view">
-              <Rows3 size={16} aria-hidden />
-              <span className="sr-only">List view</span>
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {(() => {
         const fund = !collection && w.cashFund?.displayMode === 'card' ? w.cashFund : null;
