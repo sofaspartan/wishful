@@ -977,39 +977,60 @@
 }
 
 /*
-  Phone / Home Screen: keep the topbar in normal flow (sticky) so we don’t double
-  the header offset with padding-top + in-flow height. A fixed strip at y=0 still
-  paints under the status bar like Add Item’s fullscreen modal (WebKit frost).
+  Phone / Home Screen status frost:
+  Add Item is crisp because `.modal-root` is `position: fixed; inset: 0` — opaque
+  paint sits under the clock/battery. Sticky in-flow chrome does not.
+  Mirror that: fixed opaque bleed + fixed topbar from y=0, spacer via main padding.
 */
+.ios-status-bleed {
+  display: none;
+}
 @media (max-width: 1023px) {
-  .app-shell::before {
-    content: '';
+  .ios-status-bleed {
+    display: block;
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    min-height: 8px;
-    height: max(8px, var(--safe-top));
-    z-index: 55;
+    right: 0;
+    /* Cover the status bar band; min height helps when env() is late/zero. */
+    height: max(var(--safe-top), 12px);
+    z-index: 60;
     pointer-events: none;
+    background-color: var(--topbar-fill);
     background: var(--topbar-fill);
   }
-  /* Tight gap under the bar — matches bento cards, not a second “page” pad. */
+  .app-column > .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 50;
+    background-color: var(--topbar-fill);
+    background: var(--topbar-fill);
+  }
+  /* Topbar is out of flow — reserve its height so content starts below it. */
+  .app-column > .app-main {
+    padding-top: calc(var(--topbar-h) + var(--safe-top));
+  }
   .app-main .page {
     padding-top: var(--bento-gap);
   }
 }
-:root[data-display-mode='standalone'] .app-shell::before {
-  content: '';
+:root[data-display-mode='standalone'] .ios-status-bleed {
+  display: block;
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  min-height: 8px;
-  height: max(8px, var(--safe-top));
-  z-index: 55;
+  right: 0;
+  height: max(var(--safe-top), 12px);
+  z-index: 60;
   pointer-events: none;
+  background-color: var(--topbar-fill);
   background: var(--topbar-fill);
+}
+:root[data-display-mode='standalone'] body {
+  background-color: var(--bg);
 }
 
 @media (min-width: 1024px) {
@@ -1065,26 +1086,26 @@
     display: none;
   }
 
-  /* Forced phone shell on a wide viewport: full-bleed sticky bar + status shield. */
-  .app-shell[data-layout-mode='mobile']::before {
-    content: '';
+  /* Forced phone shell on a wide viewport: same fixed opaque chrome as real phones. */
+  .app-shell[data-layout-mode='mobile'] .ios-status-bleed {
+    display: block;
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    min-height: 8px;
-    height: max(8px, var(--safe-top));
-    z-index: 55;
+    right: 0;
+    height: max(var(--safe-top), 12px);
+    z-index: 60;
     pointer-events: none;
+    background-color: var(--topbar-fill);
     background: var(--topbar-fill);
   }
   .app-shell[data-layout-mode='mobile'] .app-column {
     padding-top: 0;
   }
   .app-shell[data-layout-mode='mobile'] .app-column > .topbar {
-    position: sticky;
-    left: auto;
-    right: auto;
+    position: fixed;
+    left: 0;
+    right: 0;
     top: 0;
     width: 100%;
     max-width: none;
@@ -1100,7 +1121,7 @@
     background: var(--topbar-fill);
   }
   .app-shell[data-layout-mode='mobile'] .app-column > .app-main {
-    padding-top: 0;
+    padding-top: calc(var(--topbar-h) + var(--safe-top));
   }
   .app-shell[data-layout-mode='mobile'] .app-main .page {
     padding-top: var(--bento-gap);

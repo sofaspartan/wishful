@@ -199,6 +199,8 @@ export function AppLayout() {
         data-dashboard-scene={soft ? dashboardLook.scene : undefined}
         style={shellStyle}
       >
+        {/* Opaque paint under the iOS status bar (same idea as Add Item’s fullscreen modal). */}
+        <div className="ios-status-bleed" aria-hidden />
         <aside className="sidebar" aria-label="Sidebar">
           <div className="sidebar-brand">
             <Logo to="/app" />

@@ -61,20 +61,44 @@ strong {
     linear-gradient(180deg, var(--soft-wash) 0%, var(--soft-wash-deep) 100%);
   border-bottom: 1px solid var(--soft-border);
 }
+/* Cloud + W★ mark — matches site `.logo-mark` (not the old sparkle tile). */
 .logo-mark {
-  border-radius: 9px;
-  background: var(--accent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--soft-accent, var(--accent));
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: none;
+}
+.logo-mark-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
+}
+.logo-mark .brand-cloud {
+  fill: currentColor;
+}
+.logo-mark .brand-glyph {
+  fill: #fff;
+  fill-rule: evenodd;
+}
+.popup-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: inherit;
 }
 .popup-brand {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.2rem;
-  letter-spacing: -0.03em;
+  font-weight: 650;
+  font-variation-settings: 'SOFT' 100;
+  font-size: 1.22rem;
+  letter-spacing: -0.02em;
   line-height: 1;
+  color: var(--ink);
 }
 .popup-spacer {
   flex: 1;

@@ -128,8 +128,10 @@ export function Popup() {
   return (
     <div className="popup" data-soft={softLook} style={softStyle}>
       <header className="popup-header">
-        <LogoMark size={28} />
-        <span className="popup-brand">{brand.name}</span>
+        <a className="popup-brand-link" href={`${SITE_URL}/app`} target="_blank" rel="noreferrer" aria-label={`${brand.name} home`}>
+          <LogoMark size={34} />
+          <span className="popup-brand">{brand.name}</span>
+        </a>
         <span className="popup-spacer" />
         <SoftLookPicker value={softLook} onChange={pickSoftLook} />
         <a className="popup-link" href={`${SITE_URL}/app`} target="_blank" rel="noreferrer">
