@@ -13,11 +13,14 @@ const CLOUD_TRACK =
 export function BrandMarkSvg({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 612 448.5" fill="none" aria-hidden>
-      <g className="brand-cloud" transform="translate(89,97.5)">
-        <rect x="-75" y="95" width="584" height="242" rx="121" />
-        <circle cx="70" cy="92" r="103.5" />
-        <circle cx="215" cy="60" r="113.5" />
-        <circle cx="358" cy="48" r="131.5" />
+      {/* Outer translate stays put; animate `.brand-cloud` so CSS transform doesn’t wipe it. */}
+      <g transform="translate(89,97.5)">
+        <g className="brand-cloud">
+          <rect x="-75" y="95" width="584" height="242" rx="121" />
+          <circle cx="70" cy="92" r="103.5" />
+          <circle cx="215" cy="60" r="113.5" />
+          <circle cx="358" cy="48" r="131.5" />
+        </g>
       </g>
       <g transform="translate(-5.65,0.27)">
         <path className="brand-glyph" d={W_PATH} />

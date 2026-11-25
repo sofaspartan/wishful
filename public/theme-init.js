@@ -11,4 +11,10 @@
   document.documentElement.dataset.theme = theme;
   var meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a1129' : '#f3f3f2');
+
+  // Home Screen / installed app: opaque top chrome (see layout.css standalone rules).
+  var standalone =
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+    (typeof navigator !== 'undefined' && navigator.standalone === true);
+  document.documentElement.dataset.displayMode = standalone ? 'standalone' : 'browser';
 })();

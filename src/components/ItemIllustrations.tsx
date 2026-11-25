@@ -386,6 +386,19 @@ const ScannedBox = (
   </Svg>
 );
 
+/** Magnifying glass over a photo — Lens / Vision product search. */
+const LensSearch = (
+  <Svg>
+    <rect x="5" y="10" width="28" height="28" rx="5" fill={INK} />
+    <rect x="8" y="13" width="22" height="16" rx="2" fill="#eef1f5" />
+    <path d="M10 27l5.5-7 4 5 3-3.5 5.5 5.5" fill="#5b7bb5" />
+    <circle cx="14" cy="18" r="2.2" fill="#f2c14e" />
+    <circle cx="33.5" cy="33.5" r="9.5" fill="#4fa3a5" stroke={INK} strokeWidth="2" />
+    <circle cx="33.5" cy="33.5" r="5.2" fill="#eef1f5" />
+    <path d="M40.2 40.2L45 45" stroke={INK} strokeWidth="3.2" strokeLinecap="round" />
+  </Svg>
+);
+
 export const FEATURE_ILLUSTRATIONS = {
   store: ShoppingBag,
   barcode: BarcodeScan,
@@ -397,6 +410,7 @@ export const FEATURE_ILLUSTRATIONS = {
   together: People,
   phone: Phone,
   camera: Camera,
+  lens: LensSearch,
   idea: Lightbulb,
   collection: Shelf,
   boxes: ScannedBox,

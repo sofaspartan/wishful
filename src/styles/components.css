@@ -1371,7 +1371,8 @@
 }
 .brand-splash-mark .brand-cloud {
   fill: currentColor;
-  transform-origin: 217px 127px;
+  /* Local cloud center after translate(89,97.5) — matches public/animated-logo.html #intro */
+  transform-origin: 217px 320px;
   opacity: 0;
 }
 .brand-splash-mark .brand-glyph {

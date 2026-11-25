@@ -896,21 +896,6 @@
   -webkit-backdrop-filter: saturate(1.4) blur(10px);
   border-bottom: 1px solid transparent;
 }
-/* Installed / standalone: solid chrome — frosted blur reads as a smear under the notch. */
-:root[data-display-mode='standalone'] .topbar,
-:root[data-display-mode='standalone'] .landing-top {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-:root[data-display-mode='standalone'] .topbar {
-  background: var(--bg);
-}
-:root[data-display-mode='standalone'] .app-shell.dashboard-themed .app-column > .topbar {
-  background: var(--surface);
-}
-:root[data-display-mode='standalone'] .app-shell.dashboard-themed-dark .app-column > .topbar {
-  background: var(--dash-panel);
-}
 .app-shell[data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar,
 .app-shell.dashboard-themed .app-column > .topbar {
   background: color-mix(in srgb, var(--surface) 86%, transparent);
@@ -949,6 +934,56 @@
 }
 .app-shell.dashboard-themed-dark .search-trigger:hover {
   border-color: color-mix(in srgb, #fff 34%, transparent);
+}
+/*
+  Phone / installed app: opaque top chrome.
+  Frosted blur + translucent fill smears under the notch and washes out the logo/icons.
+  Placed after translucent dashboard rules so it always wins.
+*/
+@media (max-width: 1023px) {
+  .topbar,
+  .landing-top {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .topbar {
+    background: var(--bg);
+  }
+  .app-shell.dashboard-themed .app-column > .topbar,
+  .app-shell[data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar {
+    background: var(--surface);
+  }
+  .app-shell.dashboard-themed-dark .app-column > .topbar {
+    background: var(--dash-panel);
+  }
+  .landing-top {
+    background: var(--hero-bg);
+  }
+}
+.app-shell[data-layout-mode='mobile'] .topbar,
+.app-shell[data-layout-mode='mobile'] .landing-top,
+:root[data-display-mode='standalone'] .topbar,
+:root[data-display-mode='standalone'] .landing-top {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.app-shell[data-layout-mode='mobile'] .topbar,
+:root[data-display-mode='standalone'] .topbar {
+  background: var(--bg);
+}
+.app-shell[data-layout-mode='mobile'].dashboard-themed .app-column > .topbar,
+.app-shell[data-layout-mode='mobile'][data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar,
+:root[data-display-mode='standalone'] .app-shell.dashboard-themed .app-column > .topbar,
+:root[data-display-mode='standalone'] .app-shell[data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar {
+  background: var(--surface);
+}
+.app-shell[data-layout-mode='mobile'].dashboard-themed-dark .app-column > .topbar,
+:root[data-display-mode='standalone'] .app-shell.dashboard-themed-dark .app-column > .topbar {
+  background: var(--dash-panel);
+}
+.app-shell[data-layout-mode='mobile'] .landing-top,
+:root[data-display-mode='standalone'] .landing-top {
+  background: var(--hero-bg);
 }
 .topbar.scrolled {
   border-bottom-color: var(--border);
@@ -5326,9 +5361,6 @@ button.empty:hover {
   background: color-mix(in srgb, var(--hero-bg) 88%, transparent);
   backdrop-filter: saturate(1.4) blur(10px);
   -webkit-backdrop-filter: saturate(1.4) blur(10px);
-}
-:root[data-display-mode='standalone'] .landing-top {
-  background: var(--hero-bg);
 }
 .landing-nav {
   position: relative;

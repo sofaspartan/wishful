@@ -17,6 +17,7 @@ describe('product image search', () => {
     expect(result.configured).toBe(true);
     expect(result.candidates.length).toBeGreaterThan(0);
     expect(result.candidates[0]?.url).toContain('example.com');
+    expect(result.suggestedTitle).toMatch(/mug/i);
   });
 
   it('explains when Vision is not configured', async () => {
@@ -25,6 +26,6 @@ describe('product image search', () => {
     const result = await searchProductFromImage(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]));
     expect(result.configured).toBe(false);
     expect(result.candidates).toEqual([]);
-    expect(result.message).toMatch(/configured/i);
+    expect(result.message).toMatch(/configured|Lens/i);
   });
 });

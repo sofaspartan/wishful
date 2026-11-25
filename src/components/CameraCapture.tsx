@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, ImagePlus, Sparkles } from 'lucide-react';
+import { Camera, CameraOff, ImagePlus, ScanSearch } from 'lucide-react';
 import { Button } from './ui/Button';
 import { FormNote } from './ui/Field';
 
@@ -174,7 +174,7 @@ export function CameraCapture({ active, onCapture, onUpload, variant = 'camera',
                 onClick={() => void takePhoto()}
               >
                 <span className="camera-shutter-ring" aria-hidden />
-                {isLens ? <Sparkles size={22} aria-hidden /> : <Camera size={22} aria-hidden />}
+                {isLens ? <ScanSearch size={22} aria-hidden /> : <Camera size={22} aria-hidden />}
               </button>
             )}
             {onUpload && <span className="camera-controls-spacer" aria-hidden />}

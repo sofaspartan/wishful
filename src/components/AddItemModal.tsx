@@ -380,6 +380,26 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     }));
   };
 
+  /** Camera tab: keep the photo and continue to details (no Vision). */
+  const attachPhoto = async (file: File) => {
+    setFetching(true);
+    setFormError(null);
+    setVisionCandidates([]);
+    setVisionMessage(null);
+    try {
+      const imageUrl = await uploadImage(file);
+      setDraft((d) => ({ ...d, imageUrl, type: d.type === 'idea' ? 'product' : d.type }));
+      setExtractNote(null);
+      setExtractHelp({ blocked: false, noPhoto: false });
+      setStep('details');
+    } catch (err) {
+      setFormError(errorMessage(err));
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  /** Lens tab: Google Cloud Vision Web Detection → match shortlist. */
   const identifyFromPhoto = async (file: File) => {
     setFetching(true);
     setFormError(null);
@@ -388,11 +408,19 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     try {
       const [imageUrl, blob] = await Promise.all([uploadImage(file), prepareImage(file)]);
       setDraft((d) => ({ ...d, imageUrl, type: d.type === 'idea' ? 'product' : d.type }));
-      const result = await api<{ configured: boolean; candidates: VisionCandidate[]; message?: string }>('/api/vision/product', {
+      const result = await api<{
+        configured: boolean;
+        candidates: VisionCandidate[];
+        message?: string;
+        suggestedTitle?: string;
+      }>('/api/vision/product', {
         method: 'POST',
         raw: blob,
         contentType: blob.type || 'image/jpeg',
       });
+      if (result.suggestedTitle) {
+        setDraft((d) => ({ ...d, title: d.title.trim() ? d.title : result.suggestedTitle! }));
+      }
       const usable = result.candidates.filter((c) => c.metadata && (c.metadata.title || c.metadata.extracted));
       if (usable.length) {
         setVisionCandidates(usable);
@@ -410,6 +438,10 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     } finally {
       setFetching(false);
     }
+  };
+
+  const onCaptureFile = (file: File) => {
+    void (captureTab === 'lens' ? identifyFromPhoto(file) : attachPhoto(file));
   };
 
   const fetchDetails = async (raw = url) => {
@@ -700,8 +732,22 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
             <div className="capture-stage-main capture-shell">
               <FormError message={formError} />
               {fetching ? (
-                <FormNote icon={captureTab === 'barcode' ? <ScanBarcode size={16} aria-hidden /> : <ImagePlus size={16} aria-hidden />}>
-                  {captureTab === 'barcode' ? 'Looking up that barcode…' : 'Looking up that photo…'}
+                <FormNote
+                  icon={
+                    captureTab === 'barcode' ? (
+                      <ScanBarcode size={16} aria-hidden />
+                    ) : captureTab === 'lens' ? (
+                      <Sparkles size={16} aria-hidden />
+                    ) : (
+                      <ImagePlus size={16} aria-hidden />
+                    )
+                  }
+                >
+                  {captureTab === 'barcode'
+                    ? 'Looking up that barcode…'
+                    : captureTab === 'lens'
+                      ? 'Searching with Lens…'
+                      : 'Saving your photo…'}
                 </FormNote>
               ) : barcodeMiss ? (
                 <>
@@ -740,8 +786,8 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                   active={open && step === 'start' && (captureTab === 'photo' || captureTab === 'lens')}
                   disabled={fetching || uploading}
                   variant={captureTab === 'lens' ? 'lens' : 'camera'}
-                  onCapture={(file) => void identifyFromPhoto(file)}
-                  onUpload={(file) => void identifyFromPhoto(file)}
+                  onCapture={onCaptureFile}
+                  onUpload={onCaptureFile}
                 />
               )}
             </div>
@@ -752,7 +798,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                     [
                       { id: 'photo' as const, label: 'Camera', icon: FEATURE_ILLUSTRATIONS.camera },
                       { id: 'barcode' as const, label: 'Scan', icon: FEATURE_ILLUSTRATIONS.barcode },
-                      { id: 'lens' as const, label: 'Lens', icon: FEATURE_ILLUSTRATIONS.surprise },
+                      { id: 'lens' as const, label: 'Lens', icon: FEATURE_ILLUSTRATIONS.lens },
                     ] as const
                   ).map((tab) => {
                     const selected = captureTab === tab.id;
@@ -779,7 +825,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                   onClick={() => setStep('details')}
                   disabled={uploading}
                 >
-                  Continue without image
+                  {captureTab === 'lens' ? 'Continue without search' : 'Continue without image'}
                   <ArrowRight size={14} aria-hidden />
                 </button>
               </div>
@@ -978,7 +1024,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
             <FormError message={formError} />
             {visionMessage && <FormNote>{visionMessage}</FormNote>}
             <p className="muted text-sm" style={{ margin: 0 }}>
-              Pick the best match, or keep your photo and enter details yourself.
+              Lens found these matches — pick one, or keep your photo and enter details yourself.
             </p>
             <div className="vision-matches">
               {visionCandidates.map((c) => {
