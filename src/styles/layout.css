@@ -4043,14 +4043,21 @@ button.empty:hover {
 
 /* ── Public wishlist ──────────────────────────────────────────────────── */
 .public-shell {
+  --topbar-fill: var(--bg);
   min-height: 100dvh;
+}
+.public-shell.page-themed {
+  --topbar-fill: var(--page-wash);
+}
+.public-shell.page-themed-dark {
+  --topbar-fill: var(--page-wash);
 }
 .public-header {
   display: flex;
   align-items: center;
   gap: var(--s-3);
   width: 100%;
-  height: calc(60px + var(--safe-top));
+  height: calc(var(--topbar-h) + var(--safe-top));
   padding: var(--safe-top) var(--s-4) 0;
   max-width: var(--content-max);
   margin: 0 auto;
@@ -4059,6 +4066,77 @@ button.empty:hover {
   .public-header {
     padding: var(--safe-top) var(--s-8) 0;
   }
+}
+
+/*
+  Public profile / list / collection / box: same iOS status frost fix as the app
+  shell — fixed opaque chrome + status-edge bleed (Add Item modal pattern).
+*/
+@media (max-width: 1023px) {
+  .public-shell {
+    padding-top: calc(var(--topbar-h) + var(--safe-top));
+  }
+  .public-shell::before {
+    content: '';
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: max(var(--safe-top), 12px);
+    z-index: 60;
+    pointer-events: none;
+    background-color: var(--topbar-fill);
+    background: var(--topbar-fill);
+  }
+  .public-shell > .public-header,
+  .public-shell.page-themed > .public-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    z-index: 50;
+    height: calc(var(--topbar-h) + var(--safe-top));
+    padding: var(--safe-top) var(--s-4) 0;
+    box-sizing: border-box;
+    background-color: var(--topbar-fill);
+    background: var(--topbar-fill);
+  }
+}
+:root[data-display-mode='standalone'] .public-shell {
+  padding-top: calc(var(--topbar-h) + var(--safe-top));
+}
+:root[data-display-mode='standalone'] .public-shell::before {
+  content: '';
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: max(var(--safe-top), 12px);
+  z-index: 60;
+  pointer-events: none;
+  background-color: var(--topbar-fill);
+  background: var(--topbar-fill);
+}
+:root[data-display-mode='standalone'] .public-shell > .public-header,
+:root[data-display-mode='standalone'] .public-shell.page-themed > .public-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  z-index: 50;
+  height: calc(var(--topbar-h) + var(--safe-top));
+  padding: var(--safe-top) var(--s-4) 0;
+  box-sizing: border-box;
+  background-color: var(--topbar-fill);
+  background: var(--topbar-fill);
 }
 .public-hero {
   position: relative;
