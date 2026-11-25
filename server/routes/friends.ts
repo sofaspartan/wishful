@@ -1,4 +1,4 @@
-import { friendRequestSchema, idSchema, peopleSearchSchema } from '../../shared/schemas';
+import { friendNoteSchema, friendRequestSchema, idSchema, peopleSearchSchema } from '../../shared/schemas';
 import { db } from '../storage';
 import { json, notFound, readJson, type Router } from '../http';
 import type { UserRecord } from '../records';
@@ -8,7 +8,15 @@ import { sendEmail } from '../services/email';
 import { rateLimit } from '../services/rateLimit';
 import { toSelfUser } from '../serialize';
 import { appUrl } from '../util';
-import { acceptFriendRequest, friendProfile, friendsOverview, removeFriendship, searchPeople, sendFriendRequest } from '../domain/friends';
+import {
+  acceptFriendRequest,
+  friendProfile,
+  friendsOverview,
+  removeFriendship,
+  searchPeople,
+  sendFriendRequest,
+  setFriendNote,
+} from '../domain/friends';
 import { BRAND_NAME } from '../brand';
 
 const FRIENDS_LINK = '/app/friends';
@@ -86,6 +94,12 @@ export function registerFriendRoutes(router: Router) {
   router.get('/api/friends/:userId', async (ctx) => {
     const user = await requireUser(ctx);
     return json(await friendProfile(user.id, parseUserId(ctx.params.userId)));
+  });
+
+  router.patch('/api/friends/:userId/note', async (ctx) => {
+    const user = await requireUser(ctx);
+    const { note } = await readJson(ctx.req, friendNoteSchema);
+    return json(await setFriendNote(user.id, parseUserId(ctx.params.userId), note));
   });
 
   router.delete('/api/friends/:userId', async (ctx) => {

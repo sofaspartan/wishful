@@ -9,7 +9,7 @@ export function PublicFooter() {
     <footer className="public-footer">
       <CloudBank className="public-footer-bank" />
       <div className="public-footer-inner">
-        <Logo to="/" size={22} />
+        <Logo to="/" size={34} />
         <p>
           {brand.tagline}{' '}
           <Link to="/register">Make your own wishlist</Link>

@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wishful Logo — New · Animations</title>
+  <style>
+    :root {
+      --blue: #1357f6;
+      --bg: #0b1224;
+      --panel: #121a2e;
+      --text: #e8eefc;
+      --muted: #8b9bc0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, #1a2a55 0%, transparent 55%),
+        var(--bg);
+      color: var(--text);
+      padding: 2.5rem 1.5rem 3rem;
+    }
+
+    h1 {
+      text-align: center;
+      font-weight: 600;
+      font-size: 1.35rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.75rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 1.25rem 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .panel h2 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .stage {
+      width: 100%;
+      aspect-ratio: 612 / 448.5;
+      max-width: 340px;
+      display: grid;
+      place-items: center;
+    }
+
+    .logo {
+      width: 86%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 0.55rem 1.1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(19, 87, 246, 0.25);
+      border-color: rgba(19, 87, 246, 0.55);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+      min-height: 1.2em;
+    }
+
+    /* ——— shared ——— */
+    /*
+      Animate an inner group so CSS transform doesn't wipe SVG translate(89,97.5).
+      Origin is the cloud’s local center (not % / fill-box — those resolve to 0,0 on <g>
+      and make scale animations jump up-left).
+    */
+    .cloud-group { transform-origin: 217px 127px; }
+    #intro .cloud-group { transform-origin: 217px 320px; }
+    .bump { transform-box: fill-box; transform-origin: 50% 50%; }
+    .letter { fill: #fff; transform-origin: 50% 50%; transform-box: fill-box; }
+    .star { fill: #fff; transform-origin: 50% 50%; transform-box: fill-box; }
+
+    /* ——— INTRO (icon) ——— */
+    #intro .cloud-group,
+    #intro .letter,
+    #intro .star { opacity: 0; }
+
+    #intro.play .cloud-group {
+      animation: iconCloudPuff 0.95s cubic-bezier(0.22, 1.25, 0.36, 1) forwards;
+    }
+
+    #intro.play .letter {
+      animation: introLetter 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.28s forwards;
+    }
+
+    #intro.play .star {
+      animation: introStar 0.75s cubic-bezier(0.34, 1.45, 0.64, 1) 0.4s forwards;
+    }
+
+    @keyframes iconCloudPuff {
+      0% {
+        opacity: 0;
+        transform: scaleX(0.55) scaleY(0.28);
+        filter: blur(4px);
+      }
+      45% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scaleX(1.04) scaleY(1.08);
+      }
+      70% { transform: scaleX(0.98) scaleY(0.96); }
+      100% {
+        opacity: 1;
+        transform: scaleX(1) scaleY(1);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes introLetter {
+      0% { opacity: 0; transform: scale(0.85) translateY(12px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes introStar {
+      0% { opacity: 0; transform: scale(0) rotate(-90deg); }
+      55% { opacity: 1; transform: scale(1.25) rotate(12deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+
+    /* ——— HOVER ——— */
+    #hover-wrap {
+      cursor: pointer;
+      width: 100%;
+      display: grid;
+      place-items: center;
+    }
+
+    #hover-wrap:hover .cloud-group,
+    #hover-wrap:focus-within .cloud-group,
+    #hover-wrap.active .cloud-group {
+      animation: cloudBob 2.8s ease-in-out infinite;
+    }
+
+    #hover-wrap:hover .bump-a,
+    #hover-wrap:focus-within .bump-a,
+    #hover-wrap.active .bump-a {
+      animation: bumpPulseA 2.8s ease-in-out infinite;
+    }
+
+    #hover-wrap:hover .bump-b,
+    #hover-wrap:focus-within .bump-b,
+    #hover-wrap.active .bump-b {
+      animation: bumpPulseB 2.8s ease-in-out infinite;
+    }
+
+    #hover-wrap:hover .bump-c,
+    #hover-wrap:focus-within .bump-c,
+    #hover-wrap.active .bump-c {
+      animation: bumpPulseC 2.8s ease-in-out infinite;
+    }
+
+    #hover-wrap:hover .letter,
+    #hover-wrap:focus-within .letter,
+    #hover-wrap.active .letter {
+      animation: letterDrift 3.2s ease-in-out infinite;
+    }
+
+    #hover-wrap:hover .star,
+    #hover-wrap:focus-within .star,
+    #hover-wrap.active .star {
+      animation: starDrift 2.6s ease-in-out infinite;
+    }
+
+    @keyframes cloudBob {
+      0%, 100% { transform: translateY(0) scaleX(1) scaleY(1); }
+      25% { transform: translateY(-4px) scaleX(1.02) scaleY(0.98); }
+      50% { transform: translateY(-1px) scaleX(0.985) scaleY(1.015); }
+      75% { transform: translateY(-6px) scaleX(1.015) scaleY(0.99); }
+    }
+
+    @keyframes bumpPulseA {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scale(1.04); }
+      70% { transform: scale(0.98); }
+    }
+
+    @keyframes bumpPulseB {
+      0%, 100% { transform: scale(1); }
+      30% { transform: scale(0.97); }
+      65% { transform: scale(1.05); }
+    }
+
+    @keyframes bumpPulseC {
+      0%, 100% { transform: scale(1); }
+      35% { transform: scale(1.05); }
+      75% { transform: scale(0.97); }
+    }
+
+    /* W leftward · star rightward — never drift toward each other */
+    @keyframes letterDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-6px, -7px); }
+      50% { transform: translate(-3px, 2px); }
+      75% { transform: translate(-8px, -4px); }
+    }
+
+    @keyframes starDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(7px, -5px); }
+      50% { transform: translate(4px, 3px); }
+      75% { transform: translate(8px, -2px); }
+    }
+
+    /* ——— LOADING ———
+       One race along the outer union silhouette (not each bump).
+       Whole cloud bobs together so the line stays on the outer edge. */
+    #loading .cloud-group {
+      /* silhouette path is in viewBox space, not local cloud coords */
+      transform-origin: 306px 240px;
+      animation: cloudBob 2.8s ease-in-out infinite;
+    }
+
+    #loading .cloud-track {
+      fill: none;
+      stroke: rgba(19, 87, 246, 0.22);
+      stroke-width: 22;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #loading .cloud-runner {
+      fill: none;
+      stroke: #1357f6;
+      stroke-width: 22;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 0.18 0.82;
+      animation: cloudChase 1.6s linear infinite;
+    }
+
+    #loading .letter-outline,
+    #loading .star-outline {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.85;
+      transform-origin: 50% 50%;
+      transform-box: fill-box;
+    }
+
+    #loading .letter-outline {
+      animation:
+        outlinePulse 2s ease-in-out infinite,
+        letterDrift 3.2s ease-in-out infinite;
+    }
+
+    #loading .star-outline {
+      animation:
+        outlinePulse 2s ease-in-out infinite,
+        starDrift 2.6s ease-in-out infinite;
+    }
+
+    @keyframes cloudChase {
+      to { stroke-dashoffset: -1; }
+    }
+
+    @keyframes outlinePulse {
+      0%, 100% { opacity: 0.55; }
+      50% { opacity: 1; }
+    }
+
+.cloud-fill { fill: #1357f6; }
+    .mark { fill: #fff; fill-rule: evenodd; }
+    .star { fill: #fff; }
+
+    #wm-intro .cloud-group,
+    #wm-idle .cloud-group,
+    #wm-idle-wrap .cloud-group { transform-origin: 742px 300px; }
+    #wm-intro .cloud-group { transform-origin: 742px 445px; }
+    .bump { transform-box: fill-box; transform-origin: 50% 50%; }
+    .glyph {
+      transform-box: fill-box;
+      transform-origin: 50% 100%;
+    }
+
+    /* ——— INTRO ——— */
+    #wm-intro .cloud-group,
+    #wm-intro .glyph { opacity: 0; }
+
+    #wm-intro.play .cloud-group {
+      animation: wmCloudPuff 0.95s cubic-bezier(0.22, 1.25, 0.36, 1) forwards;
+    }
+
+    #wm-intro.play .glyph {
+      animation: wmLetterRise 0.65s cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
+    }
+
+    /* letters overlap the puff — start as the cloud opens */
+    #wm-intro.play .g-w { animation-delay: 0.28s; }
+    #wm-intro.play .g-star { animation-delay: 0.34s; }
+    #wm-intro.play .g-i { animation-delay: 0.4s; }
+    #wm-intro.play .g-s { animation-delay: 0.46s; }
+    #wm-intro.play .g-h { animation-delay: 0.52s; }
+    #wm-intro.play .g-f { animation-delay: 0.58s; }
+    #wm-intro.play .g-u { animation-delay: 0.64s; }
+    #wm-intro.play .g-l { animation-delay: 0.7s; }
+
+    @keyframes wmCloudPuff {
+      0% {
+        opacity: 0;
+        transform: scaleX(0.55) scaleY(0.28);
+        filter: blur(4px);
+      }
+      45% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scaleX(1.04) scaleY(1.08);
+      }
+      70% {
+        transform: scaleX(0.98) scaleY(0.96);
+      }
+      100% {
+        opacity: 1;
+        transform: scaleX(1) scaleY(1);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes wmLetterRise {
+      0% { opacity: 0; transform: translateY(28px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ——— IDLE / HOVER ——— */
+    #wm-idle-wrap {
+      cursor: pointer;
+      width: 100%;
+      display: grid;
+      place-items: center;
+    }
+
+    #wm-idle-wrap:hover .cloud-group,
+    #wm-idle-wrap:focus-within .cloud-group,
+    #wm-idle-wrap.active .cloud-group {
+      animation: wmCloudBob 3.2s ease-in-out infinite;
+    }
+
+    #wm-idle-wrap:hover .bump-1,
+    #wm-idle-wrap:focus-within .bump-1,
+    #wm-idle-wrap.active .bump-1 { animation: bump1 3.2s ease-in-out infinite; }
+    #wm-idle-wrap:hover .bump-2,
+    #wm-idle-wrap:focus-within .bump-2,
+    #wm-idle-wrap.active .bump-2 { animation: bump2 3.2s ease-in-out infinite; }
+    #wm-idle-wrap:hover .bump-3,
+    #wm-idle-wrap:focus-within .bump-3,
+    #wm-idle-wrap.active .bump-3 { animation: bump3 3.2s ease-in-out infinite; }
+    #wm-idle-wrap:hover .bump-4,
+    #wm-idle-wrap:focus-within .bump-4,
+    #wm-idle-wrap.active .bump-4 { animation: bump4 3.2s ease-in-out infinite; }
+    #wm-idle-wrap:hover .bump-5,
+    #wm-idle-wrap:focus-within .bump-5,
+    #wm-idle-wrap.active .bump-5 { animation: bump5 3.2s ease-in-out infinite; }
+
+    #wm-idle-wrap:hover .glyph,
+    #wm-idle-wrap:focus-within .glyph,
+    #wm-idle-wrap.active .glyph {
+      animation: wmLetterWave 2.4s ease-in-out infinite;
+    }
+
+    #wm-idle-wrap:hover .g-w,
+    #wm-idle-wrap:focus-within .g-w,
+    #wm-idle-wrap.active .g-w { animation-delay: 0s; }
+    #wm-idle-wrap:hover .g-star,
+    #wm-idle-wrap:focus-within .g-star,
+    #wm-idle-wrap.active .g-star { animation-delay: -0.15s; }
+    #wm-idle-wrap:hover .g-i,
+    #wm-idle-wrap:focus-within .g-i,
+    #wm-idle-wrap.active .g-i { animation-delay: -0.3s; }
+    #wm-idle-wrap:hover .g-s,
+    #wm-idle-wrap:focus-within .g-s,
+    #wm-idle-wrap.active .g-s { animation-delay: -0.45s; }
+    #wm-idle-wrap:hover .g-h,
+    #wm-idle-wrap:focus-within .g-h,
+    #wm-idle-wrap.active .g-h { animation-delay: -0.6s; }
+    #wm-idle-wrap:hover .g-f,
+    #wm-idle-wrap:focus-within .g-f,
+    #wm-idle-wrap.active .g-f { animation-delay: -0.75s; }
+    #wm-idle-wrap:hover .g-u,
+    #wm-idle-wrap:focus-within .g-u,
+    #wm-idle-wrap.active .g-u { animation-delay: -0.9s; }
+    #wm-idle-wrap:hover .g-l,
+    #wm-idle-wrap:focus-within .g-l,
+    #wm-idle-wrap.active .g-l { animation-delay: -1.05s; }
+
+    @keyframes wmCloudBob {
+      0%, 100% { transform: translateY(0) scaleX(1) scaleY(1); }
+      25% { transform: translateY(-3px) scaleX(1.012) scaleY(0.988); }
+      50% { transform: translateY(-1px) scaleX(0.99) scaleY(1.01); }
+      75% { transform: translateY(-5px) scaleX(1.008) scaleY(0.992); }
+    }
+
+    @keyframes bump1 {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scale(1.035); }
+      70% { transform: scale(0.98); }
+    }
+    @keyframes bump2 {
+      0%, 100% { transform: scale(1); }
+      35% { transform: scale(0.975); }
+      65% { transform: scale(1.04); }
+    }
+    @keyframes bump3 {
+      0%, 100% { transform: scale(1); }
+      45% { transform: scale(1.04); }
+      75% { transform: scale(0.98); }
+    }
+    @keyframes bump4 {
+      0%, 100% { transform: scale(1); }
+      30% { transform: scale(0.97); }
+      60% { transform: scale(1.035); }
+    }
+    @keyframes bump5 {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scale(1.04); }
+      70% { transform: scale(0.975); }
+    }
+
+    @keyframes wmLetterWave {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+
+    
+    .stage-wide {
+      aspect-ratio: 1484.56 / 550.88;
+      max-width: none;
+    }
+
+    .section-label {
+      max-width: 1100px;
+      margin: 3rem auto 1.25rem;
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #intro.play .cloud-group,
+      #intro.play .letter,
+      #intro.play .star,
+      #hover-wrap:hover .cloud-group,
+      #hover-wrap:hover .bump-a,
+      #hover-wrap:hover .bump-b,
+      #hover-wrap:hover .bump-c,
+      #hover-wrap:hover .letter,
+      #hover-wrap:hover .star,
+      #hover-wrap.active .cloud-group,
+      #hover-wrap.active .bump-a,
+      #hover-wrap.active .bump-b,
+      #hover-wrap.active .bump-c,
+      #hover-wrap.active .letter,
+      #hover-wrap.active .star,
+      #loading .cloud-group,
+      #loading .cloud-runner,
+      #loading .letter-outline,
+      #loading .star-outline,
+      #wm-intro.play .cloud-group,
+      #wm-intro.play .glyph,
+      #wm-idle-wrap:hover .cloud-group,
+      #wm-idle-wrap:hover .bump-1,
+      #wm-idle-wrap:hover .bump-2,
+      #wm-idle-wrap:hover .bump-3,
+      #wm-idle-wrap:hover .bump-4,
+      #wm-idle-wrap:hover .bump-5,
+      #wm-idle-wrap:hover .glyph,
+      #wm-idle-wrap.active .cloud-group,
+      #wm-idle-wrap.active .bump-1,
+      #wm-idle-wrap.active .bump-2,
+      #wm-idle-wrap.active .bump-3,
+      #wm-idle-wrap.active .bump-4,
+      #wm-idle-wrap.active .bump-5,
+      #wm-idle-wrap.active .glyph {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+      }
+
+      #loading .cloud-runner {
+        stroke-dasharray: none;
+        stroke-dashoffset: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Wishful · new logo animations</h1>
+  <p class="subtitle">Icon mark · Wordmark · Intro · Hover · Loading</p>
+
+  <div class="grid">
+    <!-- INTRO -->
+    <section class="panel">
+      <h2>Intro</h2>
+      <div class="stage">
+        <svg id="intro" class="logo" viewBox="0 0 612 448.5" aria-label="Wishful logo intro" role="img">
+          <g fill="#1357f6" transform="translate(89,97.5)">
+            <g class="cloud-group">
+              <rect x="-75" y="95" width="584" height="242" rx="121"/>
+              <circle class="bump bump-a" cx="70" cy="92" r="103.5"/>
+              <circle class="bump bump-b" cx="215" cy="60" r="113.5"/>
+              <circle class="bump bump-c" cx="358" cy="48" r="131.5"/>
+            </g>
+          </g>
+          <g transform="translate(-5.65,0.27)">
+            <path class="letter" d="M113.67,270.1c-10.39-.79-17.14-8.08-18.67-17.87-1.89-12.09,3.99-23.45,14.17-30.72,14.28-10.19,32.29-12.72,49.42-8.71,15.63,3.66,27.22,14.45,32.49,29.47l6.26,22.68,9.23,34.65c.6,2.25,2.58,4.08,4.4,4.32,2.06.26,3.99-1.43,4.98-3.63l16.71-37.03,12.68-24.34c7.99-11.83,20.93-17.84,35.1-16.6,13.31,1.17,25.62,9.36,30.83,22.78l13.92,35.86c3.8,9.8,8.36,23.94,15.52,23.65,2.5-.1,5.43-1.93,6.69-4.81,6.84-15.53,9.58-32.68,8.13-49.81l-5.14-21.94c-4.15-17.66,6.06-33.6,23.93-35.93s32.94,6.93,39.62,23.3c4.45,10.91,6.04,22.33,5.95,34.64-.24,37.82-12.79,86.1-37.77,114.57-11.69,13.34-27.41,20.35-45.1,19.49-29.6-1.43-46.31-25.62-57.06-51.92l-8.08-19.78c-.46-1.12-1.28-2.09-2.18-2.27-1.11-.23-2.48.64-3.17,2l-15.39,30.47c-4.95,9.79-11.03,18.46-18.48,26.43-9.58,10.25-22.17,15.44-36.26,15.05-15.62-.42-28.93-7.84-37.55-20.77-5.18-7.76-9.33-15.86-11.88-24.98l-11.33-40.49C131.85,284.33,129,271.27,113.67,270.1Z"/>
+            <path class="star" d="M486.1,194.56c-15.87,20.1-10.95,36.56-21.77,36.87-4.24.12-7.52-2.63-8.52-7.06-6.33-28.22-23.42-45.43-51.21-52.75-3.31-.87-5.29-4.03-5.3-6.76-.04-10.49,17.54-6.69,35.35-22.74,11.04-9.93,17.76-23.19,21.24-37.55,1.06-4.34,3.48-7.05,7.45-7.32,4.54-.3,7.43,2.37,8.56,7.09,6.82,28.52,23.08,44.75,50.99,52.89,3.74,1.09,5.77,4.24,5.79,7.57.02,4.11-2.78,6.41-6.91,7.46C507.66,175.87,495.13,183.13,486.1,194.56Z"/>
+          </g>
+        </svg>
+      </div>
+      <button class="btn" type="button" id="replay-intro">Replay intro</button>
+      <p class="hint">Cloud puffs open · W &amp; star appear</p>
+    </section>
+
+    <!-- HOVER -->
+    <section class="panel">
+      <h2>Hover</h2>
+      <div class="stage">
+        <div id="hover-wrap" tabindex="0" aria-label="Wishful logo with hover animation">
+          <svg id="hover" class="logo" viewBox="0 0 612 448.5" role="img">
+            <g fill="#1357f6" transform="translate(89,97.5)">
+              <g class="cloud-group">
+                <rect x="-75" y="95" width="584" height="242" rx="121"/>
+                <circle class="bump bump-a" cx="70" cy="92" r="103.5"/>
+                <circle class="bump bump-b" cx="215" cy="60" r="113.5"/>
+                <circle class="bump bump-c" cx="358" cy="48" r="131.5"/>
+              </g>
+            </g>
+            <g transform="translate(-5.65,0.27)">
+              <path class="letter" d="M113.67,270.1c-10.39-.79-17.14-8.08-18.67-17.87-1.89-12.09,3.99-23.45,14.17-30.72,14.28-10.19,32.29-12.72,49.42-8.71,15.63,3.66,27.22,14.45,32.49,29.47l6.26,22.68,9.23,34.65c.6,2.25,2.58,4.08,4.4,4.32,2.06.26,3.99-1.43,4.98-3.63l16.71-37.03,12.68-24.34c7.99-11.83,20.93-17.84,35.1-16.6,13.31,1.17,25.62,9.36,30.83,22.78l13.92,35.86c3.8,9.8,8.36,23.94,15.52,23.65,2.5-.1,5.43-1.93,6.69-4.81,6.84-15.53,9.58-32.68,8.13-49.81l-5.14-21.94c-4.15-17.66,6.06-33.6,23.93-35.93s32.94,6.93,39.62,23.3c4.45,10.91,6.04,22.33,5.95,34.64-.24,37.82-12.79,86.1-37.77,114.57-11.69,13.34-27.41,20.35-45.1,19.49-29.6-1.43-46.31-25.62-57.06-51.92l-8.08-19.78c-.46-1.12-1.28-2.09-2.18-2.27-1.11-.23-2.48.64-3.17,2l-15.39,30.47c-4.95,9.79-11.03,18.46-18.48,26.43-9.58,10.25-22.17,15.44-36.26,15.05-15.62-.42-28.93-7.84-37.55-20.77-5.18-7.76-9.33-15.86-11.88-24.98l-11.33-40.49C131.85,284.33,129,271.27,113.67,270.1Z"/>
+              <path class="star" d="M486.1,194.56c-15.87,20.1-10.95,36.56-21.77,36.87-4.24.12-7.52-2.63-8.52-7.06-6.33-28.22-23.42-45.43-51.21-52.75-3.31-.87-5.29-4.03-5.3-6.76-.04-10.49,17.54-6.69,35.35-22.74,11.04-9.93,17.76-23.19,21.24-37.55,1.06-4.34,3.48-7.05,7.45-7.32,4.54-.3,7.43,2.37,8.56,7.09,6.82,28.52,23.08,44.75,50.99,52.89,3.74,1.09,5.77,4.24,5.79,7.57.02,4.11-2.78,6.41-6.91,7.46C507.66,175.87,495.13,183.13,486.1,194.56Z"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <button class="btn" type="button" id="toggle-hover">Toggle preview</button>
+      <p class="hint">Cloud undulates · bumps breathe · W &amp; star drift</p>
+    </section>
+
+    <!-- LOADING -->
+    <section class="panel">
+      <h2>Loading</h2>
+      <div class="stage">
+        <svg id="loading" class="logo" viewBox="0 0 612 448.5" aria-label="Wishful logo loading" role="img">
+          <g class="cloud-group">
+            <path class="cloud-track" pathLength="1" d="M 580.0 250.0 L 585.4 259.8 L 589.9 269.8 L 593.3 280.2 L 595.8 290.7 L 597.4 301.4 L 598.0 312.1 L 597.6 322.7 L 596.4 333.3 L 594.2 343.6 L 591.1 353.8 L 587.1 363.6 L 582.3 373.0 L 576.7 382.0 L 570.3 390.5 L 563.2 398.5 L 555.3 405.8 L 546.7 412.4 L 537.6 418.2 L 527.8 423.3 L 517.5 427.5 L 506.8 430.8 L 495.6 433.1 L 484.0 434.3 L 472.1 434.5 L 460.8 434.5 L 450.1 434.5 L 440.0 434.5 L 430.4 434.5 L 421.3 434.5 L 412.5 434.5 L 404.1 434.5 L 396.0 434.5 L 388.1 434.5 L 380.5 434.5 L 373.2 434.5 L 365.9 434.5 L 358.9 434.5 L 352.0 434.5 L 345.2 434.5 L 338.5 434.5 L 331.9 434.5 L 325.4 434.5 L 318.9 434.5 L 312.4 434.5 L 306.0 434.5 L 299.6 434.5 L 293.1 434.5 L 286.6 434.5 L 280.1 434.5 L 273.5 434.5 L 266.8 434.5 L 260.0 434.5 L 253.1 434.5 L 246.1 434.5 L 238.8 434.5 L 231.5 434.5 L 223.9 434.5 L 216.0 434.5 L 207.9 434.5 L 199.5 434.5 L 190.7 434.5 L 181.6 434.5 L 172.0 434.5 L 161.9 434.5 L 151.2 434.5 L 139.9 434.5 L 128.0 434.3 L 116.4 433.1 L 105.2 430.8 L 94.5 427.5 L 84.2 423.3 L 74.4 418.2 L 65.3 412.4 L 56.7 405.8 L 48.8 398.5 L 41.7 390.5 L 35.3 382.0 L 29.7 373.0 L 24.9 363.6 L 20.9 353.8 L 17.8 343.6 L 15.6 333.3 L 14.4 322.7 L 14.0 312.1 L 14.6 301.4 L 16.2 290.7 L 18.7 280.2 L 22.1 269.8 L 26.6 259.8 L 32.0 250.0 L 38.4 240.7 L 45.7 231.8 L 54.1 223.5 L 58.8 215.3 L 56.8 206.1 L 55.8 196.8 L 55.5 187.5 L 56.1 178.3 L 57.5 169.3 L 59.7 160.4 L 62.7 151.7 L 66.4 143.3 L 70.8 135.3 L 76.0 127.7 L 81.8 120.6 L 88.3 113.9 L 95.3 107.9 L 103.0 102.5 L 111.1 97.7 L 119.8 93.7 L 128.8 90.5 L 138.3 88.1 L 148.2 86.6 L 158.3 86.0 L 168.8 86.5 L 179.5 88.0 L 190.4 90.9 L 201.6 95.2 L 209.2 95.1 L 213.2 89.3 L 217.7 83.8 L 222.4 78.6 L 227.5 73.7 L 232.9 69.0 L 238.6 64.8 L 244.5 60.8 L 250.7 57.3 L 257.2 54.1 L 263.8 51.4 L 270.6 49.0 L 277.5 47.1 L 284.5 45.7 L 291.6 44.7 L 298.8 44.1 L 306.0 44.0 L 313.2 44.4 L 320.3 45.2 L 327.4 46.4 L 334.4 48.1 L 341.2 50.3 L 347.9 52.8 L 355.6 50.9 L 365.6 42.2 L 375.9 34.9 L 386.5 28.7 L 397.4 23.7 L 408.5 19.8 L 419.7 16.9 L 431.0 15.0 L 442.2 14.1 L 453.4 14.2 L 464.4 15.2 L 475.2 17.1 L 485.8 19.9 L 496.1 23.5 L 505.9 27.9 L 515.4 33.2 L 524.3 39.1 L 532.8 45.8 L 540.6 53.1 L 547.8 61.1 L 554.4 69.6 L 560.2 78.6 L 565.3 88.0 L 569.6 97.8 L 573.0 108.0 L 575.7 118.5 L 577.5 129.1 L 578.4 140.0 L 578.4 150.9 L 577.5 161.8 L 575.7 172.7 L 572.9 183.5 L 569.2 194.1 L 564.6 204.4 L 559.0 214.4 L 557.9 223.5 L 566.3 231.8 L 573.6 240.7 Z"/>
+            <path class="cloud-runner" pathLength="1" d="M 580.0 250.0 L 585.4 259.8 L 589.9 269.8 L 593.3 280.2 L 595.8 290.7 L 597.4 301.4 L 598.0 312.1 L 597.6 322.7 L 596.4 333.3 L 594.2 343.6 L 591.1 353.8 L 587.1 363.6 L 582.3 373.0 L 576.7 382.0 L 570.3 390.5 L 563.2 398.5 L 555.3 405.8 L 546.7 412.4 L 537.6 418.2 L 527.8 423.3 L 517.5 427.5 L 506.8 430.8 L 495.6 433.1 L 484.0 434.3 L 472.1 434.5 L 460.8 434.5 L 450.1 434.5 L 440.0 434.5 L 430.4 434.5 L 421.3 434.5 L 412.5 434.5 L 404.1 434.5 L 396.0 434.5 L 388.1 434.5 L 380.5 434.5 L 373.2 434.5 L 365.9 434.5 L 358.9 434.5 L 352.0 434.5 L 345.2 434.5 L 338.5 434.5 L 331.9 434.5 L 325.4 434.5 L 318.9 434.5 L 312.4 434.5 L 306.0 434.5 L 299.6 434.5 L 293.1 434.5 L 286.6 434.5 L 280.1 434.5 L 273.5 434.5 L 266.8 434.5 L 260.0 434.5 L 253.1 434.5 L 246.1 434.5 L 238.8 434.5 L 231.5 434.5 L 223.9 434.5 L 216.0 434.5 L 207.9 434.5 L 199.5 434.5 L 190.7 434.5 L 181.6 434.5 L 172.0 434.5 L 161.9 434.5 L 151.2 434.5 L 139.9 434.5 L 128.0 434.3 L 116.4 433.1 L 105.2 430.8 L 94.5 427.5 L 84.2 423.3 L 74.4 418.2 L 65.3 412.4 L 56.7 405.8 L 48.8 398.5 L 41.7 390.5 L 35.3 382.0 L 29.7 373.0 L 24.9 363.6 L 20.9 353.8 L 17.8 343.6 L 15.6 333.3 L 14.4 322.7 L 14.0 312.1 L 14.6 301.4 L 16.2 290.7 L 18.7 280.2 L 22.1 269.8 L 26.6 259.8 L 32.0 250.0 L 38.4 240.7 L 45.7 231.8 L 54.1 223.5 L 58.8 215.3 L 56.8 206.1 L 55.8 196.8 L 55.5 187.5 L 56.1 178.3 L 57.5 169.3 L 59.7 160.4 L 62.7 151.7 L 66.4 143.3 L 70.8 135.3 L 76.0 127.7 L 81.8 120.6 L 88.3 113.9 L 95.3 107.9 L 103.0 102.5 L 111.1 97.7 L 119.8 93.7 L 128.8 90.5 L 138.3 88.1 L 148.2 86.6 L 158.3 86.0 L 168.8 86.5 L 179.5 88.0 L 190.4 90.9 L 201.6 95.2 L 209.2 95.1 L 213.2 89.3 L 217.7 83.8 L 222.4 78.6 L 227.5 73.7 L 232.9 69.0 L 238.6 64.8 L 244.5 60.8 L 250.7 57.3 L 257.2 54.1 L 263.8 51.4 L 270.6 49.0 L 277.5 47.1 L 284.5 45.7 L 291.6 44.7 L 298.8 44.1 L 306.0 44.0 L 313.2 44.4 L 320.3 45.2 L 327.4 46.4 L 334.4 48.1 L 341.2 50.3 L 347.9 52.8 L 355.6 50.9 L 365.6 42.2 L 375.9 34.9 L 386.5 28.7 L 397.4 23.7 L 408.5 19.8 L 419.7 16.9 L 431.0 15.0 L 442.2 14.1 L 453.4 14.2 L 464.4 15.2 L 475.2 17.1 L 485.8 19.9 L 496.1 23.5 L 505.9 27.9 L 515.4 33.2 L 524.3 39.1 L 532.8 45.8 L 540.6 53.1 L 547.8 61.1 L 554.4 69.6 L 560.2 78.6 L 565.3 88.0 L 569.6 97.8 L 573.0 108.0 L 575.7 118.5 L 577.5 129.1 L 578.4 140.0 L 578.4 150.9 L 577.5 161.8 L 575.7 172.7 L 572.9 183.5 L 569.2 194.1 L 564.6 204.4 L 559.0 214.4 L 557.9 223.5 L 566.3 231.8 L 573.6 240.7 Z"/>
+          </g>
+          <g transform="translate(-5.65,0.27)">
+            <path class="letter-outline" d="M113.67,270.1c-10.39-.79-17.14-8.08-18.67-17.87-1.89-12.09,3.99-23.45,14.17-30.72,14.28-10.19,32.29-12.72,49.42-8.71,15.63,3.66,27.22,14.45,32.49,29.47l6.26,22.68,9.23,34.65c.6,2.25,2.58,4.08,4.4,4.32,2.06.26,3.99-1.43,4.98-3.63l16.71-37.03,12.68-24.34c7.99-11.83,20.93-17.84,35.1-16.6,13.31,1.17,25.62,9.36,30.83,22.78l13.92,35.86c3.8,9.8,8.36,23.94,15.52,23.65,2.5-.1,5.43-1.93,6.69-4.81,6.84-15.53,9.58-32.68,8.13-49.81l-5.14-21.94c-4.15-17.66,6.06-33.6,23.93-35.93s32.94,6.93,39.62,23.3c4.45,10.91,6.04,22.33,5.95,34.64-.24,37.82-12.79,86.1-37.77,114.57-11.69,13.34-27.41,20.35-45.1,19.49-29.6-1.43-46.31-25.62-57.06-51.92l-8.08-19.78c-.46-1.12-1.28-2.09-2.18-2.27-1.11-.23-2.48.64-3.17,2l-15.39,30.47c-4.95,9.79-11.03,18.46-18.48,26.43-9.58,10.25-22.17,15.44-36.26,15.05-15.62-.42-28.93-7.84-37.55-20.77-5.18-7.76-9.33-15.86-11.88-24.98l-11.33-40.49C131.85,284.33,129,271.27,113.67,270.1Z"/>
+            <path class="star-outline" d="M486.1,194.56c-15.87,20.1-10.95,36.56-21.77,36.87-4.24.12-7.52-2.63-8.52-7.06-6.33-28.22-23.42-45.43-51.21-52.75-3.31-.87-5.29-4.03-5.3-6.76-.04-10.49,17.54-6.69,35.35-22.74,11.04-9.93,17.76-23.19,21.24-37.55,1.06-4.34,3.48-7.05,7.45-7.32,4.54-.3,7.43,2.37,8.56,7.09,6.82,28.52,23.08,44.75,50.99,52.89,3.74,1.09,5.77,4.24,5.79,7.57.02,4.11-2.78,6.41-6.91,7.46C507.66,175.87,495.13,183.13,486.1,194.56Z"/>
+          </g>
+        </svg>
+      </div>
+      <p class="hint">Line races the outer cloud edge · outlined W &amp; star drift</p>
+    </section>
+  </div>
+
+  <p class="section-label">Wordmark</p>
+  <div class="grid" style="max-width:1100px">
+
+    <!-- INTRO -->
+    <section class="panel">
+      <h2>Intro</h2>
+      <div class="stage stage-wide">
+        <svg id="wm-intro" class="logo" viewBox="0 0 1484.56 550.88" role="img" aria-label="Wishful wordmark intro">
+          <g class="cloud-group">
+            <path class="cloud-fill" d="M106.12,338.64h1272.32c58.61,0,106.12,47.51,106.12,106.12h0c0,58.61-47.51,106.12-106.12,106.12H106.12c-58.61,0-106.12-47.51-106.12-106.12h0C0,386.15,47.51,338.64,106.12,338.64Z"/>
+            <circle class="cloud-fill bump bump-1" cx="208.41" cy="297.78" r="155.04"/>
+            <circle class="cloud-fill bump bump-2" cx="493.9" cy="241.34" r="241.34"/>
+            <circle class="cloud-fill bump bump-3" cx="750.99" cy="240.69" r="196.89"/>
+            <circle class="cloud-fill bump bump-4" cx="1023.08" cy="229.8" r="169.35"/>
+            <circle class="cloud-fill bump bump-5" cx="1272.18" cy="259.73" r="180.79"/>
+          </g>
+          <path class="mark glyph g-w" d="M314.98,397.14l8.91,21.82c14.78,36.16,34.6,54.36,60.6,55.61,18.56.91,35.03-6.21,47.62-20.59,27.98-31.88,40.75-85.56,41-124.61.11-14.47-1.91-26.28-6.37-37.18-7.03-17.23-22.71-26.45-40.91-24.08-8.46,1.1-15.6,5.29-20.09,11.79-4.75,6.86-6.19,15.6-4.07,24.62l5.72,24.57c1.65,19.4-1.52,38.84-9.17,56.2-1.7,3.89-5.68,6.72-9.68,6.87-9.02.35-14-12.81-18.41-24.45-.43-1.13-.85-2.24-1.25-3.31l-15.36-39.53c-5.12-13.19-17.3-22.18-31.77-23.45-14.77-1.3-27.96,4.92-36.2,17.03l-13.88,26.65-18.39,40.76c-1.68,3.71-4.98,5.93-8.22,5.52-3.18-.42-6.15-3.23-7.06-6.69l-10.18-38.21-6.88-24.89c-5.56-15.78-17.92-26.98-33.91-30.73-18.9-4.42-37.98-1.08-52.36,9.19-10.95,7.82-16.4,19.53-14.56,31.32,1.6,10.21,8.4,16.74,18.19,17.49h0c17.93,1.37,22.01,16.1,25.96,30.35l.6,2.17,12.49,44.65c2.53,9.02,6.58,17.53,12.76,26.78,9.05,13.59,23,21.3,39.28,21.74,14.83.41,27.97-5.04,37.99-15.76,8.1-8.66,14.62-17.99,19.95-28.54l16.97-33.59c1.14-2.25,3.33-3.69,5.45-3.69.31,0,.63.04.93.09C312.46,393.42,314.08,394.94,314.98,397.14Z"/>
+          <path class="star glyph g-star" d="M558.41,250.06c-19.83,22.16-16.32,40.31-28.28,40.65-4.69.13-7.99-2.9-8.58-7.78-3.71-31.12-20.55-50.09-50.34-58.17-3.55-.95-5.37-4.44-5.06-7.45,1.16-11.56,20.11-7.37,41.6-25.07,13.33-10.95,22.27-25.57,27.78-41.4,1.66-4.79,4.65-7.77,9.06-8.08,5.03-.32,7.92,2.62,8.62,7.82,4.21,31.45,20.26,49.35,50.08,58.32,4.01,1.2,5.88,4.68,5.51,8.34-.45,4.54-3.81,7.08-8.48,8.23C584.34,229.45,569.68,237.45,558.41,250.06Z"/>
+          <path class="mark glyph g-i" d="M487.03,436.36c-.35,7.84-.34,15.78,3.51,22.8,4.44,8.64,13.46,14.42,23.05,15.3,22.88,2.55,43.67-20.95,37.41-43.47-2-5.88-2.44-12.28-1.8-18.24.35-5.66.88-12.78,1.25-18.21,1.1-15.31,3.6-19.25,5.89-30.7,1.15-6.36,3.04-13.38,2.83-18.29,0-8.01-3.36-16.19-9.52-21.58-18.13-15.96-47.11-3.25-52.4,19.12-1.47,5.14-1.12,10.64-1.12,16.97.07,8.11-.24,19.65-4.24,44.9-1.81,10.45-4.41,20.74-4.85,31.19v.21H487.03Z"/>
+          <path class="mark glyph g-s" d="M596.83,315.21c-2.31,16.57,3.19,34.42,14.94,46.46,8.77,8.92,19.94,14.92,30.17,21.97,5.17,3.62,10.09,7.23,15.41,10.51,5.49,3.93,11.42,5.8,13.39,12.25,2.06,7.86-4.68,14.11-11.19,17.2-4.69,2.35-10.18,2.64-15.44,2.24-4.68-.28-9.6-1.11-11.84-5.87-3.69-7.84-8.48-15.5-16.93-18.65-21.43-8.78-46.14,11.4-42.37,34.07.94,6.04,4.09,11.6,8.5,15.76,4.38,3.97,9.31,8.77,14.29,12.2,13.33,9.57,30.62,11.12,46.62,11.3,13.76.09,27.34-3.17,39.2-9.98,12.76-7.15,24.26-16.84,31.23-29.86,10.4-20.6,8.2-48.89-8.55-65.62-8.84-8.8-21.29-14.9-31.38-22.69-4.09-2.94-10.07-6.69-14.69-9.75-5.85-4.12-18.19-10.84-13.16-19.52,4.93-5.22,13.88-9.4,21.08-8.65,10.49.7,6.37,16.86,24.03,23.41,22.42,8.36,47.22-15.52,38.58-38.26-2.8-7.83-9.49-12.4-16.07-16.91-8.57-6.22-18.43-10.23-28.9-12.17-11.49-2.48-23.65-3.09-34.91.3-11.26,3.49-22.02,9.52-31.25,16.75-10.69,8.2-18.97,19.81-20.73,33.31L596.83,315.21Z"/>
+          <path class="mark glyph g-h" d="M735.6,438.78c-3.22,21.64,15.7,38.95,37.03,33.7,14.27-3.25,25.75-15.91,27.49-30.44.85-7.26-.07-16.19-.1-23.26-.6-19.04,1.5-37.34,3.46-56.12.76-11.36,2.62-14.43,9.22-22.55,4.36-5.43,9.26-10.53,15.16-14.44,8.91-6.48,17.19-7.37,22.68,3.5,3.07,7.02,3.4,14.83,4.01,22.37,1.17,15.86.23,31.28-2.4,46.87-1.78,11.58-3.26,22.88-5.99,34.62-4.12,14.72.64,31.03,14.85,38.19,20.64,10.73,47.15-5.15,50.39-27.45,1.28-6.9-.26-14.64-.42-21.5-.62-12.01.43-23.78.9-36.01.81-13.13.16-27.5-.57-41.15-.89-15.16-2.08-30.96-9.06-44.75-9.04-17.7-26.61-31.46-46.28-34.97-4.57-.77-9-.92-13.59-.52-4.41.26-8.93,1.68-13.35,2.09-3.41.36-6.79-.88-8.59-3.68-2.76-3.75-.86-9.72.13-14.18,1.52-6.6,4.02-15.67,5.67-22.16,3.61-11.72,4.04-24.35-4.3-34.12-13.17-15.9-38.5-12.46-50.45,3.24-5.27,6.5-7.78,14.61-8.1,22.83-.5,8.11-1.41,23.15-2.11,32.63-1.5,18.43-3.65,37.21-5.83,55.46-3.94,31.08-7.41,62.4-12.41,93.4-2.02,12.51-5.21,25.9-7.42,38.25L735.6,438.78Z"/>
+          <path class="mark glyph g-f" d="M969.21,275.06c-9.1,2.94-22.91,2.89-31.54,6.71-13.37,5.87-18.6,25.08-7.46,37.57,8.47,9.65,18.3,8.93,28.91,7.37,6.31-.36,10.02,6.02,9.57,11.49.1,4.84.32,15.65.45,21.52.73,24.86-1.53,55.39-2.71,78.89-.55,7.16.99,15.16,5.31,21.64,17.02,25.33,53.6,14.59,56.93-11.7.82-5.17.26-9.28-.3-14.61-1.17-12.23-2.69-25.22-3.61-36.86-1.75-21.6-1.25-42.47-.1-63.61.76-7.38-.66-12.97,4.55-17.33,10.33-5.93,22.25,3.19,34.11-4.61,16.74-9.24,17.53-36.66-2.69-46.46-6.84-2.66-12.07-8.71-7.23-14.94,5.38-5.67,14.33-4.59,22.25-5.22,11.84-.6,22.35-7.42,27.33-17.63,8.03-14.84,1.32-37.3-16.26-44.77-8.61-4.06-17.26-2.94-25.84-1.88-23.83,2.8-45.28,15.52-59.71,33.39-8.93,11.57-15.78,24.4-21.06,38.17-1.75,4.58-3.17,9.32-4.5,14-.83,3.51-3.13,7.64-6.27,8.81L969.21,275.06Z"/>
+          <path class="mark glyph g-u" d="M1091.39,295.51c.16,29.68,1.25,59.09,4.04,89.73,1.37,16.1,2.87,32.02,9.77,46.74,9.48,19.54,28.5,34.22,49.77,38.64,7.69,1.61,15.73,1.46,23.35-.41,5.42-1.22,11.1-4.06,16.49-1.45,5.26,2.58,10.59,5.43,16.58,5.74,16.94,1.62,33.6-10.41,38.15-26.61,2.87-8.79.49-17.5-.54-26.29-1.06-12.46,1.06-25.43,2.26-37.7,2-17.22,4.86-35.44,7.74-52.33,1.28-7.19,3.48-20.19,4.88-28.09.87-4.81,1.64-8.75,1.42-13.7-1.48-27.45-33.9-35.56-52.2-17.77-8.31,7.68-11.31,18.11-11.39,29.18-.54,8.47-1.23,19.48-1.74,27.33-1.23,16.08-2,31.21-5.15,47.46-1.34,8.59-4.19,17.9-8,25.54-3.36,5.83-12.19,13.68-19.46,11.3-14.77-5.53-16.12-28.61-17.78-42.11-2.56-22.99,2.24-45.64,5.83-68.41.97-6.06,1.64-9.39,1.18-15.08-.97-12.15-10.07-22.96-22.06-25.71-21.07-5.4-42.82,12.48-43.14,33.86v.14H1091.39Z"/>
+          <path class="mark glyph g-l" d="M1280.5,392.88c-.86,26.69-1.48,62.57,27.47,75.02,6.28,2.9,12.78,4.31,19.58,5.81,4.53,1.05,9.01,1.3,13.55.35,27.14-6.19,33.82-43.14,5.77-53.71-7.2-2.94-8.31-8.19-8.98-15.22-.69-6.4-.9-12.94-.8-19.24.38-18.01,2.27-36.38,3.87-54.17,2.24-21.93,4.85-46.2,8.81-68.14,3.08-16.77,7.97-35.08,11.98-51.3,4.94-17.48-4.37-36.22-22.74-39.97-21.75-4.59-42.71,13.7-43.36,35.39-.87,19.22-2.03,45.75-3.71,65.82-.98,10.25-5.29,55.09-7.1,73.06-1.66,16.71-3.47,30.84-4.33,46.12v.18h-.01Z"/>
+        </svg>
+      </div>
+      <button class="btn" type="button" id="replay-wm-intro">Replay intro</button>
+      <p class="hint">Cloud puffs open · then letters rise left → right</p>
+    </section>
+
+    <!-- IDLE / HOVER -->
+    <section class="panel">
+      <h2>Idle / Hover</h2>
+      <div class="stage stage-wide">
+        <div id="wm-idle-wrap" class="active" tabindex="0" aria-label="Wishful wordmark idle animation">
+          <svg id="wm-idle" class="logo" viewBox="0 0 1484.56 550.88" role="img">
+            <g class="cloud-group">
+              <path class="cloud-fill" d="M106.12,338.64h1272.32c58.61,0,106.12,47.51,106.12,106.12h0c0,58.61-47.51,106.12-106.12,106.12H106.12c-58.61,0-106.12-47.51-106.12-106.12h0C0,386.15,47.51,338.64,106.12,338.64Z"/>
+              <circle class="cloud-fill bump bump-1" cx="208.41" cy="297.78" r="155.04"/>
+              <circle class="cloud-fill bump bump-2" cx="493.9" cy="241.34" r="241.34"/>
+              <circle class="cloud-fill bump bump-3" cx="750.99" cy="240.69" r="196.89"/>
+              <circle class="cloud-fill bump bump-4" cx="1023.08" cy="229.8" r="169.35"/>
+              <circle class="cloud-fill bump bump-5" cx="1272.18" cy="259.73" r="180.79"/>
+            </g>
+            <path class="mark glyph g-w" d="M314.98,397.14l8.91,21.82c14.78,36.16,34.6,54.36,60.6,55.61,18.56.91,35.03-6.21,47.62-20.59,27.98-31.88,40.75-85.56,41-124.61.11-14.47-1.91-26.28-6.37-37.18-7.03-17.23-22.71-26.45-40.91-24.08-8.46,1.1-15.6,5.29-20.09,11.79-4.75,6.86-6.19,15.6-4.07,24.62l5.72,24.57c1.65,19.4-1.52,38.84-9.17,56.2-1.7,3.89-5.68,6.72-9.68,6.87-9.02.35-14-12.81-18.41-24.45-.43-1.13-.85-2.24-1.25-3.31l-15.36-39.53c-5.12-13.19-17.3-22.18-31.77-23.45-14.77-1.3-27.96,4.92-36.2,17.03l-13.88,26.65-18.39,40.76c-1.68,3.71-4.98,5.93-8.22,5.52-3.18-.42-6.15-3.23-7.06-6.69l-10.18-38.21-6.88-24.89c-5.56-15.78-17.92-26.98-33.91-30.73-18.9-4.42-37.98-1.08-52.36,9.19-10.95,7.82-16.4,19.53-14.56,31.32,1.6,10.21,8.4,16.74,18.19,17.49h0c17.93,1.37,22.01,16.1,25.96,30.35l.6,2.17,12.49,44.65c2.53,9.02,6.58,17.53,12.76,26.78,9.05,13.59,23,21.3,39.28,21.74,14.83.41,27.97-5.04,37.99-15.76,8.1-8.66,14.62-17.99,19.95-28.54l16.97-33.59c1.14-2.25,3.33-3.69,5.45-3.69.31,0,.63.04.93.09C312.46,393.42,314.08,394.94,314.98,397.14Z"/>
+            <path class="star glyph g-star" d="M558.41,250.06c-19.83,22.16-16.32,40.31-28.28,40.65-4.69.13-7.99-2.9-8.58-7.78-3.71-31.12-20.55-50.09-50.34-58.17-3.55-.95-5.37-4.44-5.06-7.45,1.16-11.56,20.11-7.37,41.6-25.07,13.33-10.95,22.27-25.57,27.78-41.4,1.66-4.79,4.65-7.77,9.06-8.08,5.03-.32,7.92,2.62,8.62,7.82,4.21,31.45,20.26,49.35,50.08,58.32,4.01,1.2,5.88,4.68,5.51,8.34-.45,4.54-3.81,7.08-8.48,8.23C584.34,229.45,569.68,237.45,558.41,250.06Z"/>
+            <path class="mark glyph g-i" d="M487.03,436.36c-.35,7.84-.34,15.78,3.51,22.8,4.44,8.64,13.46,14.42,23.05,15.3,22.88,2.55,43.67-20.95,37.41-43.47-2-5.88-2.44-12.28-1.8-18.24.35-5.66.88-12.78,1.25-18.21,1.1-15.31,3.6-19.25,5.89-30.7,1.15-6.36,3.04-13.38,2.83-18.29,0-8.01-3.36-16.19-9.52-21.58-18.13-15.96-47.11-3.25-52.4,19.12-1.47,5.14-1.12,10.64-1.12,16.97.07,8.11-.24,19.65-4.24,44.9-1.81,10.45-4.41,20.74-4.85,31.19v.21H487.03Z"/>
+            <path class="mark glyph g-s" d="M596.83,315.21c-2.31,16.57,3.19,34.42,14.94,46.46,8.77,8.92,19.94,14.92,30.17,21.97,5.17,3.62,10.09,7.23,15.41,10.51,5.49,3.93,11.42,5.8,13.39,12.25,2.06,7.86-4.68,14.11-11.19,17.2-4.69,2.35-10.18,2.64-15.44,2.24-4.68-.28-9.6-1.11-11.84-5.87-3.69-7.84-8.48-15.5-16.93-18.65-21.43-8.78-46.14,11.4-42.37,34.07.94,6.04,4.09,11.6,8.5,15.76,4.38,3.97,9.31,8.77,14.29,12.2,13.33,9.57,30.62,11.12,46.62,11.3,13.76.09,27.34-3.17,39.2-9.98,12.76-7.15,24.26-16.84,31.23-29.86,10.4-20.6,8.2-48.89-8.55-65.62-8.84-8.8-21.29-14.9-31.38-22.69-4.09-2.94-10.07-6.69-14.69-9.75-5.85-4.12-18.19-10.84-13.16-19.52,4.93-5.22,13.88-9.4,21.08-8.65,10.49.7,6.37,16.86,24.03,23.41,22.42,8.36,47.22-15.52,38.58-38.26-2.8-7.83-9.49-12.4-16.07-16.91-8.57-6.22-18.43-10.23-28.9-12.17-11.49-2.48-23.65-3.09-34.91.3-11.26,3.49-22.02,9.52-31.25,16.75-10.69,8.2-18.97,19.81-20.73,33.31L596.83,315.21Z"/>
+            <path class="mark glyph g-h" d="M735.6,438.78c-3.22,21.64,15.7,38.95,37.03,33.7,14.27-3.25,25.75-15.91,27.49-30.44.85-7.26-.07-16.19-.1-23.26-.6-19.04,1.5-37.34,3.46-56.12.76-11.36,2.62-14.43,9.22-22.55,4.36-5.43,9.26-10.53,15.16-14.44,8.91-6.48,17.19-7.37,22.68,3.5,3.07,7.02,3.4,14.83,4.01,22.37,1.17,15.86.23,31.28-2.4,46.87-1.78,11.58-3.26,22.88-5.99,34.62-4.12,14.72.64,31.03,14.85,38.19,20.64,10.73,47.15-5.15,50.39-27.45,1.28-6.9-.26-14.64-.42-21.5-.62-12.01.43-23.78.9-36.01.81-13.13.16-27.5-.57-41.15-.89-15.16-2.08-30.96-9.06-44.75-9.04-17.7-26.61-31.46-46.28-34.97-4.57-.77-9-.92-13.59-.52-4.41.26-8.93,1.68-13.35,2.09-3.41.36-6.79-.88-8.59-3.68-2.76-3.75-.86-9.72.13-14.18,1.52-6.6,4.02-15.67,5.67-22.16,3.61-11.72,4.04-24.35-4.3-34.12-13.17-15.9-38.5-12.46-50.45,3.24-5.27,6.5-7.78,14.61-8.1,22.83-.5,8.11-1.41,23.15-2.11,32.63-1.5,18.43-3.65,37.21-5.83,55.46-3.94,31.08-7.41,62.4-12.41,93.4-2.02,12.51-5.21,25.9-7.42,38.25L735.6,438.78Z"/>
+            <path class="mark glyph g-f" d="M969.21,275.06c-9.1,2.94-22.91,2.89-31.54,6.71-13.37,5.87-18.6,25.08-7.46,37.57,8.47,9.65,18.3,8.93,28.91,7.37,6.31-.36,10.02,6.02,9.57,11.49.1,4.84.32,15.65.45,21.52.73,24.86-1.53,55.39-2.71,78.89-.55,7.16.99,15.16,5.31,21.64,17.02,25.33,53.6,14.59,56.93-11.7.82-5.17.26-9.28-.3-14.61-1.17-12.23-2.69-25.22-3.61-36.86-1.75-21.6-1.25-42.47-.1-63.61.76-7.38-.66-12.97,4.55-17.33,10.33-5.93,22.25,3.19,34.11-4.61,16.74-9.24,17.53-36.66-2.69-46.46-6.84-2.66-12.07-8.71-7.23-14.94,5.38-5.67,14.33-4.59,22.25-5.22,11.84-.6,22.35-7.42,27.33-17.63,8.03-14.84,1.32-37.3-16.26-44.77-8.61-4.06-17.26-2.94-25.84-1.88-23.83,2.8-45.28,15.52-59.71,33.39-8.93,11.57-15.78,24.4-21.06,38.17-1.75,4.58-3.17,9.32-4.5,14-.83,3.51-3.13,7.64-6.27,8.81L969.21,275.06Z"/>
+            <path class="mark glyph g-u" d="M1091.39,295.51c.16,29.68,1.25,59.09,4.04,89.73,1.37,16.1,2.87,32.02,9.77,46.74,9.48,19.54,28.5,34.22,49.77,38.64,7.69,1.61,15.73,1.46,23.35-.41,5.42-1.22,11.1-4.06,16.49-1.45,5.26,2.58,10.59,5.43,16.58,5.74,16.94,1.62,33.6-10.41,38.15-26.61,2.87-8.79.49-17.5-.54-26.29-1.06-12.46,1.06-25.43,2.26-37.7,2-17.22,4.86-35.44,7.74-52.33,1.28-7.19,3.48-20.19,4.88-28.09.87-4.81,1.64-8.75,1.42-13.7-1.48-27.45-33.9-35.56-52.2-17.77-8.31,7.68-11.31,18.11-11.39,29.18-.54,8.47-1.23,19.48-1.74,27.33-1.23,16.08-2,31.21-5.15,47.46-1.34,8.59-4.19,17.9-8,25.54-3.36,5.83-12.19,13.68-19.46,11.3-14.77-5.53-16.12-28.61-17.78-42.11-2.56-22.99,2.24-45.64,5.83-68.41.97-6.06,1.64-9.39,1.18-15.08-.97-12.15-10.07-22.96-22.06-25.71-21.07-5.4-42.82,12.48-43.14,33.86v.14H1091.39Z"/>
+            <path class="mark glyph g-l" d="M1280.5,392.88c-.86,26.69-1.48,62.57,27.47,75.02,6.28,2.9,12.78,4.31,19.58,5.81,4.53,1.05,9.01,1.3,13.55.35,27.14-6.19,33.82-43.14,5.77-53.71-7.2-2.94-8.31-8.19-8.98-15.22-.69-6.4-.9-12.94-.8-19.24.38-18.01,2.27-36.38,3.87-54.17,2.24-21.93,4.85-46.2,8.81-68.14,3.08-16.77,7.97-35.08,11.98-51.3,4.94-17.48-4.37-36.22-22.74-39.97-21.75-4.59-42.71,13.7-43.36,35.39-.87,19.22-2.03,45.75-3.71,65.82-.98,10.25-5.29,55.09-7.1,73.06-1.66,16.71-3.47,30.84-4.33,46.12v.18h-.01Z"/>
+          </svg>
+        </div>
+      </div>
+      <button class="btn" type="button" id="toggle-wm-idle">Stop preview</button>
+      <p class="hint">Cloud undulates · letters wave rise &amp; fall</p>
+    </section>
+  
+  </div>
+
+
+
+  <script>
+    // Fresh SVG node each time — only reliable way to re-fire CSS intros.
+    function restartIntro(svgEl) {
+      if (!svgEl || !svgEl.parentNode) return svgEl;
+      const clone = svgEl.cloneNode(true);
+      clone.classList.remove("play");
+      clone.querySelectorAll("[style]").forEach((n) => n.removeAttribute("style"));
+      svgEl.replaceWith(clone);
+      // reflow, then play on the new node
+      void clone.offsetHeight;
+      clone.classList.add("play");
+      return clone;
+    }
+
+    let intro = document.getElementById("intro");
+    let wmIntro = document.getElementById("wm-intro");
+    const hoverWrap = document.getElementById("hover-wrap");
+    const toggleHover = document.getElementById("toggle-hover");
+    const wmIdleWrap = document.getElementById("wm-idle-wrap");
+    const toggleWmIdle = document.getElementById("toggle-wm-idle");
+
+    document.getElementById("replay-intro").addEventListener("click", (e) => {
+      e.preventDefault();
+      intro = restartIntro(document.getElementById("intro"));
+    });
+
+    document.getElementById("replay-wm-intro").addEventListener("click", (e) => {
+      e.preventDefault();
+      wmIntro = restartIntro(document.getElementById("wm-intro"));
+    });
+
+    intro = restartIntro(intro);
+    wmIntro = restartIntro(wmIntro);
+
+    toggleHover.addEventListener("click", () => {
+      hoverWrap.classList.toggle("active");
+      toggleHover.textContent = hoverWrap.classList.contains("active")
+        ? "Stop preview"
+        : "Toggle preview";
+    });
+
+    toggleWmIdle.addEventListener("click", () => {
+      wmIdleWrap.classList.toggle("active");
+      toggleWmIdle.textContent = wmIdleWrap.classList.contains("active")
+        ? "Stop preview"
+        : "Play idle";
+    });
+  </script>
+
+</body>
+</html>

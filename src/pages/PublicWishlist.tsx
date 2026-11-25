@@ -188,7 +188,7 @@ function PublicHeader() {
   const { data: me } = useMe();
   return (
     <header className="public-header">
-      <Logo to="/" size={28} />
+      <Logo to="/" size={36} />
       <div className="spacer" />
       {me ? (
         <Link to="/app" className="btn btn-sm">
@@ -338,6 +338,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
       status={badge(e)}
       dimmed={e.status === 'purchased' || (e.status === 'reserved' && !mine.get(e.id)?.claim)}
       groupGift={e.groupGift}
+      alreadyHave={collection ? undefined : e.alreadyHave}
       onOpen={() => setOpen(e.id)}
     />
   );
@@ -625,6 +626,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
           onClose={() => setOpen(null)}
           priority={showPriority ? openEntry.priority : null}
           entryNote={collection ? undefined : openEntry.customNotes}
+          alreadyHave={collection ? undefined : openEntry.alreadyHave}
           badges={badge(openEntry)}
         >
           {!collection && <GiftBox entry={openEntry} view={view} token={token} mine={mine.get(openEntry.id) ?? { claim: null, pledge: null }} onChange={refreshMine} />}

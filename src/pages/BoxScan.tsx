@@ -21,7 +21,7 @@ function ScanHeader() {
   const { data: me } = useMe();
   return (
     <header className="public-header">
-      <Logo to="/" size={28} />
+      <Logo to="/" size={36} />
       <div className="spacer" />
       {me ? (
         <Link to="/app/boxes" className="btn btn-sm">

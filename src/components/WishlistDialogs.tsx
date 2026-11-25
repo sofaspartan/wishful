@@ -40,6 +40,7 @@ import {
 import { keys, useInvalidate, useSharedWishlists, useWishlists } from '../lib/queries';
 import { del, errorMessage, fieldErrors, patch, post } from '../lib/api';
 import { shareUrl } from '../lib/prefs';
+import { AlreadyHavePicker } from './AlreadyHavePicker';
 import { DEFAULT_COVER_FRAME } from './CoverArt';
 import { CoverArtPicker } from './CoverArtPicker';
 import { CashFundDisplay } from './CashFund';
@@ -826,13 +827,24 @@ export function CollaboratorsDialog({ open, onClose, detail }: { open: boolean; 
 
 // ── Entry (per-list item) settings ──────────────────────────────────────────
 
-export function EntrySettingsDialog({ wishlistId, entry, itemTitle, onClose }: { wishlistId: string; entry: WishlistEntry | null; itemTitle: string; onClose: () => void }) {
+export function EntrySettingsDialog({
+  wishlistId,
+  entry,
+  itemTitle,
+  onClose,
+}: {
+  wishlistId: string;
+  entry: WishlistEntry | null;
+  itemTitle: string;
+  onClose: () => void;
+}) {
   const invalidate = useInvalidate();
   const toast = useToast();
   const [priority, setPriority] = useState<Priority | 'none'>('none');
   const [customNotes, setCustomNotes] = useState('');
   const [groupGift, setGroupGift] = useState(false);
   const [groupGiftNote, setGroupGiftNote] = useState('');
+  const [alreadyHave, setAlreadyHave] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -842,6 +854,7 @@ export function EntrySettingsDialog({ wishlistId, entry, itemTitle, onClose }: {
     setCustomNotes(entry.customNotes);
     setGroupGift(entry.groupGift);
     setGroupGiftNote(entry.groupGiftNote);
+    setAlreadyHave(entry.alreadyHaveItemIds ?? []);
     setError(null);
   }, [entry]);
 
@@ -850,7 +863,13 @@ export function EntrySettingsDialog({ wishlistId, entry, itemTitle, onClose }: {
   const save = async () => {
     setSaving(true);
     try {
-      await patch(`/api/wishlists/${wishlistId}/entries/${entry.id}`, { priority: priority === 'none' ? null : priority, customNotes, groupGift, groupGiftNote });
+      await patch(`/api/wishlists/${wishlistId}/entries/${entry.id}`, {
+        priority: priority === 'none' ? null : priority,
+        customNotes,
+        groupGift,
+        groupGiftNote,
+        alreadyHaveItemIds: alreadyHave,
+      });
       invalidate([wishlistId]);
       toast.success('Saved');
       onClose();
@@ -865,8 +884,8 @@ export function EntrySettingsDialog({ wishlistId, entry, itemTitle, onClose }: {
     <Modal
       open
       onClose={onClose}
-      title="On this list"
-      subtitle={`Settings for “${itemTitle}” on this wishlist only.`}
+      title="This wish"
+      subtitle={`Only for “${itemTitle}” — not the whole wishlist.`}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -908,6 +927,7 @@ export function EntrySettingsDialog({ wishlistId, entry, itemTitle, onClose }: {
             <textarea className="textarea" rows={2} maxLength={500} value={groupGiftNote} onChange={(e) => setGroupGiftNote(e.target.value)} placeholder="This one's pricey — happy for people to team up!" />
           </Field>
         )}
+        <AlreadyHavePicker excludeItemId={entry.itemId} value={alreadyHave} onChange={setAlreadyHave} />
       </div>
     </Modal>
   );

@@ -125,7 +125,7 @@ export function SiteFooter({ coverArt = null }: { coverArt?: CoverArtValue | nul
         <CloudBank className="footer-bank" />
       </div>
       <div className="landing-footer-inner">
-        <Logo to="/" size={26} />
+        <Logo to="/" size={34} />
         <span>{brand.tagline}</span>
         <span className="spacer" />
         <nav className="legal-links" aria-label="More">

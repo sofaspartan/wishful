@@ -8,13 +8,28 @@ import { Spinner } from './ui/misc';
 interface ImagePickerProps {
   value: string | null;
   onChange: (url: string | null) => void;
+  /** Fired with the chosen file before / instead of automatic upload when provided. */
+  onFile?: (file: File) => void | Promise<void>;
   onUploadingChange?: (uploading: boolean) => void;
   label?: string;
   compact?: boolean;
+  /** Prefer the rear camera on mobile (Photo / Scan flows). */
+  captureCamera?: boolean;
+  /** Hide the “use an image link” alternate (capture flows). */
+  hideLinkOption?: boolean;
 }
 
 /** Upload from device / camera roll, or paste an image link. Shows a preview. */
-export function ImagePicker({ value, onChange, onUploadingChange, label = 'Add an image', compact }: ImagePickerProps) {
+export function ImagePicker({
+  value,
+  onChange,
+  onFile,
+  onUploadingChange,
+  label = 'Add an image',
+  compact,
+  captureCamera,
+  hideLinkOption,
+}: ImagePickerProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -24,6 +39,19 @@ export function ImagePicker({ value, onChange, onUploadingChange, label = 'Add a
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
     setError(null);
+    if (onFile) {
+      setUploading(true);
+      onUploadingChange?.(true);
+      try {
+        await onFile(file);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      } finally {
+        setUploading(false);
+        onUploadingChange?.(false);
+      }
+      return;
+    }
     setUploading(true);
     onUploadingChange?.(true);
     try {
@@ -58,7 +86,7 @@ export function ImagePicker({ value, onChange, onUploadingChange, label = 'Add a
 
   return (
     <div className="stack-sm">
-      {urlMode ? (
+      {urlMode && !hideLinkOption ? (
         <div className="row">
           <input
             className="input"
@@ -97,13 +125,22 @@ export function ImagePicker({ value, onChange, onUploadingChange, label = 'Add a
           {uploading ? <Spinner /> : <ImagePlus size={24} aria-hidden />}
           <strong style={{ color: 'var(--ink)' }}>{uploading ? 'Uploading…' : label}</strong>
           <span className="text-xs">Drag & drop, or tap to choose from your photos. JPEG, PNG, WebP or GIF up to 5 MB.</span>
-          <input type="file" accept="image/*" onChange={(e) => handleFile(e.target.files?.[0])} disabled={uploading} aria-label={label} />
+          <input
+            type="file"
+            accept="image/*"
+            capture={captureCamera ? 'environment' : undefined}
+            onChange={(e) => handleFile(e.target.files?.[0])}
+            disabled={uploading}
+            aria-label={label}
+          />
         </label>
       )}
-      <button type="button" className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setUrlMode((m) => !m)}>
-        {urlMode ? <Upload size={14} aria-hidden /> : <Link2 size={14} aria-hidden />}
-        {urlMode ? 'Upload a file instead' : 'Use an image link instead'}
-      </button>
+      {!hideLinkOption && (
+        <button type="button" className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setUrlMode((m) => !m)}>
+          {urlMode ? <Upload size={14} aria-hidden /> : <Link2 size={14} aria-hidden />}
+          {urlMode ? 'Upload a file instead' : 'Use an image link instead'}
+        </button>
+      )}
       {error && <span className="field-error">{error}</span>}
     </div>
   );

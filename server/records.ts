@@ -176,9 +176,11 @@ export interface FriendshipRecord {
   acceptedAt: string | null;
 }
 
-/** Ids of everyone a user has a friendship record with, for listing only. */
+/** Ids of everyone a user has a friendship record with, plus private notes about them. */
 export interface FriendIndex {
   ids: string[];
+  /** Owner-only reminders keyed by the other user's id. Never shared with the friend. */
+  notes?: Record<string, string>;
 }
 
 /** One saved person or pet in the owner's My Circle book. */

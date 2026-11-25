@@ -18,8 +18,9 @@ interface Props {
 }
 
 const NEW = '__new__';
+const NONE = '__none__';
 
-/** Mark a wished-for item as owned and file it in a collection. */
+/** Mark a wished-for item as owned; optionally file it in a collection. */
 export function GotItDialog({ item, fromWishlist, onClose }: Props) {
   const open = Boolean(item);
   const { data: lists = [] } = useWishlists(open);
@@ -29,7 +30,7 @@ export function GotItDialog({ item, fromWishlist, onClose }: Props) {
   const navigate = useNavigate();
   const [picked, setPicked] = useState('');
   const [newTitle, setNewTitle] = useState('');
-  const [remove, setRemove] = useState(true);
+  const [remove, setRemove] = useState(false);
   const [owned, setOwned] = useState<OwnershipDraft>(() => ownershipDraft(null));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -38,17 +39,19 @@ export function GotItDialog({ item, fromWishlist, onClose }: Props) {
   useEffect(() => {
     if (!item) return;
     setOwned(ownershipDraft(item.owned, { acquiredOn: todayDateOnly() }));
-    setPicked('');
-    setRemove(true);
+    // Keep on the wishlist by default; collection is optional when checking off from a list.
+    setPicked(fromWishlist ? NONE : '');
+    setRemove(false);
     setNewTitle('');
     setErrors({});
     setFormError(null);
-  }, [item]);
+  }, [item, fromWishlist]);
 
   if (!item) return null;
 
-  const target = picked || collections[0]?.id || NEW;
+  const target = picked || (fromWishlist ? NONE : collections[0]?.id || NEW);
   const creating = target === NEW;
+  const filing = target !== NONE;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -59,14 +62,20 @@ export function GotItDialog({ item, fromWishlist, onClose }: Props) {
     setSaving(true);
     setFormError(null);
     try {
-      const { collectionId } = await post<{ item: Item; collectionId: string }>(`/api/items/${item.id}/got-it`, {
-        ...(creating ? { newCollectionTitle: newTitle.trim() } : { collectionId: target }),
+      const { collectionId } = await post<{ item: Item; collectionId: string | null }>(`/api/items/${item.id}/got-it`, {
+        ...(filing ? (creating ? { newCollectionTitle: newTitle.trim() } : { collectionId: target }) : {}),
         removeFromWishlistId: fromWishlist && remove ? fromWishlist.id : undefined,
         owned: ownershipToInput(owned),
       });
-      invalidate([...item.wishlistIds, collectionId]);
-      const name = creating ? newTitle.trim() : (collections.find((c) => c.id === target)?.title ?? 'your collection');
-      toast.success(`Added “${item.title}” to ${name}`, { label: 'View', onClick: () => navigate(`/app/lists/${collectionId}`) });
+      invalidate([...(collectionId ? [collectionId] : []), ...item.wishlistIds]);
+      if (collectionId) {
+        const name = creating ? newTitle.trim() : (collections.find((c) => c.id === target)?.title ?? 'your collection');
+        toast.success(`Added “${item.title}” to ${name}`, { label: 'View', onClick: () => navigate(`/app/lists/${collectionId}`) });
+      } else if (fromWishlist && !remove) {
+        toast.success(`Marked “${item.title}” as got it — still on this list`);
+      } else {
+        toast.success(`Marked “${item.title}” as got it`);
+      }
       onClose();
     } catch (err) {
       const fields = fieldErrors(err);
@@ -86,12 +95,16 @@ export function GotItDialog({ item, fromWishlist, onClose }: Props) {
           <PartyPopper size={20} aria-hidden /> Got it!
         </span>
       }
-      subtitle={`Move “${item.title}” into a collection of things you have.`}
+      subtitle={
+        fromWishlist
+          ? `Mark “${item.title}” as something you have. It stays on this list unless you take it off.`
+          : `Mark “${item.title}” as something you have — optionally file it in a collection.`
+      }
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" type="submit" form="got-it-form" loading={saving}>
-            Add to collection
+            {filing ? 'Add to collection' : 'Mark as got it'}
           </Button>
         </>
       }
@@ -100,9 +113,13 @@ export function GotItDialog({ item, fromWishlist, onClose }: Props) {
         <FormError message={formError} />
         <div className="field">
           <span className="field-label" id="got-it-target">
-            Collection
+            Collection <span className="faint text-xs">(optional)</span>
           </span>
           <div className="check-list" role="radiogroup" aria-labelledby="got-it-target">
+            <label className="check">
+              <input type="radio" name="got-it-target" checked={!filing} onChange={() => setPicked(NONE)} />
+              <span style={{ flex: 1 }}>Keep it where it is — no collection</span>
+            </label>
             {collections.map((c) => (
               <label key={c.id} className="check">
                 <input type="radio" name="got-it-target" checked={target === c.id} onChange={() => setPicked(c.id)} />

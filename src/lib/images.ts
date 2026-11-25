@@ -8,7 +8,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
  * and fast on mobile data). Small PNG/GIF/WebP files are uploaded as-is to
  * preserve transparency and animation.
  */
-async function prepareImage(file: File): Promise<Blob> {
+export async function prepareImage(file: File): Promise<Blob> {
   if (!file.type.startsWith('image/')) throw new Error('Please choose an image file.');
   if (file.type === 'image/svg+xml') throw new Error('SVG images are not supported. Try a JPEG or PNG.');
   const keepOriginal = ['image/png', 'image/gif', 'image/webp'].includes(file.type) && file.size < 1.5 * 1024 * 1024;

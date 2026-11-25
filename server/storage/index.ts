@@ -57,7 +57,7 @@ export const isLocalDev = () => getDriver().name !== 'netlify';
  *   notifications  {userId}                       → { items: Notification[] }
  *   ratelimits     {bucket}:{key}:{window}        → { count, expiresAt }
  *   friendships    {userIdA}.{userIdB} (sorted)   → FriendshipRecord (pending request or friends)
- *   friend-index   {userId}                       → { ids } of everyone with a friendship record
+ *   friend-index   {userId}                       → { ids, notes? } of everyone with a friendship record
  *   extension-tokens {userId}                     → ExtensionTokensDoc (connected browser extensions)
  *   integrations   {userId}                       → IntegrationsDoc (connected sites, e.g. Brickfolio)
  *   integration-cache {sha256(source url)}        → CatalogCacheRecord

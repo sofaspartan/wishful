@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CalendarDays, Gift, MoreHorizontal, UserMinus, UserX } from 'lucide-react';
-import type { FriendsOverview } from '../../shared/types';
+import { ArrowLeft, CalendarDays, Gift, MoreHorizontal, StickyNote, UserMinus, UserX } from 'lucide-react';
+import { LIMITS } from '../../shared/constants';
+import type { FriendProfileView, FriendsOverview } from '../../shared/types';
 import { keys, useFriendProfile } from '../lib/queries';
-import { del, errorMessage } from '../lib/api';
+import { del, errorMessage, fieldErrors, patch } from '../lib/api';
 import { countdownLabel, formatDate } from '../lib/format';
 import { ListForLine, WishlistCover, WishlistListThumb } from '../components/WishlistCard';
 import { CollectionBadge, VisibilityBadge } from '../components/ItemVisuals';
@@ -12,6 +14,8 @@ import { useLocalPref } from '../lib/prefs';
 import { Avatar, EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
 import { FavoriteMenuItem } from '../components/FavoriteToggle';
 import { Menu, MenuItem } from '../components/ui/Menu';
+import { Field, FormError } from '../components/ui/Field';
+import { Button } from '../components/ui/Button';
 import { useToast } from '../components/ui/Toast';
 
 export default function FriendProfile() {
@@ -22,6 +26,14 @@ export default function FriendProfile() {
   const confirm = useConfirm();
   const toast = useToast();
   const [listsView, setListsView] = useLocalPref<CardListView>('friends.profileListsView', 'grid', CARD_LIST_VIEWS);
+  const [note, setNote] = useState('');
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [savingNote, setSavingNote] = useState(false);
+
+  useEffect(() => {
+    setNote(data?.note ?? '');
+    setNoteError(null);
+  }, [data?.note, data?.user.id]);
 
   const unfriend = async () => {
     if (!data) return;
@@ -42,6 +54,26 @@ export default function FriendProfile() {
       toast.error(errorMessage(err));
     }
   };
+
+  const saveNote = async () => {
+    if (!data) return;
+    setSavingNote(true);
+    setNoteError(null);
+    try {
+      const next = await patch<FriendProfileView>(`/api/friends/${data.user.id}/note`, { note });
+      qc.setQueryData(keys.friend(data.user.id), next);
+      qc.invalidateQueries({ queryKey: keys.friends });
+      if (next.circlePersonId) qc.invalidateQueries({ queryKey: keys.circle });
+      toast.success('Private note saved');
+    } catch (err) {
+      const fields = fieldErrors(err);
+      setNoteError(fields.note ?? errorMessage(err));
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const noteDirty = (data?.note ?? '') !== note;
 
   return (
     <div className="page">
@@ -76,6 +108,46 @@ export default function FriendProfile() {
               </MenuItem>
             </Menu>
           </div>
+
+          <section className="section" aria-label="Private note">
+            <div className="section-header">
+              <span className="tile-header-icon" aria-hidden>
+                <StickyNote size={14} />
+              </span>
+              <h2 className="section-title">Private note</h2>
+            </div>
+            <div className="stack" style={{ maxWidth: 560, gap: 'var(--s-3)' }}>
+              <FormError message={noteError} />
+              <Field
+                label="Reminders about them"
+                optional
+                hint={
+                  data.circlePersonId
+                    ? `Synced with My Circle — only you see this. (${note.length}/${LIMITS.circleNote})`
+                    : `Only you see this — ring size, allergies, brands… (${note.length}/${LIMITS.circleNote})`
+                }
+              >
+                <textarea
+                  className="input"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  maxLength={LIMITS.circleNote}
+                  rows={3}
+                  placeholder="Ring size 6 · allergic to nuts · loves hiking"
+                />
+              </Field>
+              <div className="row" style={{ gap: 8 }}>
+                <Button variant="primary" size="sm" loading={savingNote} disabled={!noteDirty} onClick={() => void saveNote()}>
+                  Save note
+                </Button>
+                {noteDirty && (
+                  <Button size="sm" variant="ghost" disabled={savingNote} onClick={() => setNote(data.note)}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </div>
+          </section>
 
           <section className="section">
             <div className="section-header">

@@ -201,10 +201,12 @@ export const LIMITS = {
   recipients: 6,
   /** Saved people and pets in My Circle. */
   circlePeople: 100,
-  /** Short note on a My Circle entry. */
-  circleNote: 200,
+  /** Private reminder note on a My Circle entry or friend (sizes, prefs, etc.). */
+  circleNote: 1500,
   /** Starred favorites across lists, items, boxes, and people. */
   favorites: 200,
+  /** Owned items linked as “already have” on a wishlist entry. */
+  alreadyHaveItems: 12,
 } as const;
 
 /** "Ava", "Ava & Leo", "Ava, Leo & Mia". */

@@ -79,7 +79,7 @@ export default function PublicProfile() {
       coverArt={cover}
     >
       <header className="public-header">
-        <Logo to="/" size={28} />
+        <Logo to="/" size={36} />
         <div className="spacer" />
         <Link to={me ? '/app' : '/register'} className="btn btn-sm">
           {me ? `My ${brand.name}` : 'Create your own wishlist'}

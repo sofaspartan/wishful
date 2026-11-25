@@ -333,8 +333,20 @@ function CircleEditor({
             ]}
           />
         </div>
-        <Field label="Note" optional error={errors.note} hint="Only you see this.">
-          <input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={LIMITS.circleNote} placeholder="Sister · lives nearby" />
+        <Field
+          label="Private note"
+          optional
+          error={errors.note}
+          hint={`Only you see this — ring size, allergies, favorite brands… (${note.length}/${LIMITS.circleNote})`}
+        >
+          <textarea
+            className="input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={LIMITS.circleNote}
+            rows={3}
+            placeholder="Ring size 6 · allergic to nuts · loves blue"
+          />
         </Field>
       </form>
     </Modal>

@@ -388,7 +388,10 @@ export default function Friends() {
               const fq = friendsQuery.trim().toLowerCase().replace(/^@/, '');
               const friendsShown = fq
                 ? data.friends.filter(
-                    ({ user }) => user.displayName.toLowerCase().includes(fq) || user.username.toLowerCase().includes(fq),
+                    ({ user, note }) =>
+                      user.displayName.toLowerCase().includes(fq) ||
+                      user.username.toLowerCase().includes(fq) ||
+                      (note?.toLowerCase().includes(fq) ?? false),
                   )
                 : data.friends;
               if (!data.friends.length) {
@@ -416,14 +419,16 @@ export default function Friends() {
               if (friendsView === 'list') {
                 return (
                   <div className="list-items list-items-sky">
-                    {friendsShown.map(({ user, since }) => (
+                    {friendsShown.map(({ user, since, note }) => (
                       <div className="item-row" key={user.id}>
                         <Link to={`/app/friends/${user.id}`} className="item-card-hit" aria-label={`See ${user.displayName}'s wishlists`} />
                         <Avatar name={user.displayName} src={user.avatarUrl} size={40} />
                         <div className="item-row-main">
                           <strong className="truncate">{user.displayName}</strong>
                           <span className="muted text-xs truncate">
-                            @{user.username} · Friends since {formatDate(since, { month: 'short', year: 'numeric' })}
+                            {note
+                              ? note
+                              : `@${user.username} · Friends since ${formatDate(since, { month: 'short', year: 'numeric' })}`}
                           </span>
                         </div>
                         <div className="item-row-side">
@@ -438,7 +443,7 @@ export default function Friends() {
               }
               return (
                 <div className="friend-grid">
-                  {friendsShown.map(({ user, since }) => (
+                  {friendsShown.map(({ user, since, note }) => (
                     <article className="friend-card" key={user.id}>
                       <Link to={`/app/friends/${user.id}`} className="item-card-hit" aria-label={`See ${user.displayName}'s wishlists`} />
                       <div className="friend-card-sky" aria-hidden>
@@ -449,7 +454,9 @@ export default function Friends() {
                       <div className="friend-card-body">
                         <strong className="truncate">{user.displayName}</strong>
                         <span className="muted text-xs truncate">@{user.username}</span>
-                        <span className="friend-card-since">Friends since {formatDate(since, { month: 'short', year: 'numeric' })}</span>
+                        <span className="friend-card-since truncate">
+                          {note || `Friends since ${formatDate(since, { month: 'short', year: 'numeric' })}`}
+                        </span>
                       </div>
                       <span className="friend-card-cta">
                         See their lists <ChevronRight size={14} aria-hidden />

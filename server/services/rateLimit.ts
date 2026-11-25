@@ -34,6 +34,8 @@ export const RATE_LIMITS = {
   boxScan: { limit: 120, windowSec: 10 * 60 },
   /** In-store UPC / EAN product lookups (Open Food Facts + retail catalogs). */
   barcodeLookup: { limit: 120, windowSec: 60 * 60 },
+  /** Google Cloud Vision Web Detection for photo product ID. */
+  vision: { limit: 40, windowSec: 60 * 60 },
 } as const;
 
 /**

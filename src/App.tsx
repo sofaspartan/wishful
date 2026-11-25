@@ -4,6 +4,7 @@ import { useMe } from './lib/queries';
 import { rememberDeviceAccount } from './lib/deviceAccounts';
 import { ErrorBoundary, PageLoader } from './components/ui/misc';
 import { AppLayout } from './components/AppLayout';
+import { BrandSplash } from './components/BrandSplash';
 import { RecoveryCodeDialog } from './components/RecoveryCodeDialog';
 import { brand } from './config/brand';
 
@@ -84,6 +85,7 @@ export function App() {
       </a>
       <ScrollToTop />
       <RememberDeviceAccount />
+      <BrandSplash />
       <RecoveryCodeDialog />
       <Suspense fallback={<PageLoader />}>
         <Routes>

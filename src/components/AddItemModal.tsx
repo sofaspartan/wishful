@@ -1,20 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Globe, ImagePlus, Lightbulb, Link2, ListPlus, Plus, ScanBarcode, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Globe, ImagePlus, Plus, ScanBarcode, Sparkles, Wand2 } from 'lucide-react';
 import type { BarcodeProduct } from '../../shared/barcode';
 import type { Item, ItemType, Priority, UrlMetadata, WishlistSummary } from '../../shared/types';
 import { PRIORITY_LABELS } from '../../shared/constants';
 import { isHttpUrl } from '../../shared/schemas';
 import { useMe, useSharedWishlists, useWishlists, useInvalidate } from '../lib/queries';
-import { errorMessage, fieldErrors, get, post } from '../lib/api';
+import { api, errorMessage, fieldErrors, get, post } from '../lib/api';
 import { brand } from '../config/brand';
+import { prepareImage, uploadImage } from '../lib/images';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { FormError, FormNote } from './ui/Field';
 import { Segmented } from './ui/misc';
+import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { useToast } from './ui/Toast';
-import { ImagePicker } from './ImagePicker';
 import { BarcodeScanner } from './BarcodeScanner';
+import { CameraCapture } from './CameraCapture';
+import { ItemImage } from './ItemVisuals';
 import { ItemFormFields, draftToInput, emptyDraft, mapItemErrors, validateDraft, type ItemDraft } from './ItemForm';
 import type { AddItemMode, AddItemOptions } from './appActions';
 import { BulkPaste, BulkReview, bulkRowErrors, bulkRowToInput, useBulkRows } from './BulkAdd';
@@ -24,6 +27,133 @@ import { buildImport, CSV_FIELDS, guessMapping, importBatches, limitRows, type C
 import { applyPreset, defaultFilter, detectPreset, presetCounts, type CsvPreset } from '../lib/csvPresets';
 import type { Wishlist } from '../../shared/types';
 import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
+import { formatPrice } from '../lib/format';
+
+const ADD_MODES: { value: AddItemMode; label: string; icon: ReactNode }[] = [
+  { value: 'link', label: 'Link', icon: FEATURE_ILLUSTRATIONS.store },
+  { value: 'barcode', label: 'Scan', icon: FEATURE_ILLUSTRATIONS.barcode },
+  { value: 'idea', label: 'Idea', icon: FEATURE_ILLUSTRATIONS.idea },
+  { value: 'upload', label: 'Photo', icon: FEATURE_ILLUSTRATIONS.camera },
+  { value: 'bulk', label: 'Several', icon: FEATURE_ILLUSTRATIONS.lists },
+];
+
+const CAPTURE_MODES: AddItemMode[] = ['upload', 'barcode'];
+const MORE_MODES: AddItemMode[] = ['idea', 'bulk'];
+const MORE_ENTRY_TYPES: { type: ItemType; label: string; icon: ReactNode }[] = [
+  { type: 'product', label: 'Product', icon: FEATURE_ILLUSTRATIONS.store },
+  { type: 'experience', label: 'Experience', icon: FEATURE_ILLUSTRATIONS.tickets },
+  { type: 'idea', label: 'Idea', icon: FEATURE_ILLUSTRATIONS.idea },
+  { type: 'gift_card', label: 'Gift card', icon: FEATURE_ILLUSTRATIONS.giftCard },
+  { type: 'custom', label: 'Something else', icon: FEATURE_ILLUSTRATIONS.barcode },
+];
+type CaptureTab = 'photo' | 'barcode' | 'lens';
+
+function entryTypeLabel(type: ItemType): string {
+  return MORE_ENTRY_TYPES.find((t) => t.type === type)?.label ?? 'Idea';
+}
+
+function AddModeSwitch({
+  mode,
+  itemType,
+  onChange,
+  onSelectType,
+}: {
+  mode: AddItemMode;
+  itemType: ItemType;
+  onChange: (m: AddItemMode) => void;
+  onSelectType: (type: ItemType) => void;
+}) {
+  const captureOn = CAPTURE_MODES.includes(mode);
+  const moreOn = MORE_MODES.includes(mode);
+  const moreLabel = mode === 'bulk' ? 'Several' : mode === 'idea' ? entryTypeLabel(itemType) : 'More';
+
+  return (
+    <>
+      <div className="hide-xs">
+        <Segmented
+          label="How do you want to add it?"
+          value={mode}
+          onChange={onChange}
+          role="tablist"
+          className="lists-switch item-form-switch add-mode-switch"
+          options={ADD_MODES.map((m) => ({
+            value: m.value,
+            label: m.label,
+            icon: (
+              <span className="art-icon art-icon-tab" aria-hidden>
+                {m.icon}
+              </span>
+            ),
+          }))}
+        />
+      </div>
+
+      <div className="show-xs add-mode-mobile">
+        <nav className="segmented lists-switch item-form-switch add-mode-mobile-tabs" role="tablist" aria-label="How do you want to add it?">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'link'}
+            aria-current={mode === 'link' ? 'page' : undefined}
+            onClick={() => onChange('link')}
+          >
+            <span className="art-icon art-icon-tab" aria-hidden>
+              {FEATURE_ILLUSTRATIONS.store}
+            </span>
+            Link
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={captureOn}
+            aria-current={captureOn ? 'page' : undefined}
+            onClick={() => onChange(captureOn ? mode : 'upload')}
+          >
+            <span className="art-icon art-icon-tab" aria-hidden>
+              {FEATURE_ILLUSTRATIONS.camera}
+            </span>
+            Photo
+          </button>
+        </nav>
+        <Menu
+          label="More ways to add"
+          align="right"
+          className="add-mode-more-menu"
+          buttonClassName={['add-mode-more-btn', moreOn && 'is-active'].filter(Boolean).join(' ')}
+          buttonContent={
+            <>
+              <span className="add-mode-more-label">{moreLabel}</span>
+              <ChevronDown size={14} aria-hidden />
+            </>
+          }
+        >
+          {MORE_ENTRY_TYPES.map((t) => (
+            <MenuItem
+              key={t.type}
+              icon={<span className="art-icon art-icon-tab">{t.icon}</span>}
+              onSelect={() => onSelectType(t.type)}
+            >
+              {t.label}
+            </MenuItem>
+          ))}
+          <MenuSeparator />
+          <MenuItem
+            icon={<span className="art-icon art-icon-tab">{FEATURE_ILLUSTRATIONS.lists}</span>}
+            onSelect={() => onChange('bulk')}
+          >
+            Several
+          </MenuItem>
+        </Menu>
+      </div>
+    </>
+  );
+}
+
+type VisionCandidate = {
+  url: string;
+  score: number;
+  metadata: UrlMetadata | null;
+};
 
 const BARCODE_SOURCE_LABELS: Record<string, string> = {
   openfoodfacts: 'Open Food Facts',
@@ -37,7 +167,7 @@ interface Props {
   onCreateWishlist: (opts: { onCreated?: (w: Wishlist) => void }) => void;
 }
 
-type Step = 'start' | 'details' | 'review' | 'csv' | 'website' | 'website-review';
+type Step = 'start' | 'details' | 'photo-matches' | 'review' | 'csv' | 'website' | 'website-review';
 
 /**
  * The Add Item workflow: paste a link (with automatic detail extraction),
@@ -54,6 +184,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<AddItemMode>('link');
+  const [captureTab, setCaptureTab] = useState<CaptureTab>('photo');
   const [step, setStep] = useState<Step>('start');
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -67,6 +198,9 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [visionCandidates, setVisionCandidates] = useState<VisionCandidate[]>([]);
+  const [visionMessage, setVisionMessage] = useState<string | null>(null);
+  const [barcodeMiss, setBarcodeMiss] = useState(false);
   const fetchSeq = useRef(0);
   const barcodeBusy = useRef(false);
   const [bulkText, setBulkText] = useState('');
@@ -91,6 +225,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     const product = options.product;
     const seedUrl = (product?.url ?? options.url ?? '').trim();
     setMode(product ? 'link' : m);
+    setCaptureTab(m === 'barcode' ? 'barcode' : 'photo');
     setStep(m === 'idea' || product ? 'details' : 'start');
     setUrl(seedUrl);
     setUrlError(null);
@@ -120,6 +255,9 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     setPriority('none');
     setErrors({});
     setFormError(null);
+    setVisionCandidates([]);
+    setVisionMessage(null);
+    setBarcodeMiss(false);
     setBulkText('');
     setBulkErrors({});
     bulk.reset();
@@ -154,13 +292,35 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     setFormError(null);
     setExtractNote(null);
     setExtractHelp({ blocked: false, noPhoto: false });
+    setBarcodeMiss(false);
     if (m === 'idea') {
       setDraft((d) => ({ ...d, type: d.type === 'product' || d.type === 'custom' ? 'idea' : d.type }));
       setStep('details');
     } else {
       setStep('start');
-      if (m === 'link' || m === 'barcode') setDraft((d) => ({ ...d, type: d.type === 'idea' ? 'product' : d.type }));
+      if (m === 'link' || m === 'barcode' || m === 'upload') setDraft((d) => ({ ...d, type: d.type === 'idea' ? 'product' : d.type }));
+      if (m === 'upload') setCaptureTab('photo');
+      if (m === 'barcode') setCaptureTab('barcode');
     }
+  };
+
+  const selectEntryType = (type: ItemType) => {
+    setMode('idea');
+    setErrors({});
+    setFormError(null);
+    setExtractNote(null);
+    setExtractHelp({ blocked: false, noPhoto: false });
+    setBarcodeMiss(false);
+    setDraft((d) => ({ ...d, type }));
+    setStep('details');
+  };
+
+  const switchCaptureTab = (tab: CaptureTab) => {
+    setCaptureTab(tab);
+    setBarcodeMiss(false);
+    setFormError(null);
+    setExtractNote(null);
+    setMode(tab === 'barcode' ? 'barcode' : 'upload');
   };
 
   const lookupFromBarcode = useCallback(async (code: string) => {
@@ -168,6 +328,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     barcodeBusy.current = true;
     setFetching(true);
     setFormError(null);
+    setBarcodeMiss(false);
     try {
       const product = await get<BarcodeProduct>(`/api/barcode/${encodeURIComponent(code)}`);
       setDraft((d) => ({
@@ -184,23 +345,72 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
         category: product.category || d.category,
         barcode: product.barcode || code,
       }));
-      setExtractNote(
-        product.found
-          ? `Found via ${BARCODE_SOURCE_LABELS[product.source] ?? product.source}. Check the details, then save.`
-          : product.message ?? 'No catalog match — add a name and save with the barcode.',
-      );
-      setExtractHelp({ blocked: false, noPhoto: !product.imageUrl });
-      setStep('details');
+      if (product.found) {
+        setExtractNote(`Found via ${BARCODE_SOURCE_LABELS[product.source] ?? product.source}. Check the details, then save.`);
+        setExtractHelp({ blocked: false, noPhoto: !product.imageUrl });
+        setStep('details');
+      } else {
+        setBarcodeMiss(true);
+        setExtractNote(product.message ?? 'No catalog match for that barcode.');
+        setExtractHelp({ blocked: false, noPhoto: true });
+      }
     } catch (err) {
       setDraft((d) => ({ ...d, type: 'product', barcode: code }));
-      setExtractNote(`${errorMessage(err)} You can still name it and save with the barcode.`);
+      setBarcodeMiss(true);
+      setExtractNote(`${errorMessage(err)} You can still name it, or try a photo.`);
       setExtractHelp({ blocked: false, noPhoto: true });
-      setStep('details');
     } finally {
       barcodeBusy.current = false;
       setFetching(false);
     }
   }, []);
+
+  const applyVisionMeta = (meta: UrlMetadata, imageUrl: string | null) => {
+    setDraft((d) => ({
+      ...d,
+      type: d.type === 'idea' || d.type === 'custom' ? 'product' : d.type,
+      title: meta.title || d.title,
+      description: meta.description || d.description,
+      imageUrl: meta.imageUrl || imageUrl || d.imageUrl,
+      externalUrl: meta.url || d.externalUrl,
+      retailer: meta.retailer || d.retailer,
+      brand: meta.brand || d.brand,
+      price: meta.price != null ? String(meta.price) : d.price,
+      currency: meta.currency || d.currency,
+    }));
+  };
+
+  const identifyFromPhoto = async (file: File) => {
+    setFetching(true);
+    setFormError(null);
+    setVisionCandidates([]);
+    setVisionMessage(null);
+    try {
+      const [imageUrl, blob] = await Promise.all([uploadImage(file), prepareImage(file)]);
+      setDraft((d) => ({ ...d, imageUrl, type: d.type === 'idea' ? 'product' : d.type }));
+      const result = await api<{ configured: boolean; candidates: VisionCandidate[]; message?: string }>('/api/vision/product', {
+        method: 'POST',
+        raw: blob,
+        contentType: blob.type || 'image/jpeg',
+      });
+      const usable = result.candidates.filter((c) => c.metadata && (c.metadata.title || c.metadata.extracted));
+      if (usable.length) {
+        setVisionCandidates(usable);
+        setVisionMessage(result.message ?? null);
+        setStep('photo-matches');
+      } else {
+        setExtractNote(result.message ?? 'Couldn’t identify a product — check the photo and fill in the details.');
+        setExtractHelp({ blocked: false, noPhoto: false });
+        setStep('details');
+      }
+    } catch (err) {
+      setExtractNote(`${errorMessage(err)} You can still save the photo and fill in the details.`);
+      setExtractHelp({ blocked: false, noPhoto: false });
+      setStep('details');
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const fetchDetails = async (raw = url) => {
     const target = raw.trim();
@@ -416,7 +626,13 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     ) : step === 'details' ? (
       <>
         {mode !== 'idea' && (
-          <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => setStep('start')} className="hide-xs" style={{ marginRight: 'auto' }}>
+          <Button
+            variant="ghost"
+            icon={<ArrowLeft size={16} />}
+            onClick={() => setStep(visionCandidates.length ? 'photo-matches' : 'start')}
+            className="hide-xs"
+            style={{ marginRight: 'auto' }}
+          >
             Back
           </Button>
         )}
@@ -425,7 +641,14 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           Save item
         </Button>
       </>
-    ) : step === 'start' && mode === 'barcode' && fetching ? (
+    ) : step === 'photo-matches' ? (
+      <>
+        <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => setStep('start')} style={{ marginRight: 'auto' }}>
+          Back
+        </Button>
+        <Button onClick={onClose}>Cancel</Button>
+      </>
+    ) : step === 'start' && (mode === 'barcode' || mode === 'upload') && fetching ? (
       <>
         <Button onClick={onClose} disabled>
           Cancel
@@ -434,92 +657,180 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           Looking up…
         </Button>
       </>
+    ) : step === 'start' && mode === 'link' ? (
+      <div className="add-item-footer">
+        <Button
+          variant="primary"
+          type="submit"
+          form="add-link-form"
+          className="add-item-footer-fetch"
+          loading={fetching}
+          icon={<Wand2 size={16} />}
+        >
+          {fetching ? 'Fetching…' : 'Fetch'}
+        </Button>
+        <button type="button" className="add-item-footer-manual" onClick={skipToManual} disabled={fetching}>
+          Enter details manually
+          <ArrowRight size={14} aria-hidden />
+        </button>
+      </div>
     ) : undefined;
+
+  const captureFullscreen = open && step === 'start';
+  const websiteFlow = step === 'website' || step === 'website-review';
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={step === 'website' || step === 'website-review' ? 'Import from a website' : 'Add an item'}
-      subtitle={step === 'website' || step === 'website-review' ? 'Bring a whole wish list over from another site.' : 'Anything you want — products, experiences, ideas.'}
-      icon={step === 'website' || step === 'website-review' ? FEATURE_ILLUSTRATIONS.share : FEATURE_ILLUSTRATIONS.surprise}
+      title={websiteFlow ? 'Import from a website' : 'Add an item'}
+      subtitle={websiteFlow ? 'Bring a whole wish list over from another site.' : undefined}
+      icon={websiteFlow ? FEATURE_ILLUSTRATIONS.share : undefined}
       footer={footer}
       size="lg"
+      className={[captureFullscreen && 'modal-capture', !websiteFlow && 'modal-add-simple'].filter(Boolean).join(' ') || undefined}
     >
       <div className="stack">
-        <Segmented
-          label="How do you want to add it?"
-          value={mode}
-          onChange={switchMode}
-          options={[
-            { value: 'link', label: 'Link', icon: <Link2 size={15} /> },
-            { value: 'barcode', label: 'Scan', icon: <ScanBarcode size={15} /> },
-            { value: 'idea', label: 'Idea', icon: <Lightbulb size={15} /> },
-            { value: 'upload', label: 'Photo', icon: <ImagePlus size={15} /> },
-            { value: 'bulk', label: 'Several', icon: <ListPlus size={15} /> },
-          ]}
-        />
+        {(step === 'start' || (step === 'details' && mode === 'idea')) && (
+          <AddModeSwitch mode={mode} itemType={draft.type} onChange={switchMode} onSelectType={selectEntryType} />
+        )}
 
-        {step === 'start' && mode === 'barcode' && (
-          <div className="stack">
-            <FormError message={formError} />
-            {fetching ? (
-              <FormNote icon={<ScanBarcode size={16} aria-hidden />}>Looking up that barcode…</FormNote>
-            ) : (
-              <BarcodeScanner active={open && step === 'start' && mode === 'barcode'} onDetected={(code) => void lookupFromBarcode(code)} />
+        {step === 'start' && (mode === 'barcode' || mode === 'upload') && (
+          <div className="capture-stage">
+            <div className="capture-stage-main capture-shell">
+              <FormError message={formError} />
+              {fetching ? (
+                <FormNote icon={captureTab === 'barcode' ? <ScanBarcode size={16} aria-hidden /> : <ImagePlus size={16} aria-hidden />}>
+                  {captureTab === 'barcode' ? 'Looking up that barcode…' : 'Looking up that photo…'}
+                </FormNote>
+              ) : barcodeMiss ? (
+                <>
+                  <FormNote icon={<Sparkles size={16} aria-hidden />}>{extractNote}</FormNote>
+                  <div className="row-wrap" style={{ gap: 8 }}>
+                    <Button
+                      variant="primary"
+                      icon={<ImagePlus size={16} />}
+                      onClick={() => switchCaptureTab('photo')}
+                    >
+                      Try a photo
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setBarcodeMiss(false);
+                        setStep('details');
+                      }}
+                    >
+                      Enter details
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setBarcodeMiss(false);
+                        setExtractNote(null);
+                      }}
+                    >
+                      Scan again
+                    </Button>
+                  </div>
+                </>
+              ) : captureTab === 'barcode' ? (
+                <BarcodeScanner active={open && step === 'start' && captureTab === 'barcode'} onDetected={(code) => void lookupFromBarcode(code)} />
+              ) : (
+                <CameraCapture
+                  active={open && step === 'start' && (captureTab === 'photo' || captureTab === 'lens')}
+                  disabled={fetching || uploading}
+                  variant={captureTab === 'lens' ? 'lens' : 'camera'}
+                  onCapture={(file) => void identifyFromPhoto(file)}
+                  onUpload={(file) => void identifyFromPhoto(file)}
+                />
+              )}
+            </div>
+            {!fetching && !barcodeMiss && (
+              <div className="capture-stage-actions">
+                <nav className="segmented lists-switch item-form-switch capture-stage-tabs" role="tablist" aria-label="Capture method">
+                  {(
+                    [
+                      { id: 'photo' as const, label: 'Camera', icon: FEATURE_ILLUSTRATIONS.camera },
+                      { id: 'barcode' as const, label: 'Scan', icon: FEATURE_ILLUSTRATIONS.barcode },
+                      { id: 'lens' as const, label: 'Lens', icon: FEATURE_ILLUSTRATIONS.surprise },
+                    ] as const
+                  ).map((tab) => {
+                    const selected = captureTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={selected}
+                        aria-current={selected ? 'page' : undefined}
+                        onClick={() => switchCaptureTab(tab.id)}
+                      >
+                        <span className="art-icon art-icon-tab" aria-hidden>
+                          {tab.icon}
+                        </span>
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </nav>
+                <button
+                  type="button"
+                  className="capture-continue-link"
+                  onClick={() => setStep('details')}
+                  disabled={uploading}
+                >
+                  Continue without image
+                  <ArrowRight size={14} aria-hidden />
+                </button>
+              </div>
             )}
-            <FormNote icon={<Sparkles size={16} aria-hidden />}>
-              Best for packaged goods in store. If we can’t find a match (common for store brands), keep the barcode and fill in the name yourself.
-            </FormNote>
           </div>
         )}
 
         {step === 'start' && mode === 'link' && (
           <form
-            className="stack"
+            id="add-link-form"
+            className="stack add-link-shell"
             onSubmit={(e) => {
               e.preventDefault();
               void fetchDetails();
             }}
           >
-            <div className="field">
-              <div className="add-link-row">
-                <input
-                  className="input"
-                  type="url"
-                  inputMode="url"
-                  autoComplete="off"
-                  aria-label="Product or page URL"
-                  aria-invalid={urlError ? true : undefined}
-                  placeholder="Product or page URL"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  onPaste={(e) => {
-                    const pasted = e.clipboardData.getData('text').trim();
-                    if (isHttpUrl(pasted)) {
-                      e.preventDefault();
-                      setUrl(pasted);
-                      void fetchDetails(pasted);
-                    }
-                  }}
-                />
-                <Button variant="primary" type="submit" loading={fetching} icon={<Wand2 size={16} />}>
-                  {fetching ? 'Fetching…' : 'Fetch'}
-                </Button>
-              </div>
+            <div className="add-link-hero" aria-hidden>
+              <span className="add-link-hero-icon">{FEATURE_ILLUSTRATIONS.surprise}</span>
+              <p className="display add-link-hero-title">Add an item</p>
+              <p className="add-link-hero-sub">Anything you want — products, experiences, ideas.</p>
+            </div>
+            <div className="field add-link-field">
+              <label className="field-label" htmlFor="add-link-url">
+                Product or page URL
+              </label>
+              <input
+                id="add-link-url"
+                className="input add-link-input"
+                type="url"
+                inputMode="url"
+                autoComplete="off"
+                autoFocus
+                aria-invalid={urlError ? true : undefined}
+                placeholder="https://"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onPaste={(e) => {
+                  const pasted = e.clipboardData.getData('text').trim();
+                  if (isHttpUrl(pasted)) {
+                    e.preventDefault();
+                    setUrl(pasted);
+                    void fetchDetails(pasted);
+                  }
+                }}
+              />
               {urlError ? (
                 <span className="field-error" role="alert">
                   {urlError}
                 </span>
               ) : null}
             </div>
-            <button type="button" className="add-manual-link" onClick={skipToManual} disabled={fetching}>
-              Enter details manually
-              <ArrowRight size={14} aria-hidden />
-            </button>
-            <FormNote icon={<Sparkles size={16} aria-hidden />}>
-              Works with most online stores. Some sites block previews — if that happens you can still save the item and fill in the details yourself.
-            </FormNote>
           </form>
         )}
 
@@ -662,19 +973,51 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           </form>
         )}
 
-        {step === 'start' && mode === 'upload' && (
+        {step === 'photo-matches' && (
           <div className="stack">
-            <ImagePicker
-              value={draft.imageUrl}
-              onUploadingChange={setUploading}
-              onChange={(imageUrl) => {
-                setDraft((d) => ({ ...d, imageUrl }));
-                if (imageUrl) setStep('details');
+            <FormError message={formError} />
+            {visionMessage && <FormNote>{visionMessage}</FormNote>}
+            <p className="muted text-sm" style={{ margin: 0 }}>
+              Pick the best match, or keep your photo and enter details yourself.
+            </p>
+            <div className="vision-matches">
+              {visionCandidates.map((c) => {
+                const meta = c.metadata!;
+                const price = formatPrice(meta.price, meta.currency || draft.currency);
+                return (
+                  <button
+                    key={c.url}
+                    type="button"
+                    className="vision-match"
+                    onClick={() => {
+                      applyVisionMeta(meta, draft.imageUrl);
+                      setExtractNote('Matched from your photo. Check the details, then save.');
+                      setExtractHelp({ blocked: false, noPhoto: !meta.imageUrl && !draft.imageUrl });
+                      setStep('details');
+                    }}
+                  >
+                    <span className="vision-match-thumb" aria-hidden>
+                      <ItemImage src={meta.imageUrl || draft.imageUrl} type="product" iconSize={18} />
+                    </span>
+                    <span className="vision-match-body">
+                      <strong className="clamp-2">{meta.title || meta.url}</strong>
+                      <span className="muted text-xs truncate">
+                        {[meta.retailer, price].filter(Boolean).join(' · ') || meta.url}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setExtractNote('Keeping your photo — add a name and any other details.');
+                setStep('details');
               }}
-              label="Choose a photo"
-            />
-            <Button variant="ghost" onClick={() => setStep('details')} style={{ alignSelf: 'flex-start' }}>
-              Continue without a photo
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Use photo only
             </Button>
           </div>
         )}
@@ -706,6 +1049,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
               onChange={(p) => setDraft((d) => ({ ...d, ...p }))}
               errors={errors}
               onUploadingChange={setUploading}
+              typePickerClassName="hide-xs"
             />
 
             <hr className="divider" />

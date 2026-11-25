@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { LoaderCircle } from 'lucide-react';
 
-type Variant = 'default' | 'primary' | 'accent' | 'ghost' | 'danger' | 'danger-ghost';
+type Variant = 'default' | 'primary' | 'accent' | 'ghost' | 'danger' | 'danger-ghost' | 'danger-outline';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

@@ -64,15 +64,22 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
   const ownerRes = await db('users').get<UserRecord>(wishlist.ownerId);
   const owner = ownerRes?.value;
   const recipients = await resolveListRecipients(wishlist);
+  const alreadyHaveIds = wishlist.entries.flatMap((e) => e.alreadyHaveItemIds ?? []);
   const items = await getMany<ItemRecord>(
     db('items'),
-    wishlist.entries.map((e) => e.itemId),
+    [...new Set([...wishlist.entries.map((e) => e.itemId), ...alreadyHaveIds])],
   );
   const itemMap = new Map(items.map((i) => [i.id, i]));
   const doc = await getClaimsDoc(wishlist.id);
   const side = giftSide(wishlist, viewer?.id);
   const { settings } = wishlist;
   const collection = isCollection(wishlist);
+
+  const alreadyHaveChips = (entry: WishlistRecord['entries'][number]) =>
+    (entry.alreadyHaveItemIds ?? [])
+      .map((id) => itemMap.get(id))
+      .filter((i): i is ItemRecord => i != null && i.ownerId === wishlist.ownerId)
+      .map((i) => ({ id: i.id, title: i.title, imageUrl: i.imageUrl }));
 
   const entries: PublicEntry[] = [];
   for (const entry of wishlist.entries) {
@@ -82,9 +89,23 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
       // No gifting on collections: no claim state, pledges or priorities.
       const publicItem = toPublicItem(item);
       if (settings.showReviews === false && publicItem.owned) publicItem.owned = { ...publicItem.owned, rating: null, review: '' };
-      entries.push({ id: entry.id, priority: null, customNotes: entry.customNotes, groupGift: false, groupGiftNote: '', item: publicItem, status: null, claim: null, pledges: [] });
+      entries.push({
+        id: entry.id,
+        priority: null,
+        customNotes: entry.customNotes,
+        groupGift: false,
+        groupGiftNote: '',
+        item: publicItem,
+        alreadyHave: [],
+        status: null,
+        claim: null,
+        pledges: [],
+      });
       continue;
     }
+    // Owner already has it — hide from gift-side / anonymous visitors so they don't buy duplicates.
+    if (item.owned && !side) continue;
+
     const claim = activeClaim(doc.claims[entry.id]);
     const pledges = doc.pledges[entry.id] ?? [];
 
@@ -140,6 +161,7 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
       groupGift: entry.groupGift,
       groupGiftNote: entry.groupGiftNote,
       item: toPublicItem(item),
+      alreadyHave: alreadyHaveChips(entry),
       status,
       claim: publicClaim,
       pledges: publicPledges,

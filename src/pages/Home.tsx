@@ -138,73 +138,43 @@ export default function Home() {
                   </>
                 )}
               </h1>
-              <form
-                className="home-hub-hero-form"
-                onSubmit={(e: FormEvent) => {
-                  e.preventDefault();
-                  const next = hubLink.trim();
-                  if (!next) {
-                    openAddItem({ mode: 'link' });
-                    return;
-                  }
-                  openAddItem({ mode: 'link', url: next });
-                  setHubLink('');
-                }}
-              >
-                <label className="home-hub-hero-label" htmlFor="home-hub-link">
-                  Add something you want
-                </label>
-                <div className="home-hub-hero-field">
-                  <input
-                    id="home-hub-link"
-                    className="input"
-                    type="url"
-                    inputMode="url"
-                    autoComplete="off"
-                    enterKeyHint="go"
-                    placeholder="Paste a product link…"
-                    value={hubLink}
-                    onChange={(e) => setHubLink(e.target.value)}
-                    onPaste={(e) => {
-                      const pasted = e.clipboardData.getData('text').trim();
-                      if (isHttpUrl(pasted)) {
-                        e.preventDefault();
-                        setHubLink('');
-                        openAddItem({ mode: 'link', url: pasted });
-                      }
-                    }}
-                  />
-                  <Button type="submit" variant="primary" icon={<Wand2 size={16} aria-hidden />}>
-                    Add
-                  </Button>
-                </div>
-                <button type="button" className="home-hub-hero-more" onClick={() => openAddItem()}>
-                  More options
-                  <ArrowRight size={14} aria-hidden />
+              <div className="home-hub-hero-actions">
+                <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'link' })}>
+                  <span className="art-icon" aria-hidden>
+                    {FEATURE_ILLUSTRATIONS.store}
+                  </span>
+                  <span className="home-hub-hero-cta-copy">
+                    <strong>Drop link</strong>
+                    <span>Paste a product URL</span>
+                  </span>
+                  <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
                 </button>
-              </form>
+                <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'upload' })}>
+                  <span className="art-icon" aria-hidden>
+                    {FEATURE_ILLUSTRATIONS.camera}
+                  </span>
+                  <span className="home-hub-hero-cta-copy">
+                    <strong>Via photo</strong>
+                    <span>Camera, scan, or upload</span>
+                  </span>
+                  <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
+                </button>
+              </div>
             </div>
             <CloudBank className="tile-sky-bank" />
           </section>
 
           <div className="home-hub-ctas">
-            <button type="button" className="home-hub-cta home-hub-cta-lg" onClick={() => openAddItem({ mode: 'barcode' })}>
-              <span className="art-icon" aria-hidden>
-                {FEATURE_ILLUSTRATIONS.barcode}
-              </span>
-              <span className="home-hub-cta-copy">
-                <strong>Scan barcode</strong>
-                <span>In a store aisle</span>
-              </span>
-              <ArrowRight size={20} className="home-hub-cta-arrow" aria-hidden />
-            </button>
             <div className="home-hub-secondary">
               <button type="button" className="home-hub-cta home-hub-cta-compact" onClick={() => openCreateWishlist()}>
                 <span className="art-icon" aria-hidden>
                   {FEATURE_ILLUSTRATIONS.lists}
                 </span>
                 <span className="home-hub-cta-compact-label">
-                  <strong>New wishlist</strong>
+                  <strong className="home-hub-cta-compact-title">
+                    <span>New</span>
+                    <span>wishlist</span>
+                  </strong>
                   <ArrowRight size={16} className="home-hub-cta-arrow" aria-hidden />
                 </span>
               </button>
@@ -213,7 +183,10 @@ export default function Home() {
                   {FEATURE_ILLUSTRATIONS.collection}
                 </span>
                 <span className="home-hub-cta-compact-label">
-                  <strong>New collection</strong>
+                  <strong className="home-hub-cta-compact-title">
+                    <span>New</span>
+                    <span>collection</span>
+                  </strong>
                   <ArrowRight size={16} className="home-hub-cta-arrow" aria-hidden />
                 </span>
               </button>
@@ -222,7 +195,10 @@ export default function Home() {
                   {FEATURE_ILLUSTRATIONS.boxes}
                 </span>
                 <span className="home-hub-cta-compact-label">
-                  <strong>New box</strong>
+                  <strong className="home-hub-cta-compact-title">
+                    <span>New</span>
+                    <span>box</span>
+                  </strong>
                   <ArrowRight size={16} className="home-hub-cta-arrow" aria-hidden />
                 </span>
               </button>

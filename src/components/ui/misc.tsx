@@ -1,8 +1,9 @@
-import { Component, createContext, useCallback, useContext, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react';
-import { ChevronRight, LoaderCircle } from 'lucide-react';
+import { Component, createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
+import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import { initials } from '../../lib/format';
 import { Modal } from './Modal';
 import { Button } from './Button';
+import { BrandLoaderSvg } from '../brandLogo';
 import { CloudBank } from '../Cloud';
 import { ErrorSplash } from '../ErrorSplash';
 
@@ -38,8 +39,8 @@ export function Spinner({ size = 20, label = 'Loading' }: { size?: number; label
 
 export function PageLoader() {
   return (
-    <div className="page-loader">
-      <Spinner size={24} />
+    <div className="page-loader page-loader-brand" role="status" aria-label="Loading">
+      <BrandLoaderSvg />
     </div>
   );
 }
@@ -112,15 +113,19 @@ export function Segmented<T extends string>({
   options,
   label,
   full,
+  className,
+  role = 'group',
 }: {
   value: T;
   onChange: (v: T) => void;
   options: Array<{ value: T; label: ReactNode; icon?: ReactNode; title?: string }>;
   label: string;
   full?: boolean;
+  className?: string;
+  role?: 'group' | 'tablist';
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [edges, setEdges] = useState({ start: true, end: true, scrollable: false });
+  const [edges, setEdges] = useState({ start: true, end: true, scrollable: false, height: 0 });
 
   useEffect(() => {
     const el = ref.current;
@@ -131,6 +136,7 @@ export function Segmented<T extends string>({
         start: el.scrollLeft <= 1,
         end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 1,
         scrollable,
+        height: el.offsetHeight,
       });
     };
     measure();
@@ -143,11 +149,11 @@ export function Segmented<T extends string>({
     };
   }, [options]);
 
-  const scrollMore = () => {
+  const scrollByDir = (dir: -1 | 1) => {
     const el = ref.current;
     if (!el) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollBy({ left: Math.min(120, el.clientWidth * 0.45), behavior: reduce ? 'auto' : 'smooth' });
+    el.scrollBy({ left: dir * Math.min(140, el.clientWidth * 0.5), behavior: reduce ? 'auto' : 'smooth' });
   };
 
   return (
@@ -155,17 +161,47 @@ export function Segmented<T extends string>({
       className={['segmented-scroll', edges.scrollable && 'is-scrollable'].filter(Boolean).join(' ')}
       data-at-start={edges.start || undefined}
       data-at-end={edges.end || undefined}
+      style={edges.height ? ({ ['--segmented-h']: `${edges.height}px` } as CSSProperties) : undefined}
     >
-      <div ref={ref} className={['segmented', full && 'full'].filter(Boolean).join(' ')} role="group" aria-label={label}>
-        {options.map((o) => (
-          <button key={o.value} type="button" aria-pressed={value === o.value} onClick={() => onChange(o.value)} title={o.title}>
-            {o.icon}
-            {o.label}
-          </button>
-        ))}
+      <div ref={ref} className={['segmented', full && 'full', className].filter(Boolean).join(' ')} role={role} aria-label={label}>
+        {options.map((o) => {
+          const selected = value === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role={role === 'tablist' ? 'tab' : undefined}
+              aria-pressed={role === 'tablist' ? undefined : selected}
+              aria-selected={role === 'tablist' ? selected : undefined}
+              aria-current={role === 'tablist' && selected ? 'page' : undefined}
+              onClick={() => onChange(o.value)}
+              title={o.title}
+            >
+              {o.icon}
+              {o.label}
+            </button>
+          );
+        })}
       </div>
+      {edges.scrollable && !edges.start && (
+        <button
+          type="button"
+          className="segmented-scroll-more segmented-scroll-more-prev"
+          aria-label="Show earlier options"
+          tabIndex={-1}
+          onClick={() => scrollByDir(-1)}
+        >
+          <ChevronLeft size={16} aria-hidden />
+        </button>
+      )}
       {edges.scrollable && !edges.end && (
-        <button type="button" className="segmented-scroll-more" aria-label="Show more options" tabIndex={-1} onClick={scrollMore}>
+        <button
+          type="button"
+          className="segmented-scroll-more segmented-scroll-more-next"
+          aria-label="Show more options"
+          tabIndex={-1}
+          onClick={() => scrollByDir(1)}
+        >
           <ChevronRight size={16} aria-hidden />
         </button>
       )}

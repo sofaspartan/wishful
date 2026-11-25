@@ -105,10 +105,16 @@ describe('got it', () => {
     const item = await createItem(owner.agent, { wishlistIds: [wish.id] });
 
     expect((await owner.agent.post(`/api/items/${item.id}/got-it`, { collectionId: wish.id, owned: {} })).status).toBe(400);
-    expect((await owner.agent.post(`/api/items/${item.id}/got-it`, { owned: {} })).status).toBe(400);
     const theirs = await createList(other.agent, { kind: 'collection' });
     expect((await owner.agent.post(`/api/items/${item.id}/got-it`, { collectionId: theirs.id, owned: {} })).status).toBe(404);
     expect((await other.agent.post(`/api/items/${item.id}/got-it`, { newCollectionTitle: 'Mine now', owned: {} })).status).toBe(404);
+
+    // Collection is optional — mark owned and keep it on the wishlist.
+    const keep = await owner.agent.post(`/api/items/${item.id}/got-it`, { owned: { quantity: 1 } });
+    expect(keep.status).toBe(200);
+    expect(keep.data.collectionId).toBeNull();
+    expect(keep.data.item.owned).toMatchObject({ quantity: 1 });
+    expect(keep.data.item.wishlistIds).toEqual([wish.id]);
 
     const res = await owner.agent.post(`/api/items/${item.id}/got-it`, { newCollectionTitle: 'Things I have', owned: { quantity: 2 } });
     expect(res.status).toBe(200);

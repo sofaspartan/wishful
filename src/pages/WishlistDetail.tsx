@@ -150,6 +150,7 @@ function WishlistView({ detail }: { detail: Detail }) {
   const [cashFundOpen, setCashFundOpen] = useState(false);
   const [collaborators, setCollaborators] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [editingEntry, setEditingEntry] = useState<WishlistEntry | null>(null);
   const [listsFor, setListsFor] = useState<Item | null>(null);
   const [entrySettings, setEntrySettings] = useState<WishlistEntry | null>(null);
   const [moving, setMoving] = useState<WishlistEntry | null>(null);
@@ -213,9 +214,17 @@ function WishlistView({ detail }: { detail: Detail }) {
     return list;
   }, [rows, query, activeFilter, effectiveSort]);
 
-  const canDrag = canEdit && effectiveSort === 'custom' && !query.trim() && activeFilter === 'all' && rows.length > 1 && !w.archivedAt;
+  // On wishlists, owned items stay in a separate "Got it" section (owner/editor view).
+  const splitGotIt = !collection;
+  const activeFiltered = splitGotIt ? filtered.filter((r) => !r.item.owned) : filtered;
+  const gotItFiltered = splitGotIt ? filtered.filter((r) => Boolean(r.item.owned)) : [];
+
+  const canDrag =
+    canEdit && effectiveSort === 'custom' && !query.trim() && activeFilter === 'all' && activeFiltered.length > 1 && !w.archivedAt;
   const orderedIds = order ?? rows.map((r) => r.entry.id);
-  const displayRows = canDrag ? orderedIds.map((eid) => rowById.get(eid)).filter((r): r is Row => Boolean(r)) : filtered;
+  const displayRows = canDrag
+    ? orderedIds.map((eid) => rowById.get(eid)).filter((r): r is Row => r != null && (!splitGotIt || !r.item.owned))
+    : activeFiltered;
 
   const setLayout = async (next: PriorityLayout) => {
     const change = priorityLayoutSettings(next);
@@ -267,6 +276,22 @@ function WishlistView({ detail }: { detail: Detail }) {
     }
   };
 
+  const clearOwned = async (r: Row) => {
+    const ok = await confirm({
+      title: 'Mark as still wanting?',
+      message: `“${r.item.title}” will leave the Got it section and show as something you still want. Collections it belongs to are unchanged.`,
+      confirmLabel: 'Still want it',
+    });
+    if (!ok) return;
+    try {
+      await patch(`/api/items/${r.item.id}`, { owned: null });
+      invalidate([w.id, ...r.item.wishlistIds]);
+      toast.success('Moved back to your wishes');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  };
+
   const clearClaim = async (r: Row) => {
     const ok = await confirm({
       title: 'Clear this reservation?',
@@ -313,17 +338,33 @@ function WishlistView({ detail }: { detail: Detail }) {
     canEdit ? (
       <Menu label={`Actions for ${r.item.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm">
         {isOwner && <FavoriteMenuItem targetType="item" targetId={r.item.id} name={r.item.title} />}
-        <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditingItem(r.item)}>
+        <MenuItem
+          icon={<Pencil size={16} />}
+          onSelect={() => {
+            setEditingItem(r.item);
+            setEditingEntry(collection ? null : r.entry);
+          }}
+        >
           Edit item
         </MenuItem>
-        {isOwner && !collection && !synced(r.item) && (
+        {isOwner && !collection && !synced(r.item) && !r.item.owned && (
           <MenuItem icon={<PartyPopper size={16} />} onSelect={() => setGotIt(r.item)}>
             Got it!
           </MenuItem>
         )}
+        {isOwner && !collection && r.item.owned && !synced(r.item) && (
+          <MenuItem icon={<PartyPopper size={16} />} onSelect={() => setGotIt(r.item)}>
+            File in a collection…
+          </MenuItem>
+        )}
+        {isOwner && !collection && r.item.owned && (
+          <MenuItem icon={<Undo2 size={16} />} onSelect={() => clearOwned(r)}>
+            Still want it
+          </MenuItem>
+        )}
         {!collection && (
           <MenuItem icon={<Settings2 size={16} />} onSelect={() => setEntrySettings(r.entry)}>
-            Priority, note & group gift
+            Priority, note & already own
           </MenuItem>
         )}
         {!synced(r.item) && (
@@ -357,14 +398,25 @@ function WishlistView({ detail }: { detail: Detail }) {
       </Menu>
     ) : null;
 
-  const renderCard = (r: Row, dragHandle?: ReactNode) => (
+  const alreadyHaveFor = (r: Row) => {
+    if (collection) return undefined;
+    const ids = r.entry.alreadyHaveItemIds ?? [];
+    if (!ids.length) return undefined;
+    return ids
+      .map((id) => detail.items[id])
+      .filter((i): i is NonNullable<typeof i> => i != null)
+      .map((i) => ({ id: i.id, title: i.title, imageUrl: i.imageUrl }));
+  };
+
+  const renderCard = (r: Row, dragHandle?: ReactNode, opts?: { showOwned?: boolean }) => (
     <ItemCard
       item={r.item}
-      priority={showPriority ? r.entry.priority : null}
-      owned={collection ? r.item.owned : null}
-      status={statusBadge(r)}
+      priority={showPriority && !opts?.showOwned ? r.entry.priority : null}
+      owned={collection || opts?.showOwned ? r.item.owned : null}
+      status={opts?.showOwned ? <span className="badge badge-success">Got it</span> : statusBadge(r)}
       dimmed={r.claim?.status === 'purchased'}
       groupGift={r.entry.groupGift}
+      alreadyHave={opts?.showOwned ? undefined : alreadyHaveFor(r)}
       onOpen={() => setOpenItem(r.item.id)}
       menu={itemMenu(r)}
       dragHandle={dragHandle}
@@ -372,6 +424,29 @@ function WishlistView({ detail }: { detail: Detail }) {
       footer={boxOf(r.item) ? <BoxChip box={boxOf(r.item)!} /> : undefined}
     />
   );
+
+  const renderGotItSection = (listClass: string, hasContentAbove: boolean) => {
+    if (!gotItFiltered.length) return null;
+    return (
+      <section className="got-it-section" style={{ marginTop: hasContentAbove ? 'var(--s-8)' : 0 }}>
+        <header className="section-header" style={{ marginBottom: 'var(--s-3)' }}>
+          <h2 className="section-title" style={{ fontSize: '1.05rem' }}>
+            Got it
+          </h2>
+          <p className="muted text-sm" style={{ margin: 0 }}>
+            Things you already have — hidden from your shared gift page.
+          </p>
+        </header>
+        <div className={listClass}>
+          {gotItFiltered.map((r) => (
+            <div key={r.entry.id} style={{ minWidth: 0 }}>
+              {renderCard(r, undefined, { showOwned: true })}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  };
 
   const days = countdownLabel(w.eventDate);
 
@@ -443,7 +518,7 @@ function WishlistView({ detail }: { detail: Detail }) {
             )}
             {w.surpriseMode && (!people.length || linkedNames) && (
               <span className="badge badge-accent">
-                <Gift aria-hidden /> {people.length && !isRecipient ? `A surprise for ${linkedNames}` : 'Surprise Mode'}
+                <Gift aria-hidden /> {people.length && !isRecipient ? `Surprise for ${linkedNames}` : 'Surprise Mode: On'}
               </span>
             )}
             {w.archivedAt && <span className="badge">Archived</span>}
@@ -576,36 +651,6 @@ function WishlistView({ detail }: { detail: Detail }) {
           </div>
         </div>
       )}
-      {canEdit && !isRecipient && !claimsVisible && w.surpriseMode && rows.length > 0 && (
-        <div className="notice notice-accent">
-          <Gift size={18} aria-hidden />
-          <div>
-            <strong>Surprise Mode is on.</strong> Reservations and purchases are hidden from {isOwner ? 'you' : 'the owner and editors'} so gifts stay a surprise.
-            {isOwner && ' Guests need to see what’s taken, so opening your share link signed out (or in a private window) will show it.'}
-          </div>
-        </div>
-      )}
-      {canEdit && !isRecipient && linkedNames && w.surpriseMode && !collection && rows.length > 0 && (
-        <div className="notice notice-accent">
-          <Gift size={18} aria-hidden />
-          <div>
-            <strong>A surprise for {linkedNames}.</strong> They can see the list but not who reserved or bought what. You and your editors see everything.
-          </div>
-        </div>
-      )}
-      {canEdit && !isRecipient && claimsVisible && !w.surpriseMode && !collection && rows.length > 0 && (
-        <div className="notice">
-          <Gift size={18} aria-hidden />
-          <div>
-            {linkedNames
-              ? `${linkedNames} can see what’s been reserved too. Gifts reserved while it was a surprise stay hidden from them.`
-              : people.length
-                ? 'You can see what’s been reserved.'
-                : 'Surprise Mode is off — you can see what’s been reserved. Gifts reserved while Surprise Mode was on stay hidden.'}
-          </div>
-        </div>
-      )}
-
       {collection && rows.length > 0 && <CollectionStats items={rows.map((r) => r.item)} privateValues={canEdit} />}
 
       {(() => {
@@ -729,6 +774,8 @@ function WishlistView({ detail }: { detail: Detail }) {
           />
         ) : null;
         const itemsClass = view === 'grid' ? 'grid-items' : 'list-items';
+        const activeIds = displayRows.map((r) => r.entry.id);
+        const hasActive = displayRows.length > 0 || Boolean(cashFundCard);
 
         if (rows.length === 0) {
           return (
@@ -768,6 +815,10 @@ function WishlistView({ detail }: { detail: Detail }) {
           );
         }
 
+        if (!hasActive && gotItFiltered.length) {
+          return <>{renderGotItSection(itemsClass, false)}</>;
+        }
+
         if (grouped) {
           return (
             <>
@@ -781,35 +832,48 @@ function WishlistView({ detail }: { detail: Detail }) {
                 onReorderSection={canDrag ? (ids) => reorder(mergeSectionOrder(orderedIds, ids)) : undefined}
                 dragLabel={(r) => `Reorder ${r.item.title}`}
               />
+              {renderGotItSection(itemsClass, true)}
             </>
           );
         }
 
         if (canDrag) {
           return (
-            <SortableList
-              ids={orderedIds}
-              layout={view === 'grid' ? 'grid' : 'list'}
-              className={itemsClass}
-              leading={cashFundCard}
-              onReorder={reorder}
-              renderItem={(eid, handle) => {
-                const r = rowById.get(eid);
-                return r ? renderCard(r, <DragHandle handle={handle} label={`Reorder ${r.item.title}`} />) : null;
-              }}
-            />
+            <>
+              <SortableList
+                ids={activeIds}
+                layout={view === 'grid' ? 'grid' : 'list'}
+                className={itemsClass}
+                leading={cashFundCard}
+                onReorder={(ids) => {
+                  const gotItIds = orderedIds.filter((id) => {
+                    const r = rowById.get(id);
+                    return r?.item.owned;
+                  });
+                  void reorder([...ids, ...gotItIds]);
+                }}
+                renderItem={(eid, handle) => {
+                  const r = rowById.get(eid);
+                  return r ? renderCard(r, <DragHandle handle={handle} label={`Reorder ${r.item.title}`} />) : null;
+                }}
+              />
+              {renderGotItSection(itemsClass, true)}
+            </>
           );
         }
 
         return (
-          <div className={itemsClass}>
-            {cashFundCard}
-            {filtered.map((r) => (
-              <div key={r.entry.id} style={{ minWidth: 0 }}>
-                {renderCard(r)}
-              </div>
-            ))}
-          </div>
+          <>
+            <div className={itemsClass}>
+              {cashFundCard}
+              {displayRows.map((r) => (
+                <div key={r.entry.id} style={{ minWidth: 0 }}>
+                  {renderCard(r)}
+                </div>
+              ))}
+            </div>
+            {renderGotItSection(itemsClass, hasActive)}
+          </>
         );
       })()}
       <div style={{ height: 'var(--s-12)' }} />
@@ -819,6 +883,7 @@ function WishlistView({ detail }: { detail: Detail }) {
         onClose={() => setOpenItem(null)}
         priority={showPriority ? openRow?.entry.priority : null}
         entryNote={collection ? undefined : openRow?.entry.customNotes}
+        alreadyHave={openRow && !collection ? alreadyHaveFor(openRow) : undefined}
         badges={openRow ? statusBadge(openRow) : null}
         footer={
           openRow && canEdit ? (
@@ -831,7 +896,7 @@ function WishlistView({ detail }: { detail: Detail }) {
                     setOpenItem(null);
                   }}
                 >
-                  Got it!
+                  {openRow.item.owned ? 'File in a collection…' : 'Got it!'}
                 </Button>
               )}
               {!collection && (
@@ -840,7 +905,7 @@ function WishlistView({ detail }: { detail: Detail }) {
                     setEntrySettings(openRow.entry);
                   }}
                 >
-                  List settings
+                  This wish…
                 </Button>
               )}
               <Button
@@ -848,6 +913,7 @@ function WishlistView({ detail }: { detail: Detail }) {
                 icon={<Pencil size={16} />}
                 onClick={() => {
                   setEditingItem(openRow.item);
+                  setEditingEntry(collection ? null : openRow.entry);
                   setOpenItem(null);
                 }}
               >
@@ -896,7 +962,16 @@ function WishlistView({ detail }: { detail: Detail }) {
         )}
       </ItemDetailModal>
 
-      <EditItemModal item={editingItem} onClose={() => setEditingItem(null)} isOwner={isOwner} inCollection={collection} />
+      <EditItemModal
+        item={editingItem}
+        onClose={() => {
+          setEditingItem(null);
+          setEditingEntry(null);
+        }}
+        isOwner={isOwner}
+        inCollection={collection}
+        wishlistContext={!collection && editingEntry ? { wishlistId: w.id, entry: editingEntry } : null}
+      />
       {isOwner && !collection && <GotItDialog item={gotIt} fromWishlist={{ id: w.id, title: w.title }} onClose={() => setGotIt(null)} />}
       {isOwner && (
         <PutInBoxDialog itemIds={boxFor ? [boxFor.id] : []} currentBoxId={boxFor?.boxId ?? null} title={boxFor?.title ?? ''} open={Boolean(boxFor)} onClose={() => setBoxFor(null)} />

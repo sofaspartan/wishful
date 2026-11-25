@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ExternalLink, X } from 'lucide-react';
-import type { Item, Priority, PublicItem } from '../../shared/types';
+import type { AlreadyHaveChip, Item, Priority, PublicItem } from '../../shared/types';
 import { ACQUIRED_VIA_LABELS, CONDITION_LABELS, ITEM_TYPE_LABELS } from '../../shared/constants';
 import { formatDate, formatPrice, hostname } from '../lib/format';
+import { AlreadyHaveChips } from './AlreadyHaveChips';
 import { Modal } from './ui/Modal';
 import { ItemImage, ItemTypeIcon, PriorityBadge, Stars } from './ItemVisuals';
 import { effectivePrice } from './ItemForm';
@@ -13,6 +14,8 @@ interface Props {
   priority?: Priority | null;
   /** Note for gift-givers from the wishlist entry. */
   entryNote?: string;
+  /** Set-mates this wish already owns (per wishlist entry, not the whole list). */
+  alreadyHave?: AlreadyHaveChip[];
   /** Rendered below the details (claim box, owner info…). */
   children?: ReactNode;
   footer?: ReactNode;
@@ -107,7 +110,7 @@ function DetailMedia({ item }: { item: Item | PublicItem }) {
   );
 }
 
-export function ItemDetailModal({ item, onClose, priority, entryNote, children, footer, badges }: Props) {
+export function ItemDetailModal({ item, onClose, priority, entryNote, alreadyHave, children, footer, badges }: Props) {
   if (!item) return null;
   const amount = effectivePrice(item);
   const price = formatPrice(amount, item.currency);
@@ -144,6 +147,7 @@ export function ItemDetailModal({ item, onClose, priority, entryNote, children, 
                 </a>
               )}
               {entryNote && <div className="owner-note">{entryNote}</div>}
+              {alreadyHave && alreadyHave.length > 0 && <AlreadyHaveChips items={alreadyHave} />}
               {item.description && (
                 <p className="text-sm" style={{ whiteSpace: 'pre-line', color: 'var(--ink-2)' }}>
                   {item.description}

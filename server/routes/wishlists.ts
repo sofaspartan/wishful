@@ -52,15 +52,17 @@ function toWishlistDto(w: WishlistRecord, role: AccessRole): Wishlist {
   return {
     ...rest,
     kind: w.kind ?? 'wishlist',
+    entries: w.entries.map((e) => ({ ...e, alreadyHaveItemIds: e.alreadyHaveItemIds ?? [] })),
     shareToken: role === 'owner' || w.visibility !== 'private' ? w.shareToken : null,
     pendingInvites: role === 'owner' ? w.pendingInvites : [],
   };
 }
 
 async function buildDetail(w: WishlistRecord, role: AccessRole, viewerId: string): Promise<WishlistDetail> {
+  const alreadyHaveIds = w.entries.flatMap((e) => e.alreadyHaveItemIds ?? []);
   const items = await getMany<ItemRecord>(
     db('items'),
-    w.entries.map((e) => e.itemId),
+    [...new Set([...w.entries.map((e) => e.itemId), ...alreadyHaveIds])],
   );
   const users = await getUsers([w.ownerId, ...w.collaborators.map((c) => c.userId)]);
   const itemMap: Record<string, Item> = {};
@@ -334,6 +336,20 @@ export function registerWishlistRoutes(router: Router) {
     const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'editor');
     const input = await readJson(ctx.req, entryUpdateSchema);
     if (input.groupGift && isCollection(wishlist)) throw badRequest('Collections don’t have group gifts.');
+    if (input.alreadyHaveItemIds && isCollection(wishlist)) {
+      throw badRequest('“Already have” links are for wishlists, not collections.');
+    }
+    let alreadyHaveIds = input.alreadyHaveItemIds;
+    if (alreadyHaveIds) {
+      const entry = wishlist.entries.find((e) => e.id === ctx.params.entryId);
+      if (!entry) throw notFound('That item is no longer on this list.');
+      const unique = [...new Set(alreadyHaveIds.filter((id) => id !== entry.itemId))];
+      const linked = await getMany<ItemRecord>(db('items'), unique);
+      if (linked.length !== unique.length || linked.some((i) => i.ownerId !== wishlist.ownerId)) {
+        throw badRequest('Choose items you own.', { alreadyHaveItemIds: 'Choose items you own.' });
+      }
+      alreadyHaveIds = unique;
+    }
     await mutateWishlist(wishlist.id, (w) => {
       const entry = w.entries.find((e) => e.id === ctx.params.entryId);
       if (!entry) throw notFound('That item is no longer on this list.');
@@ -341,6 +357,7 @@ export function registerWishlistRoutes(router: Router) {
       if (input.customNotes !== undefined) entry.customNotes = input.customNotes;
       if (input.groupGift !== undefined) entry.groupGift = input.groupGift;
       if (input.groupGiftNote !== undefined) entry.groupGiftNote = input.groupGiftNote;
+      if (alreadyHaveIds !== undefined) entry.alreadyHaveItemIds = alreadyHaveIds;
       entry.updatedAt = nowIso();
     });
     await noteCollaboratorEdit(wishlist, user);

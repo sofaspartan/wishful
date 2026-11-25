@@ -273,7 +273,7 @@ export function AppLayout() {
           )}
           <header className={`topbar${scrolled ? ' scrolled' : ''}`}>
             <div className="topbar-brand">
-              <Logo to="/app" size={28} />
+              <Logo to="/app" size={36} />
             </div>
             <button type="button" className="search-trigger" onClick={() => setSearchOpen(true)}>
               <Search size={16} aria-hidden />

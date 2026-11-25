@@ -248,6 +248,42 @@ const GiftBox = (
   </Svg>
 );
 
+/** Plastic gift card with ribbon stripe — gift cards / contributions. */
+const GiftCard = (
+  <Svg>
+    <rect x="4" y="12" width="40" height="26" rx="4" fill="#7c6cf0" />
+    <rect x="4" y="18" width="40" height="6" fill="#5b4fd4" />
+    <rect x="8" y="28" width="14" height="3.2" rx="1.6" fill="#a99ff6" />
+    <circle cx="34" cy="30" r="5.5" fill="#f2c14e" />
+    <path d="M34 26.5c-1.6-3.2-5.5-3.6-5 1 .3 1.5 2.5 1.5 5 1zM34 26.5c1.6-3.2 5.5-3.6 5 1-.3 1.5-2.5 1.5-5 1z" fill="#e8745b" />
+    <rect x="32.8" y="27" width="2.4" height="8" rx="1" fill="#e8745b" />
+  </Svg>
+);
+
+/** Ticket stubs — experiences / outings. */
+const Tickets = (
+  <Svg>
+    <g transform="rotate(-12 22 26)">
+      <path
+        d="M8 16h26a2 2 0 0 1 2 2v3.2a3.2 3.2 0 0 0 0 6.4V31a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-3.2a3.2 3.2 0 0 0 0-6.4V18a2 2 0 0 1 2-2z"
+        fill="#4fa3a5"
+      />
+      <path d="M16 16v17" stroke="#fff" strokeWidth="1.6" strokeDasharray="2.4 2.2" opacity=".75" />
+      <rect x="20" y="20" width="11" height="2.4" rx="1.2" fill="#fff" opacity=".8" />
+      <rect x="20" y="25" width="7" height="2.2" rx="1.1" fill="#fff" opacity=".55" />
+    </g>
+    <g transform="rotate(8 28 22)">
+      <path
+        d="M14 10h26a2 2 0 0 1 2 2v3.2a3.2 3.2 0 0 0 0 6.4V25a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2v-3.2a3.2 3.2 0 0 0 0-6.4V12a2 2 0 0 1 2-2z"
+        fill="#f2c14e"
+      />
+      <path d="M22 10v17" stroke="#fff" strokeWidth="1.6" strokeDasharray="2.4 2.2" opacity=".75" />
+      <rect x="26" y="14" width="10" height="2.4" rx="1.2" fill="#fff" opacity=".85" />
+      <rect x="26" y="19" width="7" height="2.2" rx="1.1" fill="#fff" opacity=".55" />
+    </g>
+  </Svg>
+);
+
 const PaperPlane = (
   <Svg>
     <g stroke="#9fb3d9" strokeWidth="2.2" strokeLinecap="round">
@@ -355,9 +391,12 @@ export const FEATURE_ILLUSTRATIONS = {
   barcode: BarcodeScan,
   lists: StackedLists,
   surprise: GiftBox,
+  giftCard: GiftCard,
+  tickets: Tickets,
   share: PaperPlane,
   together: People,
   phone: Phone,
+  camera: Camera,
   idea: Lightbulb,
   collection: Shelf,
   boxes: ScannedBox,

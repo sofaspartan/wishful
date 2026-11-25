@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { Users } from 'lucide-react';
-import type { Item, Priority, PublicItem, PublicOwnership } from '../../shared/types';
+import type { AlreadyHaveChip, Item, Priority, PublicItem, PublicOwnership } from '../../shared/types';
 import { formatPrice } from '../lib/format';
 import { isTopPriority } from '../lib/priority';
+import { AlreadyHaveChips } from './AlreadyHaveChips';
 import { ItemImage, OwnedLine, PriorityBadge, PriorityLabel } from './ItemVisuals';
 import { effectivePrice } from './ItemForm';
 
@@ -22,6 +23,8 @@ interface Props {
   view?: 'grid' | 'list';
   /** Show "since / gift / condition / ×n" details for an owned item. */
   owned?: PublicOwnership | null;
+  /** Owned set-mates for gifters. */
+  alreadyHave?: AlreadyHaveChip[];
 }
 
 function sourceLine(item: AnyItem): string {
@@ -29,12 +32,13 @@ function sourceLine(item: AnyItem): string {
   return item.retailer || item.brand || (item.type === 'idea' ? 'Idea' : item.type === 'gift_card' ? 'Gift card' : '');
 }
 
-export function ItemCard({ item, priority, status, dimmed, groupGift, onOpen, menu, dragHandle, footer, view = 'grid', owned }: Props) {
+export function ItemCard({ item, priority, status, dimmed, groupGift, onOpen, menu, dragHandle, footer, view = 'grid', owned, alreadyHave }: Props) {
   const amount = effectivePrice(item);
   const price = formatPrice(amount, item.currency);
   const amountPrefix = item.type === 'idea' && amount !== null ? '~' : '';
   const source = sourceLine(item);
   const top = isTopPriority(priority) ? priority : null;
+  const have = alreadyHave?.length ? <AlreadyHaveChips items={alreadyHave} /> : null;
 
   if (view === 'list') {
     return (
@@ -51,6 +55,7 @@ export function ItemCard({ item, priority, status, dimmed, groupGift, onOpen, me
             {source && <span className="truncate">{source}</span>}
             {owned && <OwnedLine owned={owned} />}
           </span>
+          {have}
         </div>
         <div className="item-row-side">
           {status}
@@ -102,6 +107,7 @@ export function ItemCard({ item, priority, status, dimmed, groupGift, onOpen, me
           {!top && <PriorityLabel priority={priority} />}
         </div>
         {owned && <OwnedLine owned={owned} />}
+        {have}
         {footer}
       </div>
     </article>

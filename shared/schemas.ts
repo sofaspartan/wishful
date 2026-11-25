@@ -357,7 +357,7 @@ export const itemUpdateSchema = z.object({ ...itemFields, title: itemFields.titl
 
 export const itemMembershipSchema = z.object({ wishlistIds: z.array(idSchema).max(100) });
 
-/** "Got it": record ownership and file the item in a collection (existing or new), optionally leaving a wishlist. */
+/** "Got it": record ownership; optionally file in a collection and/or leave a wishlist. */
 export const gotItSchema = z
   .object({
     collectionId: idSchema.optional(),
@@ -365,7 +365,7 @@ export const gotItSchema = z
     removeFromWishlistId: idSchema.optional(),
     owned: ownershipSchema,
   })
-  .refine((v) => Boolean(v.collectionId) !== Boolean(v.newCollectionTitle), { message: 'Choose a collection', path: ['collectionId'] });
+  .refine((v) => !(v.collectionId && v.newCollectionTitle), { message: 'Pick one collection target', path: ['collectionId'] });
 
 // ── Wishlists ───────────────────────────────────────────────────────────────
 
@@ -450,6 +450,10 @@ export const entryUpdateSchema = z.object({
   customNotes: z.string().trim().max(LIMITS.message).optional(),
   groupGift: z.boolean().optional(),
   groupGiftNote: z.string().trim().max(LIMITS.message).optional(),
+  alreadyHaveItemIds: z
+    .array(idSchema)
+    .max(LIMITS.alreadyHaveItems, `You can link up to ${LIMITS.alreadyHaveItems} items`)
+    .optional(),
 });
 
 export const moveEntrySchema = z.object({ toWishlistId: idSchema });
@@ -607,6 +611,11 @@ export const circleLinkSchema = z
     username: usernameSchema.optional(),
   })
   .refine((v) => Boolean(v.userId || v.username), { message: 'Choose someone to link.', path: ['username'] });
+
+/** Private owner-only reminder about a friend. */
+export const friendNoteSchema = z.object({
+  note: z.string().trim().max(LIMITS.circleNote, `Keep it under ${LIMITS.circleNote} characters`),
+});
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ItemCreateInput = z.infer<typeof itemCreateSchema>;

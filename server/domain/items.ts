@@ -103,6 +103,7 @@ export function newEntry(itemId: string, userId: string, priority: Priority | nu
     customNotes,
     groupGift: false,
     groupGiftNote: '',
+    alreadyHaveItemIds: [],
     addedBy: userId,
     createdAt: stamp,
     updatedAt: stamp,
@@ -330,11 +331,14 @@ export async function setMemberships(item: ItemRecord, user: UserRecord, wishlis
 }
 
 /**
- * "Got it": record that the owner now has this item, file it in one of their
- * collections (or a new one) and optionally take it off the wishlist it came
- * from. Everything is checked before anything is changed.
+ * "Got it": record that the owner now has this item. Optionally file it in a
+ * collection (existing or new) and/or take it off the wishlist it came from.
  */
-export async function markGotIt(item: ItemRecord, user: UserRecord, input: GotItInput): Promise<{ item: ItemRecord; collectionId: string }> {
+export async function markGotIt(
+  item: ItemRecord,
+  user: UserRecord,
+  input: GotItInput,
+): Promise<{ item: ItemRecord; collectionId: string | null }> {
   if (item.ownerId !== user.id) throw notFound('Item not found.');
   if (item.source) {
     throw conflict(
@@ -350,16 +354,16 @@ export async function markGotIt(item: ItemRecord, user: UserRecord, input: GotIt
     const entry = from.entries.find((e) => e.itemId === item.id);
     if (entry) leaving = { wishlistId: from.id, entryId: entry.id };
   }
-  let collectionId: string;
+  let collectionId: string | null = null;
   if (input.collectionId) {
     const { wishlist } = await requireWishlistAccess(input.collectionId, user, 'owner');
     if (!isCollection(wishlist)) throw badRequest('Choose one of your collections.', { collectionId: 'Choose one of your collections.' });
     collectionId = wishlist.id;
-  } else {
-    collectionId = (await createWishlist(user, { title: input.newCollectionTitle!, kind: 'collection', visibility: 'private' })).id;
+  } else if (input.newCollectionTitle) {
+    collectionId = (await createWishlist(user, { title: input.newCollectionTitle, kind: 'collection', visibility: 'private' })).id;
   }
   await atomicUpdateExisting<ItemRecord>(db('items'), item.id, (current) => ({ ...current, owned: mergeOwnership(current.owned, input.owned), updatedAt: nowIso() }));
-  await addEntry(collectionId, item, user.id);
+  if (collectionId) await addEntry(collectionId, item, user.id);
   if (leaving && leaving.wishlistId !== collectionId) await removeEntry(leaving.wishlistId, leaving.entryId);
   const refreshed = await getItem(item.id);
   if (!refreshed) throw notFound('Item not found.');

@@ -551,9 +551,18 @@ export interface WishlistEntry {
   customNotes: string;
   groupGift: boolean;
   groupGiftNote: string;
+  /** Owned items the gifters should know you already have (set mates, etc.). */
+  alreadyHaveItemIds: string[];
   addedBy: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Slim chip for public “Already has” under a wish. */
+export interface AlreadyHaveChip {
+  id: string;
+  title: string;
+  imageUrl: string | null;
 }
 
 export interface Collaborator {
@@ -745,6 +754,8 @@ export interface PublicEntry {
   groupGift: boolean;
   groupGiftNote: string;
   item: PublicItem;
+  /** Owned set-mates the owner linked for gifters. */
+  alreadyHave: AlreadyHaveChip[];
   /** `null` when claim state is hidden from this viewer. */
   status: ClaimStatus | null;
   claim: PublicClaim | null;
@@ -953,6 +964,8 @@ export function boxCodeFromBytes(bytes: Uint8Array): string {
 export interface FriendSummary {
   user: PublicUser;
   since: string;
+  /** Private owner-only note (Circle note when linked, else friendship note). */
+  note: string;
 }
 
 export interface FriendRequestView {
@@ -988,6 +1001,10 @@ export interface FriendWishlistCard {
 export interface FriendProfileView {
   user: PublicUser & { bio: string };
   since: string;
+  /** Private owner-only note (Circle note when linked, else friendship note). */
+  note: string;
+  /** When set, edits go to this My Circle person instead of the friendship note. */
+  circlePersonId: string | null;
   wishlists: FriendWishlistCard[];
 }
 

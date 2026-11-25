@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
-import { CameraOff, Flashlight, FlashlightOff, ScanBarcode } from 'lucide-react';
+import { CameraOff, Flashlight, FlashlightOff, Keyboard } from 'lucide-react';
 import { isValidBarcode, normalizeBarcode } from '../../shared/barcode';
 import { Button } from './ui/Button';
-import { Field, FormNote } from './ui/Field';
+import { FormNote } from './ui/Field';
 
 type CameraState = 'starting' | 'live' | 'denied' | 'unsupported' | 'error';
 
@@ -17,14 +17,16 @@ interface Props {
 
 /**
  * Live rear-camera UPC / EAN reader for in-store adds, with torch toggle when
- * available and a typed-digits fallback if the camera isn’t usable.
+ * available and a typed-digits fallback on the camera frame.
  */
 export function BarcodeScanner({ active, onDetected, disabled }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [camera, setCamera] = useState<CameraState>('starting');
   const [message, setMessage] = useState<string | null>(null);
   const [manual, setManual] = useState('');
   const [manualError, setManualError] = useState<string | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
   const lastCode = useRef<string | null>(null);
@@ -35,11 +37,13 @@ export function BarcodeScanner({ active, onDetected, disabled }: Props) {
     if (typeof window === 'undefined' || !window.isSecureContext) {
       setCamera('unsupported');
       setMessage('Camera scanning needs HTTPS (or localhost). Type the digits under the bars instead.');
+      setManualOpen(true);
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
       setCamera('unsupported');
       setMessage('This browser can’t use the camera. Type the barcode digits instead.');
+      setManualOpen(true);
       return;
     }
 
@@ -57,6 +61,7 @@ export function BarcodeScanner({ active, onDetected, disabled }: Props) {
 
     setCamera('starting');
     setMessage(null);
+    setManualOpen(false);
     setTorchOn(false);
     setTorchAvailable(false);
     lastCode.current = null;
@@ -106,6 +111,7 @@ export function BarcodeScanner({ active, onDetected, disabled }: Props) {
           setCamera('error');
           setMessage('Couldn’t start the camera. Type the digits under the barcode instead.');
         }
+        setManualOpen(true);
       }
     })();
 
@@ -116,6 +122,12 @@ export function BarcodeScanner({ active, onDetected, disabled }: Props) {
       setTorchOn(false);
     };
   }, [active, disabled, onDetected]);
+
+  useEffect(() => {
+    if (!manualOpen) return;
+    const t = window.setTimeout(() => inputRef.current?.focus(), 50);
+    return () => window.clearTimeout(t);
+  }, [manualOpen]);
 
   const toggleTorch = async () => {
     const track = trackRef.current;
@@ -140,8 +152,11 @@ export function BarcodeScanner({ active, onDetected, disabled }: Props) {
     onDetected(code);
   };
 
+  const showManualFab = camera === 'live' && !manualOpen;
+  const showManualPanel = manualOpen || (camera !== 'live' && camera !== 'starting');
+
   return (
-    <div className="barcode-scanner stack">
+    <div className="barcode-scanner">
       <div className={`barcode-viewport${camera === 'live' ? ' is-live' : ''}`}>
         <video ref={videoRef} className="barcode-video" muted playsInline />
         {camera === 'live' ? (
@@ -172,33 +187,56 @@ export function BarcodeScanner({ active, onDetected, disabled }: Props) {
             onClick={() => void toggleTorch()}
           />
         )}
-      </div>
-
-      {camera === 'live' && (
-        <p className="muted text-sm barcode-hint">
-          <ScanBarcode size={14} aria-hidden /> Line up the bars in the frame — we’ll read the UPC / EAN.
-        </p>
-      )}
-
-      <form className="stack-sm" onSubmit={submitManual}>
-        <Field label="Or type the digits" error={manualError ?? undefined} hint="The numbers under the barcode work when the camera can’t.">
-          <input
-            className="input"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="012345678905"
-            value={manual}
+        {showManualFab && (
+          <button
+            type="button"
+            className="barcode-manual-fab"
+            aria-label="Type barcode digits"
             disabled={disabled}
-            onChange={(e) => {
-              setManual(e.target.value);
-              setManualError(null);
-            }}
-          />
-        </Field>
-        <Button type="submit" disabled={disabled || !manual.trim()}>
-          Look up barcode
-        </Button>
-      </form>
+            onClick={() => setManualOpen(true)}
+          >
+            <Keyboard size={20} aria-hidden />
+          </button>
+        )}
+        {showManualPanel && (
+          <form className="barcode-manual-panel" onSubmit={submitManual}>
+            <label className="sr-only" htmlFor="barcode-manual-input">
+              Barcode digits
+            </label>
+            <input
+              ref={inputRef}
+              id="barcode-manual-input"
+              className="input barcode-manual-input"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="012345678905"
+              value={manual}
+              disabled={disabled}
+              aria-invalid={Boolean(manualError)}
+              aria-describedby={manualError ? 'barcode-manual-error' : undefined}
+              onChange={(e) => {
+                setManual(e.target.value);
+                setManualError(null);
+              }}
+            />
+            <div className="barcode-manual-actions">
+              {camera === 'live' && (
+                <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={() => setManualOpen(false)}>
+                  Cancel
+                </Button>
+              )}
+              <Button type="submit" size="sm" disabled={disabled || !manual.trim()}>
+                Look up
+              </Button>
+            </div>
+            {manualError && (
+              <p id="barcode-manual-error" className="barcode-manual-error" role="alert">
+                {manualError}
+              </p>
+            )}
+          </form>
+        )}
+      </div>
 
       {camera === 'denied' && (
         <FormNote>In your browser site settings, allow Camera for Wishful, then try again.</FormNote>
