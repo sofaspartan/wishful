@@ -331,7 +331,9 @@
 .dashboard-theme-sky .cover-bank .cloud-bank-front {
   fill: var(--page-wash-deep, var(--page-wash, var(--bg))) !important;
 }
-.app-shell.dashboard-themed .app-column > :not(.dashboard-theme-sky) {
+/* Keep `.topbar` out — `position: relative` + `top` would offset it visually without
+   layout space and make the floating desktop card overlap the tiles below. */
+.app-shell.dashboard-themed .app-column > :not(.dashboard-theme-sky):not(.topbar) {
   position: relative;
   z-index: 1;
 }
@@ -880,6 +882,31 @@
   line-height: 1.3;
 }
 
+/*
+  Top bar fill token — shared by the header and the iOS status-edge shield.
+  Add Item looks crisp because `.modal-root` is `position: fixed; inset: 0` (opaque
+  paint under the status bar). Sticky in-flow chrome does not; phone uses fixed.
+*/
+.app-shell {
+  --topbar-fill: var(--bg);
+}
+.app-shell[data-dashboard-scene='sky'] {
+  --topbar-fill: var(--hero-bg);
+}
+.app-shell[data-dashboard-scene='blush'] {
+  --topbar-fill: var(--blush-bg);
+}
+.app-shell[data-dashboard-scene='kraft'] {
+  --topbar-fill: var(--kraft-bg);
+}
+.app-shell[data-dashboard-scene='plain'],
+.app-shell.dashboard-themed:not(.dashboard-soft) {
+  --topbar-fill: var(--surface);
+}
+.app-shell.dashboard-themed-dark {
+  --topbar-fill: var(--dash-panel);
+}
+
 /* Top bar */
 .topbar {
   position: sticky;
@@ -891,30 +918,17 @@
   align-items: center;
   gap: var(--s-2);
   padding: var(--safe-top) var(--s-4) 0;
-  /* Opaque chrome — frosted blur washes out the logo/icons on iOS (Safari + Home Screen). */
-  background-color: var(--bg);
-  background: var(--bg);
+  background-color: var(--topbar-fill);
+  background: var(--topbar-fill);
   border-bottom: 1px solid transparent;
 }
-.app-shell[data-dashboard-scene='sky'] .app-column > .topbar {
-  background-color: var(--hero-bg);
-  background: var(--hero-bg);
-  border-bottom-color: color-mix(in srgb, var(--border) 55%, transparent);
-}
-.app-shell[data-dashboard-scene='blush'] .app-column > .topbar {
-  background-color: var(--blush-bg);
-  background: var(--blush-bg);
-  border-bottom-color: color-mix(in srgb, var(--border) 55%, transparent);
-}
+.app-shell[data-dashboard-scene='sky'] .app-column > .topbar,
+.app-shell[data-dashboard-scene='blush'] .app-column > .topbar,
 .app-shell[data-dashboard-scene='kraft'] .app-column > .topbar {
-  background-color: var(--kraft-bg);
-  background: var(--kraft-bg);
   border-bottom-color: color-mix(in srgb, var(--border) 55%, transparent);
 }
 .app-shell[data-dashboard-scene='plain'] .app-column > .topbar,
 .app-shell.dashboard-themed:not(.dashboard-soft) .app-column > .topbar {
-  background-color: var(--surface);
-  background: var(--surface);
   border-bottom-color: color-mix(in srgb, var(--border) 75%, transparent);
 }
 .topbar .btn-ghost {
@@ -928,8 +942,6 @@
 }
 /* Dark looks: solid panel chrome (search, icons, kbd). */
 .app-shell.dashboard-themed-dark .app-column > .topbar {
-  background-color: var(--dash-panel);
-  background: var(--dash-panel);
   border-bottom-color: color-mix(in srgb, #fff 12%, transparent);
   color: var(--dash-panel-ink);
 }
@@ -963,18 +975,63 @@
   align-items: center;
   gap: 2px;
 }
+
+/*
+  Phone / Home Screen: keep the topbar in normal flow (sticky) so we don’t double
+  the header offset with padding-top + in-flow height. A fixed strip at y=0 still
+  paints under the status bar like Add Item’s fullscreen modal (WebKit frost).
+*/
+@media (max-width: 1023px) {
+  .app-shell::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 8px;
+    height: max(8px, var(--safe-top));
+    z-index: 55;
+    pointer-events: none;
+    background: var(--topbar-fill);
+  }
+  /* Tight gap under the bar — matches bento cards, not a second “page” pad. */
+  .app-main .page {
+    padding-top: var(--bento-gap);
+  }
+}
+:root[data-display-mode='standalone'] .app-shell::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 8px;
+  height: max(8px, var(--safe-top));
+  z-index: 55;
+  pointer-events: none;
+  background: var(--topbar-fill);
+}
+
 @media (min-width: 1024px) {
   /*
     Desktop: float as a content card aligned with `.page` / bento tiles
     (same inset as page padding), not a full-bleed header strip.
   */
+  /*
+    Use column/main padding — not topbar margins — so sticky + margin-collapse
+    can’t pull the card over the tiles underneath.
+  */
+  .app-column {
+    padding-top: var(--s-4);
+  }
   .app-column > .topbar {
-    top: var(--s-4);
+    position: relative;
+    top: auto;
     box-sizing: border-box;
     width: auto;
     max-width: calc(var(--content-max) - 2 * var(--s-8));
     height: var(--topbar-h);
-    margin: var(--s-4) max(var(--s-8), calc((100% - var(--content-max)) / 2 + var(--s-8))) 0;
+    margin: 0 max(var(--s-8), calc((100% - var(--content-max)) / 2 + var(--s-8)));
     padding: 0 var(--s-4);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
@@ -983,6 +1040,9 @@
     box-shadow:
       0 1px 0 rgb(255 255 255 / 0.5) inset,
       0 8px 20px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 8%, transparent);
+  }
+  .app-column > .app-main {
+    padding-top: var(--bento-gap);
   }
   .app-shell.dashboard-themed .app-column > .topbar {
     background-color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 6%, var(--surface));
@@ -1005,8 +1065,26 @@
     display: none;
   }
 
-  /* Forced phone shell on a wide viewport: keep the full-bleed top bar. */
+  /* Forced phone shell on a wide viewport: full-bleed sticky bar + status shield. */
+  .app-shell[data-layout-mode='mobile']::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 8px;
+    height: max(8px, var(--safe-top));
+    z-index: 55;
+    pointer-events: none;
+    background: var(--topbar-fill);
+  }
+  .app-shell[data-layout-mode='mobile'] .app-column {
+    padding-top: 0;
+  }
   .app-shell[data-layout-mode='mobile'] .app-column > .topbar {
+    position: sticky;
+    left: auto;
+    right: auto;
     top: 0;
     width: 100%;
     max-width: none;
@@ -1018,22 +1096,14 @@
     border-right: 0;
     border-top: 0;
     box-shadow: none;
+    background-color: var(--topbar-fill);
+    background: var(--topbar-fill);
   }
-  .app-shell[data-layout-mode='mobile'][data-dashboard-scene='sky'] .app-column > .topbar {
-    background-color: var(--hero-bg);
-    background: var(--hero-bg);
+  .app-shell[data-layout-mode='mobile'] .app-column > .app-main {
+    padding-top: 0;
   }
-  .app-shell[data-layout-mode='mobile'][data-dashboard-scene='blush'] .app-column > .topbar {
-    background-color: var(--blush-bg);
-    background: var(--blush-bg);
-  }
-  .app-shell[data-layout-mode='mobile'][data-dashboard-scene='kraft'] .app-column > .topbar {
-    background-color: var(--kraft-bg);
-    background: var(--kraft-bg);
-  }
-  .app-shell[data-layout-mode='mobile'].dashboard-themed-dark .app-column > .topbar {
-    background-color: var(--dash-panel);
-    background: var(--dash-panel);
+  .app-shell[data-layout-mode='mobile'] .app-main .page {
+    padding-top: var(--bento-gap);
   }
 }
 .search-trigger {
@@ -1508,9 +1578,9 @@
   }
 }
 @media (min-width: 1024px) {
-  /* Pair with the floating topbar card — less dead air between chrome and tiles. */
+  /* Spacing below the topbar card comes from its margin-bottom (bento-gap). */
   .app-main .page {
-    padding-top: var(--s-4);
+    padding-top: 0;
   }
 }
 .page-header {
