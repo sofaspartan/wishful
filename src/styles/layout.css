@@ -891,14 +891,30 @@
   align-items: center;
   gap: var(--s-2);
   padding: var(--safe-top) var(--s-4) 0;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px);
-  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  /* Opaque chrome — frosted blur washes out the logo/icons on iOS (Safari + Home Screen). */
+  background-color: var(--bg);
+  background: var(--bg);
   border-bottom: 1px solid transparent;
 }
-.app-shell[data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar,
-.app-shell.dashboard-themed .app-column > .topbar {
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
+.app-shell[data-dashboard-scene='sky'] .app-column > .topbar {
+  background-color: var(--hero-bg);
+  background: var(--hero-bg);
+  border-bottom-color: color-mix(in srgb, var(--border) 55%, transparent);
+}
+.app-shell[data-dashboard-scene='blush'] .app-column > .topbar {
+  background-color: var(--blush-bg);
+  background: var(--blush-bg);
+  border-bottom-color: color-mix(in srgb, var(--border) 55%, transparent);
+}
+.app-shell[data-dashboard-scene='kraft'] .app-column > .topbar {
+  background-color: var(--kraft-bg);
+  background: var(--kraft-bg);
+  border-bottom-color: color-mix(in srgb, var(--border) 55%, transparent);
+}
+.app-shell[data-dashboard-scene='plain'] .app-column > .topbar,
+.app-shell.dashboard-themed:not(.dashboard-soft) .app-column > .topbar {
+  background-color: var(--surface);
+  background: var(--surface);
   border-bottom-color: color-mix(in srgb, var(--border) 75%, transparent);
 }
 .topbar .btn-ghost {
@@ -910,9 +926,10 @@
 .topbar .btn-ghost svg {
   color: inherit;
 }
-/* Dark looks: keep the bar on the wash and force light chrome (search, icons, kbd). */
+/* Dark looks: solid panel chrome (search, icons, kbd). */
 .app-shell.dashboard-themed-dark .app-column > .topbar {
-  background: color-mix(in srgb, var(--dash-panel) 82%, transparent);
+  background-color: var(--dash-panel);
+  background: var(--dash-panel);
   border-bottom-color: color-mix(in srgb, #fff 12%, transparent);
   color: var(--dash-panel-ink);
 }
@@ -935,56 +952,6 @@
 .app-shell.dashboard-themed-dark .search-trigger:hover {
   border-color: color-mix(in srgb, #fff 34%, transparent);
 }
-/*
-  Phone / installed app: opaque top chrome.
-  Frosted blur + translucent fill smears under the notch and washes out the logo/icons.
-  Placed after translucent dashboard rules so it always wins.
-*/
-@media (max-width: 1023px) {
-  .topbar,
-  .landing-top {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-  .topbar {
-    background: var(--bg);
-  }
-  .app-shell.dashboard-themed .app-column > .topbar,
-  .app-shell[data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar {
-    background: var(--surface);
-  }
-  .app-shell.dashboard-themed-dark .app-column > .topbar {
-    background: var(--dash-panel);
-  }
-  .landing-top {
-    background: var(--hero-bg);
-  }
-}
-.app-shell[data-layout-mode='mobile'] .topbar,
-.app-shell[data-layout-mode='mobile'] .landing-top,
-:root[data-display-mode='standalone'] .topbar,
-:root[data-display-mode='standalone'] .landing-top {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-.app-shell[data-layout-mode='mobile'] .topbar,
-:root[data-display-mode='standalone'] .topbar {
-  background: var(--bg);
-}
-.app-shell[data-layout-mode='mobile'].dashboard-themed .app-column > .topbar,
-.app-shell[data-layout-mode='mobile'][data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar,
-:root[data-display-mode='standalone'] .app-shell.dashboard-themed .app-column > .topbar,
-:root[data-display-mode='standalone'] .app-shell[data-dashboard-scene]:not([data-dashboard-scene='plain']) .app-column > .topbar {
-  background: var(--surface);
-}
-.app-shell[data-layout-mode='mobile'].dashboard-themed-dark .app-column > .topbar,
-:root[data-display-mode='standalone'] .app-shell.dashboard-themed-dark .app-column > .topbar {
-  background: var(--dash-panel);
-}
-.app-shell[data-layout-mode='mobile'] .landing-top,
-:root[data-display-mode='standalone'] .landing-top {
-  background: var(--hero-bg);
-}
 .topbar.scrolled {
   border-bottom-color: var(--border);
 }
@@ -997,12 +964,76 @@
   gap: 2px;
 }
 @media (min-width: 1024px) {
-  .topbar {
-    /* Match .page: centered content-max column + --s-8 gutters */
-    padding: var(--safe-top) max(var(--s-8), calc((100% - var(--content-max)) / 2 + var(--s-8))) 0;
+  /*
+    Desktop: float as a content card aligned with `.page` / bento tiles
+    (same inset as page padding), not a full-bleed header strip.
+  */
+  .app-column > .topbar {
+    top: var(--s-4);
+    box-sizing: border-box;
+    width: auto;
+    max-width: calc(var(--content-max) - 2 * var(--s-8));
+    height: var(--topbar-h);
+    margin: var(--s-4) max(var(--s-8), calc((100% - var(--content-max)) / 2 + var(--s-8))) 0;
+    padding: 0 var(--s-4);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    background: var(--surface);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.5) inset,
+      0 8px 20px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 8%, transparent);
+  }
+  .app-shell.dashboard-themed .app-column > .topbar {
+    background-color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 6%, var(--surface));
+    background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 6%, var(--surface));
+    border-color: color-mix(in srgb, var(--dashboard-tint) 18%, var(--border));
+  }
+  .app-shell.dashboard-themed-dark .app-column > .topbar {
+    background-color: var(--dash-panel);
+    background: var(--dash-panel);
+    border-color: color-mix(in srgb, #fff 12%, transparent);
+    box-shadow: var(--dash-panel-shadow, 0 8px 20px rgb(0 0 0 / 0.2));
+  }
+  .app-column > .topbar.scrolled {
+    border-bottom-color: var(--border);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.5) inset,
+      0 10px 28px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 12%, transparent);
   }
   .topbar-brand {
     display: none;
+  }
+
+  /* Forced phone shell on a wide viewport: keep the full-bleed top bar. */
+  .app-shell[data-layout-mode='mobile'] .app-column > .topbar {
+    top: 0;
+    width: 100%;
+    max-width: none;
+    height: calc(var(--topbar-h) + var(--safe-top));
+    margin: 0;
+    padding: var(--safe-top) var(--s-4) 0;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    box-shadow: none;
+  }
+  .app-shell[data-layout-mode='mobile'][data-dashboard-scene='sky'] .app-column > .topbar {
+    background-color: var(--hero-bg);
+    background: var(--hero-bg);
+  }
+  .app-shell[data-layout-mode='mobile'][data-dashboard-scene='blush'] .app-column > .topbar {
+    background-color: var(--blush-bg);
+    background: var(--blush-bg);
+  }
+  .app-shell[data-layout-mode='mobile'][data-dashboard-scene='kraft'] .app-column > .topbar {
+    background-color: var(--kraft-bg);
+    background: var(--kraft-bg);
+  }
+  .app-shell[data-layout-mode='mobile'].dashboard-themed-dark .app-column > .topbar {
+    background-color: var(--dash-panel);
+    background: var(--dash-panel);
   }
 }
 .search-trigger {
@@ -1474,6 +1505,12 @@
 @media (min-width: 768px) {
   .page {
     padding: var(--s-6) var(--s-8) 0;
+  }
+}
+@media (min-width: 1024px) {
+  /* Pair with the floating topbar card — less dead air between chrome and tiles. */
+  .app-main .page {
+    padding-top: var(--s-4);
   }
 }
 .page-header {
@@ -5358,9 +5395,8 @@ button.empty:hover {
   top: 0;
   z-index: 50;
   padding-top: var(--safe-top);
-  background: color-mix(in srgb, var(--hero-bg) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px);
-  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  background-color: var(--hero-bg);
+  background: var(--hero-bg);
 }
 .landing-nav {
   position: relative;
