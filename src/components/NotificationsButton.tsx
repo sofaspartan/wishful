@@ -5,6 +5,7 @@ import type { AppNotification, NotificationType } from '../../shared/types';
 import { keys, useMe, useNotifications } from '../lib/queries';
 import { post } from '../lib/api';
 import { relativeTime } from '../lib/format';
+import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 import { Popover } from './ui/Popover';
 
 const ICONS: Record<NotificationType, typeof Bell> = {
@@ -34,9 +35,12 @@ export function NotificationsButton() {
     <Popover
       label={unread ? `Notifications (${unread} unread)` : 'Notifications'}
       className="notif-panel"
+      buttonClassName="btn btn-ghost btn-icon topbar-art-btn"
       buttonContent={
         <>
-          <Bell size={19} />
+          <span className="art-icon art-icon-tab" aria-hidden>
+            {FEATURE_ILLUSTRATIONS.bell}
+          </span>
           {unread > 0 && <span className="notif-dot" aria-hidden />}
         </>
       }

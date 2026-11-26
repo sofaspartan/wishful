@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Boxes, Gift, House, LayoutTemplate, Library, List, LogOut, Menu as MenuIcon, Package, Search, Settings, Smartphone, Star, User, UserRoundPlus } from 'lucide-react';
-import { coverPaint } from '../../shared/types';
+import { LogOut, Search } from 'lucide-react';
 import { useFriends, useMe, useWishlists } from '../lib/queries';
 import { post } from '../lib/api';
 import { CLASSIC_DASHBOARD_TINTS, dashboardLookIsDark, useDashboardLook } from '../lib/dashboardScene';
 import { useLayoutMode, useStandaloneDisplayAttr } from '../lib/layoutMode';
 import { Logo } from './Logo';
 import { CloudBank } from './Cloud';
-import { CoverArt } from './CoverArt';
+import { CoverArt, COVER_ICON_ART } from './CoverArt';
+import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 import { Avatar } from './ui/misc';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { AppActionsContext, type AddItemOptions, type AppActions, type CreateListOptions } from './appActions';
@@ -24,20 +24,29 @@ import { InstallTip } from './InstallTip';
 
 /** Desktop sidebar — includes Lists (boxes live under lists). */
 const SIDEBAR_NAV = [
-  { to: '/app', label: 'Home', icon: House, end: true },
-  { to: '/app/lists', label: 'My Lists', icon: List },
-  { to: '/app/items', label: 'Items', icon: Package },
-  { to: '/app/favorites', label: 'Favorites', icon: Star },
-  { to: '/app/friends', label: 'Friends', icon: UserRoundPlus },
+  { to: '/app', label: 'Home', art: COVER_ICON_ART.house, end: true },
+  { to: '/app/lists', label: 'My Lists', art: FEATURE_ILLUSTRATIONS.lists },
+  { to: '/app/items', label: 'Items', art: FEATURE_ILLUSTRATIONS.store },
+  { to: '/app/favorites', label: 'Favorites', art: COVER_ICON_ART.star },
+  { to: '/app/friends', label: 'Friends', art: FEATURE_ILLUSTRATIONS.together },
+  { to: '/app/gifts', label: 'Gift ideas', art: FEATURE_ILLUSTRATIONS.surprise },
 ];
 
 /** Mobile bottom bar trailing slots: Ideas · Friends (Home + Browse + Add are fixed). */
 const BOTTOM_NAV = [
-  { to: '/app/gifts', label: 'Ideas', icon: Gift },
-  { to: '/app/friends', label: 'Friends', icon: UserRoundPlus },
+  { to: '/app/gifts', label: 'Ideas', art: FEATURE_ILLUSTRATIONS.surprise },
+  { to: '/app/friends', label: 'Friends', art: FEATURE_ILLUSTRATIONS.together },
 ];
 
 const BROWSE_PATHS = ['/app/items', '/app/lists', '/app/boxes', '/app/favorites'];
+
+function tabArt(art: ReactNode) {
+  return (
+    <span className="art-icon art-icon-tab" aria-hidden>
+      {art}
+    </span>
+  );
+}
 
 function BrowseMenu({ active, onNavigate }: { active: boolean; onNavigate: (to: string) => void }) {
   return (
@@ -48,25 +57,28 @@ function BrowseMenu({ active, onNavigate }: { active: boolean; onNavigate: (to: 
       buttonClassName={`bottom-link${active ? ' active' : ''}`}
       buttonContent={
         <>
-          <List size={21} aria-hidden />
+          <span className="bottom-icon">{tabArt(FEATURE_ILLUSTRATIONS.lists)}</span>
           Browse
         </>
       }
     >
-      <MenuItem icon={<Star size={16} />} onSelect={() => onNavigate('/app/favorites')}>
+      <MenuItem icon={tabArt(COVER_ICON_ART.star)} onSelect={() => onNavigate('/app/favorites')}>
         Favorites
       </MenuItem>
-      <MenuSeparator />
-      <MenuItem icon={<Package size={16} />} onSelect={() => onNavigate('/app/items')}>
-        Items
-      </MenuItem>
-      <MenuItem icon={<List size={16} />} onSelect={() => onNavigate('/app/lists?kind=wishlist')}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.lists)} onSelect={() => onNavigate('/app/lists?kind=wishlist')}>
         Wishlists
       </MenuItem>
-      <MenuItem icon={<Library size={16} />} onSelect={() => onNavigate('/app/lists?kind=collection')}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.tasks)} onSelect={() => onNavigate('/app/lists?kind=lists')}>
+        Lists
+      </MenuItem>
+      <MenuSeparator />
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.collection)} onSelect={() => onNavigate('/app/lists?kind=collection')}>
         Collections
       </MenuItem>
-      <MenuItem icon={<Boxes size={16} />} onSelect={() => onNavigate('/app/boxes')}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.store)} onSelect={() => onNavigate('/app/items')}>
+        Items
+      </MenuItem>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.boxes)} onSelect={() => onNavigate('/app/boxes')}>
         Boxes
       </MenuItem>
     </Menu>
@@ -134,19 +146,19 @@ export function AppLayout() {
 
   const userMenuItems = (
     <>
-      <MenuItem icon={<Settings size={16} />} onSelect={() => navigate('/app/settings')}>
+      <MenuItem icon={tabArt(COVER_ICON_ART.pencil)} onSelect={() => navigate('/app/settings')}>
         Profile & settings
       </MenuItem>
       <MenuSeparator />
       {user.profileVisibility !== 'private' && (
-        <MenuItem icon={<User size={16} />} onSelect={() => navigate(`/u/${user.username}`)}>
+        <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.together)} onSelect={() => navigate(`/u/${user.username}`)}>
           View profile
         </MenuItem>
       )}
-      <MenuItem icon={<House size={16} />} onSelect={() => navigate('/')}>
+      <MenuItem icon={tabArt(COVER_ICON_ART.house)} onSelect={() => navigate('/')}>
         Home
       </MenuItem>
-      <MenuItem icon={<BookOpen size={16} />} onSelect={() => navigate('/knowledge')}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.idea)} onSelect={() => navigate('/knowledge')}>
         Knowledge base
       </MenuItem>
       <MenuSeparator />
@@ -156,10 +168,8 @@ export function AppLayout() {
     </>
   );
 
-  /* Soft classics share card/sidebar chrome tinting; scenes & paints keep their own washes. */
-  const themed = true;
+  /* Soft classics share card/sidebar chrome tinting; sky-family scenes keep their own washes. */
   const soft = dashboardLook.mode === 'classic';
-  const paint = dashboardLook.mode === 'solid' || dashboardLook.mode === 'gradient';
   const softTints = soft ? CLASSIC_DASHBOARD_TINTS[dashboardLook.scene] : null;
   const shellStyle: CSSProperties | undefined =
     soft && softTints
@@ -167,31 +177,17 @@ export function AppLayout() {
           ['--page-tint' as string]: softTints.tint,
           ['--page-tint-2' as string]: softTints.tint2,
         }
-      : dashboardLook.mode === 'solid'
-        ? {
-            ['--page-tint' as string]: dashboardLook.color,
-            ['--page-tint-2' as string]: dashboardLook.color,
-            ['--page-paint' as string]: dashboardLook.color,
-          }
-        : dashboardLook.mode === 'gradient'
-          ? {
-              ['--page-tint' as string]: dashboardLook.colors[0],
-              ['--page-tint-2' as string]: dashboardLook.colors[1],
-              ['--page-paint' as string]:
-                coverPaint({ backdrop: 'gradient', colors: dashboardLook.colors }) ?? undefined,
-            }
-          : undefined;
+      : undefined;
 
   return (
     <AppActionsContext.Provider value={actions}>
       <div
         className={[
           'app-shell',
-          themed && 'dashboard-themed',
+          'dashboard-themed',
           soft && 'dashboard-soft',
-          paint && 'dashboard-themed-paint',
           dashboardLook.mode === 'scene' && `page-bg-${dashboardLook.backdrop}`,
-          themed && !soft && dashboardLookIsDark(dashboardLook) && 'dashboard-themed-dark',
+          !soft && dashboardLookIsDark(dashboardLook) && 'dashboard-themed-dark',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -207,7 +203,7 @@ export function AppLayout() {
           </div>
           <CreateMenu variant="add" block align="left" />
           <nav className="sidebar-nav" aria-label="Main" style={{ marginTop: 12 }}>
-            {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
+            {SIDEBAR_NAV.map(({ to, label, art, end }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -216,15 +212,11 @@ export function AppLayout() {
                   `nav-link${isActive || (to === '/app/lists' && pathname.startsWith('/app/boxes')) ? ' active' : ''}`
                 }
               >
-                <Icon size={18} aria-hidden />
+                {tabArt(art)}
                 {label}
                 {badgeFor(to)}
               </NavLink>
             ))}
-            <NavLink to="/app/gifts" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <Gift size={18} aria-hidden />
-              Gift ideas
-            </NavLink>
           </nav>
           {recentLists.length > 0 && (
             <div className="sidebar-section">
@@ -290,15 +282,23 @@ export function AppLayout() {
             <div className="hide-desktop topbar-mobile-actions">
               <DashboardScenePicker />
               <NotificationsButton />
-              <Menu label="Menu" buttonClassName="btn btn-ghost btn-icon" buttonContent={<MenuIcon size={20} aria-hidden />}>
-                <MenuItem icon={<Search size={16} />} onSelect={() => setSearchOpen(true)}>
+              <Menu
+                label="Menu"
+                buttonClassName="btn btn-ghost btn-icon topbar-art-btn"
+                buttonContent={
+                  <span className="art-icon art-icon-tab topbar-menu-icon" aria-hidden>
+                    {FEATURE_ILLUSTRATIONS.menu}
+                  </span>
+                }
+              >
+                <MenuItem icon={tabArt(COVER_ICON_ART.sparkles)} onSelect={() => setSearchOpen(true)}>
                   Search
                 </MenuItem>
-                <MenuItem icon={<Gift size={16} />} onSelect={() => navigate('/app/gifts')}>
+                <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.surprise)} onSelect={() => navigate('/app/gifts')}>
                   Gift ideas
                 </MenuItem>
                 <MenuItem
-                  icon={layoutMode === 'mobile' ? <LayoutTemplate size={16} /> : <Smartphone size={16} />}
+                  icon={tabArt(layoutMode === 'mobile' ? FEATURE_ILLUSTRATIONS.lists : FEATURE_ILLUSTRATIONS.phone)}
                   onSelect={() => setLayoutMode(layoutMode === 'mobile' ? 'responsive' : 'mobile')}
                 >
                   {layoutMode === 'mobile' ? 'Responsive layout' : 'Mobile app layout'}
@@ -316,15 +316,15 @@ export function AppLayout() {
 
         <nav className="bottom-nav" aria-label="Main">
           <NavLink to="/app" end className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
-            <House size={21} aria-hidden />
+            <span className="bottom-icon">{tabArt(COVER_ICON_ART.house)}</span>
             Home
           </NavLink>
           <BrowseMenu active={BROWSE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))} onNavigate={navigate} />
           <CreateMenu variant="fab" />
-          {BOTTOM_NAV.map(({ to, label, icon: Icon }) => (
+          {BOTTOM_NAV.map(({ to, label, art }) => (
             <NavLink key={to} to={to} className={({ isActive }) => `bottom-link${isActive ? ' active' : ''}`}>
               <span className="bottom-icon">
-                <Icon size={21} aria-hidden />
+                {tabArt(art)}
                 {badgeFor(to)}
               </span>
               {label}

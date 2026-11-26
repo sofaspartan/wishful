@@ -1,42 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  DEFAULT_GRADIENT,
-  DEFAULT_SOLID_COLOR,
-  coverPaint,
-  isDarkCover,
-  type CoverBackdrop,
-} from '../../shared/types';
+import { isDarkCover, type CoverBackdrop } from '../../shared/types';
 
 /** Soft washes that predate illustrated dashboard looks. */
 export const CLASSIC_DASHBOARD_SCENES = ['plain', 'sky', 'blush', 'kraft'] as const;
 export type ClassicDashboardScene = (typeof CLASSIC_DASHBOARD_SCENES)[number];
 
-/** Illustrated scenes shared with list page backgrounds (same order as cover pickers). */
-export const DASHBOARD_SCENE_BACKDROPS = [
-  'sky',
-  'blush',
-  'mint',
-  'lilac',
-  'sunset',
-  'spring',
-  'summer',
-  'autumn',
-  'snow',
-  'night',
-  'confetti',
-  'hearts',
-  'shamrock',
-  'spooky',
-  'harvest',
-  'hanukkah',
-] as const satisfies readonly CoverBackdrop[];
+/** Illustrated soft scenes — sky family only (no seasonal / paint looks). */
+export const DASHBOARD_SCENE_BACKDROPS = ['sky', 'blush', 'mint', 'lilac'] as const satisfies readonly CoverBackdrop[];
 export type DashboardSceneBackdrop = (typeof DASHBOARD_SCENE_BACKDROPS)[number];
 
 export type DashboardLook =
   | { mode: 'classic'; scene: ClassicDashboardScene }
-  | { mode: 'scene'; backdrop: DashboardSceneBackdrop }
-  | { mode: 'solid'; color: string }
-  | { mode: 'gradient'; colors: [string, string] };
+  | { mode: 'scene'; backdrop: DashboardSceneBackdrop };
 
 /** @deprecated Prefer `DashboardLook` — kept for older imports. */
 export type DashboardScene = ClassicDashboardScene;
@@ -47,6 +22,22 @@ const LEGACY_SCENES: Record<string, ClassicDashboardScene> = {
   balloons: 'sky',
   meadow: 'blush',
   sunset: 'kraft',
+};
+
+/** Former illustrated scenes remapped into the soft sky family. */
+const LEGACY_BACKDROPS: Record<string, DashboardSceneBackdrop> = {
+  sunset: 'blush',
+  spring: 'mint',
+  summer: 'sky',
+  autumn: 'blush',
+  snow: 'sky',
+  night: 'lilac',
+  confetti: 'blush',
+  hearts: 'blush',
+  shamrock: 'mint',
+  spooky: 'lilac',
+  harvest: 'blush',
+  hanukkah: 'sky',
 };
 
 const LOOK_KEY = 'wishful.pref.dashboard.look';
@@ -86,20 +77,25 @@ function isSceneBackdrop(v: string): v is DashboardSceneBackdrop {
   return (DASHBOARD_SCENE_BACKDROPS as readonly string[]).includes(v);
 }
 
+function migrateBackdrop(v: string): DashboardSceneBackdrop | null {
+  if (isSceneBackdrop(v)) return v;
+  return LEGACY_BACKDROPS[v] ?? null;
+}
+
 function parseLook(raw: string | null): DashboardLook | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as DashboardLook;
-    if (parsed?.mode === 'classic' && (CLASSIC_DASHBOARD_SCENES as readonly string[]).includes(parsed.scene)) return parsed;
-    if (parsed?.mode === 'scene' && isSceneBackdrop(parsed.backdrop)) return parsed;
-    if (parsed?.mode === 'solid' && typeof parsed.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(parsed.color)) return parsed;
-    if (
-      parsed?.mode === 'gradient' &&
-      Array.isArray(parsed.colors) &&
-      parsed.colors.length === 2 &&
-      parsed.colors.every((c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c))
-    ) {
-      return { mode: 'gradient', colors: [parsed.colors[0], parsed.colors[1]] };
+    const parsed = JSON.parse(raw) as { mode?: string; scene?: string; backdrop?: string };
+    if (parsed?.mode === 'classic' && parsed.scene && (CLASSIC_DASHBOARD_SCENES as readonly string[]).includes(parsed.scene)) {
+      return { mode: 'classic', scene: parsed.scene as ClassicDashboardScene };
+    }
+    if (parsed?.mode === 'scene' && typeof parsed.backdrop === 'string') {
+      const backdrop = migrateBackdrop(parsed.backdrop);
+      if (backdrop) return { mode: 'scene', backdrop };
+    }
+    // Dropped solid / gradient looks → calm soft.
+    if (parsed?.mode === 'solid' || parsed?.mode === 'gradient') {
+      return { mode: 'classic', scene: 'plain' };
     }
   } catch {
     /* legacy plain string */
@@ -109,14 +105,20 @@ function parseLook(raw: string | null): DashboardLook | null {
   }
   const migrated = LEGACY_SCENES[raw];
   if (migrated) return { mode: 'classic', scene: migrated };
-  if (isSceneBackdrop(raw)) return { mode: 'scene', backdrop: raw };
+  const backdrop = migrateBackdrop(raw);
+  if (backdrop) return { mode: 'scene', backdrop };
   return null;
 }
 
 function readStoredLook(): DashboardLook {
   try {
-    const fromLook = parseLook(localStorage.getItem(LOOK_KEY));
-    if (fromLook) return fromLook;
+    const raw = localStorage.getItem(LOOK_KEY);
+    const fromLook = parseLook(raw);
+    if (fromLook) {
+      // Persist migrations (dropped solid/gradient / retired scenes).
+      if (raw && JSON.stringify(fromLook) !== raw) localStorage.setItem(LOOK_KEY, JSON.stringify(fromLook));
+      return fromLook;
+    }
     const fromLegacy = parseLook(localStorage.getItem(LEGACY_SCENE_KEY));
     if (fromLegacy) {
       localStorage.setItem(LOOK_KEY, JSON.stringify(fromLegacy));
@@ -143,18 +145,12 @@ export function looksEqual(a: DashboardLook, b: DashboardLook): boolean {
   if (a.mode !== b.mode) return false;
   if (a.mode === 'classic' && b.mode === 'classic') return a.scene === b.scene;
   if (a.mode === 'scene' && b.mode === 'scene') return a.backdrop === b.backdrop;
-  if (a.mode === 'solid' && b.mode === 'solid') return a.color.toLowerCase() === b.color.toLowerCase();
-  if (a.mode === 'gradient' && b.mode === 'gradient') {
-    return a.colors[0].toLowerCase() === b.colors[0].toLowerCase() && a.colors[1].toLowerCase() === b.colors[1].toLowerCase();
-  }
   return false;
 }
 
 export function dashboardLookIsDark(look: DashboardLook): boolean {
   if (look.mode === 'classic') return false;
-  if (look.mode === 'scene') return isDarkCover({ backdrop: look.backdrop });
-  if (look.mode === 'solid') return isDarkCover({ backdrop: 'solid', colors: [look.color] });
-  return isDarkCover({ backdrop: 'gradient', colors: look.colors });
+  return isDarkCover({ backdrop: look.backdrop });
 }
 
 /** Classes + CSS vars so portaled UI (modals) can match the signed-in dashboard look. */
@@ -164,34 +160,20 @@ export function dashboardLookSurface(look: DashboardLook): {
   soft: boolean;
 } {
   const soft = look.mode === 'classic';
-  const paint = look.mode === 'solid' || look.mode === 'gradient';
   const softTints = soft ? CLASSIC_DASHBOARD_TINTS[look.scene] : null;
   const className = [
     'dashboard-themed',
     soft && 'dashboard-soft',
-    paint && 'dashboard-themed-paint',
     look.mode === 'scene' && `page-bg-${look.backdrop}`,
     !soft && dashboardLookIsDark(look) && 'dashboard-themed-dark',
   ]
     .filter(Boolean)
     .join(' ');
 
-  let style: Record<string, string> | undefined;
-  if (soft && softTints) {
-    style = { '--page-tint': softTints.tint, '--page-tint-2': softTints.tint2 };
-  } else if (look.mode === 'solid') {
-    style = {
-      '--page-tint': look.color,
-      '--page-tint-2': look.color,
-      '--page-paint': look.color,
-    };
-  } else if (look.mode === 'gradient') {
-    style = {
-      '--page-tint': look.colors[0],
-      '--page-tint-2': look.colors[1],
-      '--page-paint': coverPaint({ backdrop: 'gradient', colors: look.colors }) ?? look.colors[0],
-    };
-  }
+  const style =
+    soft && softTints
+      ? { '--page-tint': softTints.tint, '--page-tint-2': softTints.tint2 }
+      : undefined;
 
   return { className, style, soft };
 }
@@ -227,8 +209,5 @@ export function useDashboardScene(): [ClassicDashboardScene, (v: ClassicDashboar
   );
   return [scene, setScene];
 }
-
-export const DEFAULT_DASHBOARD_SOLID = DEFAULT_SOLID_COLOR;
-export const DEFAULT_DASHBOARD_GRADIENT = DEFAULT_GRADIENT;
 
 export type { CoverBackdrop };

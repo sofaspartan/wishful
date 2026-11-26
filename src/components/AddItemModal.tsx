@@ -26,16 +26,9 @@ import { WebsiteImportForm, WebsiteImportReview, websiteListFile, type WebsiteLi
 import { buildImport, CSV_FIELDS, guessMapping, importBatches, limitRows, type CsvField, type CsvFile } from '../lib/csvImport';
 import { applyPreset, defaultFilter, detectPreset, presetCounts, type CsvPreset } from '../lib/csvPresets';
 import type { Wishlist } from '../../shared/types';
+import { CloudBank } from './Cloud';
 import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
-
-const ADD_MODES: { value: AddItemMode; label: string; icon: ReactNode }[] = [
-  { value: 'link', label: 'Link', icon: FEATURE_ILLUSTRATIONS.store },
-  { value: 'barcode', label: 'Scan', icon: FEATURE_ILLUSTRATIONS.barcode },
-  { value: 'idea', label: 'Idea', icon: FEATURE_ILLUSTRATIONS.idea },
-  { value: 'upload', label: 'Photo', icon: FEATURE_ILLUSTRATIONS.camera },
-  { value: 'bulk', label: 'Several', icon: FEATURE_ILLUSTRATIONS.lists },
-  { value: 'listScan', label: 'List', icon: FEATURE_ILLUSTRATIONS.tasks },
-];
+import { SkyArt } from './SkyArt';
 
 const CAPTURE_MODES: AddItemMode[] = ['upload', 'barcode'];
 const MORE_MODES: AddItemMode[] = ['idea', 'bulk', 'listScan'];
@@ -75,90 +68,69 @@ function AddModeSwitch({
   const moreLabel = moreModeLabel(mode, itemType);
 
   return (
-    <>
-      <div className="hide-xs">
-        <Segmented
-          label="How do you want to add it?"
-          value={mode}
-          onChange={onChange}
-          role="tablist"
-          className="lists-switch item-form-switch add-mode-switch"
-          options={ADD_MODES.map((m) => ({
-            value: m.value,
-            label: m.label,
-            icon: (
-              <span className="art-icon art-icon-tab" aria-hidden>
-                {m.icon}
-              </span>
-            ),
-          }))}
-        />
-      </div>
-
-      <div className="show-xs add-mode-mobile">
-        <nav className="segmented lists-switch item-form-switch add-mode-mobile-tabs" role="tablist" aria-label="How do you want to add it?">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'link'}
-            aria-current={mode === 'link' ? 'page' : undefined}
-            onClick={() => onChange('link')}
-          >
-            <span className="art-icon art-icon-tab" aria-hidden>
-              {FEATURE_ILLUSTRATIONS.store}
-            </span>
-            Link
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={captureOn}
-            aria-current={captureOn ? 'page' : undefined}
-            onClick={() => onChange(captureOn ? mode : 'upload')}
-          >
-            <span className="art-icon art-icon-tab" aria-hidden>
-              {FEATURE_ILLUSTRATIONS.camera}
-            </span>
-            Photo
-          </button>
-        </nav>
-        <Menu
-          label="More ways to add"
-          align="right"
-          className="add-mode-more-menu"
-          buttonClassName={['add-mode-more-btn', moreOn && 'is-active'].filter(Boolean).join(' ')}
-          buttonContent={
-            <>
-              <span className="add-mode-more-label">{moreLabel}</span>
-              <ChevronDown size={14} aria-hidden />
-            </>
-          }
+    <div className="add-mode-mobile">
+      <nav className="segmented lists-switch item-form-switch add-mode-mobile-tabs" role="tablist" aria-label="How do you want to add it?">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'link'}
+          aria-current={mode === 'link' ? 'page' : undefined}
+          onClick={() => onChange('link')}
         >
-          {MORE_ENTRY_TYPES.map((t) => (
-            <MenuItem
-              key={t.type}
-              icon={<span className="art-icon art-icon-tab">{t.icon}</span>}
-              onSelect={() => onSelectType(t.type)}
-            >
-              {t.label}
-            </MenuItem>
-          ))}
-          <MenuSeparator />
+          <span className="art-icon art-icon-tab" aria-hidden>
+            {FEATURE_ILLUSTRATIONS.store}
+          </span>
+          Link
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={captureOn}
+          aria-current={captureOn ? 'page' : undefined}
+          onClick={() => onChange(captureOn ? mode : 'upload')}
+        >
+          <span className="art-icon art-icon-tab" aria-hidden>
+            {FEATURE_ILLUSTRATIONS.camera}
+          </span>
+          Photo
+        </button>
+      </nav>
+      <Menu
+        label="More ways to add"
+        align="right"
+        className="add-mode-more-menu"
+        buttonClassName={['add-mode-more-btn', moreOn && 'is-active'].filter(Boolean).join(' ')}
+        buttonContent={
+          <>
+            <span className="add-mode-more-label">{moreLabel}</span>
+            <ChevronDown size={14} aria-hidden />
+          </>
+        }
+      >
+        {MORE_ENTRY_TYPES.map((t) => (
           <MenuItem
-            icon={<span className="art-icon art-icon-tab">{FEATURE_ILLUSTRATIONS.tasks}</span>}
-            onSelect={() => onChange('listScan')}
+            key={t.type}
+            icon={<span className="art-icon art-icon-tab">{t.icon}</span>}
+            onSelect={() => onSelectType(t.type)}
           >
-            Scan list
+            {t.label}
           </MenuItem>
-          <MenuItem
-            icon={<span className="art-icon art-icon-tab">{FEATURE_ILLUSTRATIONS.lists}</span>}
-            onSelect={() => onChange('bulk')}
-          >
-            Several
-          </MenuItem>
-        </Menu>
-      </div>
-    </>
+        ))}
+        <MenuSeparator />
+        <MenuItem
+          icon={<span className="art-icon art-icon-tab">{FEATURE_ILLUSTRATIONS.tasks}</span>}
+          onSelect={() => onChange('listScan')}
+        >
+          Scan list
+        </MenuItem>
+        <MenuItem
+          icon={<span className="art-icon art-icon-tab">{FEATURE_ILLUSTRATIONS.lists}</span>}
+          onSelect={() => onChange('bulk')}
+        >
+          Several
+        </MenuItem>
+      </Menu>
+    </div>
   );
 }
 
@@ -207,6 +179,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   const [uploading, setUploading] = useState(false);
   const [barcodeMiss, setBarcodeMiss] = useState(false);
   const fetchSeq = useRef(0);
+  const lastFetchedUrl = useRef('');
   const barcodeBusy = useRef(false);
   const [bulkText, setBulkText] = useState('');
   const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
@@ -267,6 +240,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     setCsv(null);
     setCsvDone(null);
     setWeb(null);
+    lastFetchedUrl.current = '';
   }, [options, currency, bulk.reset]);
 
   useEffect(() => {
@@ -280,6 +254,19 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     // Intentionally only when options identity changes (modal open with a URL).
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchDetails reads latest setters
   }, [options]);
+
+  // Auto-fetch once a full http(s) URL is in the field — no Fetch tap required.
+  useEffect(() => {
+    if (!options || mode !== 'link' || step !== 'start') return;
+    const target = url.trim();
+    if (!isHttpUrl(target) || target === lastFetchedUrl.current || fetching) return;
+    const delay = 550;
+    const t = window.setTimeout(() => {
+      void fetchDetails(target);
+    }, delay);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchDetails is stable enough via refs/setters
+  }, [url, mode, step, options, fetching]);
 
   const destinations = useMemo(() => {
     if (options?.lockedToWishlist && options.wishlistId) {
@@ -471,6 +458,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
       setUrlError('Paste a full link starting with https://');
       return;
     }
+    lastFetchedUrl.current = target;
     setUrlError(null);
     setFetching(true);
     const seq = ++fetchSeq.current;
@@ -703,23 +691,6 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           {mode === 'listScan' ? 'Reading list…' : 'Looking up…'}
         </Button>
       </>
-    ) : step === 'start' && mode === 'link' ? (
-      <div className="add-item-footer">
-        <Button
-          variant="primary"
-          type="submit"
-          form="add-link-form"
-          className="add-item-footer-fetch"
-          loading={fetching}
-          icon={<Wand2 size={16} />}
-        >
-          {fetching ? 'Fetching…' : 'Fetch'}
-        </Button>
-        <button type="button" className="add-item-footer-manual" onClick={skipToManual} disabled={fetching}>
-          Enter details manually
-          <ArrowRight size={14} aria-hidden />
-        </button>
-      </div>
     ) : undefined;
 
   const captureFullscreen = open && step === 'start';
@@ -891,40 +862,70 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
               void fetchDetails();
             }}
           >
-            <div className="add-link-hero" aria-hidden>
-              <span className="add-link-hero-icon">{FEATURE_ILLUSTRATIONS.surprise}</span>
-              <p className="display add-link-hero-title">Add an item</p>
-              <p className="add-link-hero-sub">Anything you want — products, experiences, ideas.</p>
-            </div>
-            <div className="field add-link-field">
-              <label className="field-label" htmlFor="add-link-url">
-                Product or page URL
-              </label>
-              <input
-                id="add-link-url"
-                className="input add-link-input"
-                type="url"
-                inputMode="url"
-                autoComplete="off"
-                autoFocus
-                aria-invalid={urlError ? true : undefined}
-                placeholder="https://"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onPaste={(e) => {
-                  const pasted = e.clipboardData.getData('text').trim();
-                  if (isHttpUrl(pasted)) {
-                    e.preventDefault();
-                    setUrl(pasted);
-                    void fetchDetails(pasted);
-                  }
-                }}
-              />
-              {urlError ? (
-                <span className="field-error" role="alert">
-                  {urlError}
-                </span>
+            <section className="tile tile-sky add-link-sky-card">
+              <SkyArt scene="gifts" className="add-link-sky-scene" />
+              <div className="tile-sky-copy add-link-sky-copy">
+                <h1 className="display add-link-hero-title">Add an item</h1>
+                <p className="tile-sky-lead">Anything you want — products, experiences, ideas.</p>
+                <div className="tile-sky-add">
+                  <label className="tile-sky-add-label" htmlFor="add-link-url">
+                    Product or page URL
+                  </label>
+                  <input
+                    id="add-link-url"
+                    className="input add-link-input"
+                    type="url"
+                    inputMode="url"
+                    autoComplete="off"
+                    autoFocus
+                    aria-invalid={urlError ? true : undefined}
+                    placeholder="https://"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      if (urlError) setUrlError(null);
+                    }}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text').trim();
+                      if (isHttpUrl(pasted)) {
+                        e.preventDefault();
+                        setUrl(pasted);
+                        void fetchDetails(pasted);
+                      }
+                    }}
+                  />
+                  {urlError ? (
+                    <span className="field-error" role="alert">
+                      {urlError}
+                    </span>
+                  ) : fetching ? (
+                    <span className="field-hint">Fetching details from that page…</span>
+                  ) : isHttpUrl(url.trim()) ? (
+                    <span className="field-hint">Looks like a link — fetching automatically.</span>
+                  ) : null}
+                </div>
+              </div>
+              <CloudBank className="tile-sky-bank" />
+            </section>
+            <div className="add-link-below">
+              {fetching ? (
+                <Button variant="primary" className="add-item-footer-fetch" loading icon={<Wand2 size={16} />}>
+                  Fetching…
+                </Button>
+              ) : urlError && isHttpUrl(url.trim()) ? (
+                <Button
+                  variant="primary"
+                  type="submit"
+                  className="add-item-footer-fetch"
+                  icon={<Wand2 size={16} />}
+                >
+                  Try again
+                </Button>
               ) : null}
+              <button type="button" className="add-item-footer-manual" onClick={skipToManual} disabled={fetching}>
+                Enter details manually
+                <ArrowRight size={14} aria-hidden />
+              </button>
             </div>
           </form>
         )}

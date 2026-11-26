@@ -1,5 +1,7 @@
-import { ChevronDown, Library, List, ListTodo, Package, Plus, ScanBarcode } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { useAppActions } from './appActions';
+import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 import { buttonClass } from './ui/Button';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 
@@ -11,6 +13,14 @@ type Props = {
   align?: 'left' | 'right' | 'center';
 };
 
+function tabArt(art: ReactNode) {
+  return (
+    <span className="art-icon art-icon-tab" aria-hidden>
+      {art}
+    </span>
+  );
+}
+
 /** Dropdown to create a wishlist, collection or box — and optionally add an item first. */
 export function CreateMenu({ variant = 'new', block, align }: Props) {
   const { openAddItem, openCreateWishlist, openCreateBox } = useAppActions();
@@ -21,6 +31,7 @@ export function CreateMenu({ variant = 'new', block, align }: Props) {
     <Menu
       label="Add"
       align={align ?? (fab ? 'center' : add ? 'left' : 'right')}
+      className={fab ? 'bottom-add-menu' : undefined}
       buttonClassName={fab ? 'bottom-add' : buttonClass({ variant: 'primary', block })}
       buttonContent={
         fab ? (
@@ -36,23 +47,23 @@ export function CreateMenu({ variant = 'new', block, align }: Props) {
         )
       }
     >
-      <MenuItem icon={<Plus size={16} />} onSelect={() => openAddItem()}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.store)} onSelect={() => openAddItem()}>
         Add item
       </MenuItem>
-      <MenuItem icon={<ScanBarcode size={16} />} onSelect={() => openAddItem({ mode: 'barcode' })}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.barcode)} onSelect={() => openAddItem({ mode: 'barcode' })}>
         Scan barcode
       </MenuItem>
       <MenuSeparator />
-      <MenuItem icon={<List size={16} />} onSelect={() => openCreateWishlist()}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.lists)} onSelect={() => openCreateWishlist()}>
         New wishlist
       </MenuItem>
-      <MenuItem icon={<Library size={16} />} onSelect={() => openCreateWishlist({ kind: 'collection' })}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.collection)} onSelect={() => openCreateWishlist({ kind: 'collection' })}>
         New collection
       </MenuItem>
-      <MenuItem icon={<ListTodo size={16} />} onSelect={() => openCreateWishlist({ kind: 'list' })}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.tasks)} onSelect={() => openCreateWishlist({ kind: 'list' })}>
         New list / checklist
       </MenuItem>
-      <MenuItem icon={<Package size={16} />} onSelect={() => openCreateBox()}>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.boxes)} onSelect={() => openCreateBox()}>
         New box
       </MenuItem>
     </Menu>

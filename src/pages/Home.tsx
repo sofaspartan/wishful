@@ -1,9 +1,8 @@
-import { useMemo, useState, type FormEvent, type ReactElement, type ReactNode } from 'react';
+import { useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Bell, CalendarHeart, Gift, Library, Plus, Sparkles, Wand2, Zap } from 'lucide-react';
+import { ArrowRight, Plus } from 'lucide-react';
 import type { Item, WishlistSummary } from '../../shared/types';
 import { joinNames } from '../../shared/constants';
-import { isHttpUrl } from '../../shared/schemas';
 import { useItems, useMe, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
 import { countdownLabel, formatDate, formatPrice, greeting, parseDateOnly, relativeTime } from '../lib/format';
 import { useLocalPref } from '../lib/prefs';
@@ -12,6 +11,7 @@ import { useAppActions } from '../components/appActions';
 import { ItemImage } from '../components/ItemVisuals';
 import { effectivePrice } from '../components/ItemForm';
 import { CloudBank } from '../components/Cloud';
+import { COVER_ICON_ART } from '../components/CoverArt';
 import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
 import { SkyArt } from '../components/SkyArt';
 import { WishlistCard, WishlistListThumb } from '../components/WishlistCard';
@@ -52,8 +52,6 @@ export default function Home() {
     setUseHubListDefault(false);
     setListsViewPref(v);
   };
-  const [hubLink, setHubLink] = useState('');
-
   const active = useMemo(() => (lists ?? []).filter((w) => !w.archivedAt), [lists]);
   const wishlists = active.filter((w) => w.kind !== 'collection');
   const collections = active.filter((w) => w.kind === 'collection');
@@ -72,14 +70,13 @@ export default function Home() {
   const loading = listsLoading || itemsLoading;
   const isNew = !loading && active.length === 0 && items.length === 0;
 
-  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   const newCollection = () => openCreateWishlist({ kind: 'collection' });
 
   const listSections = (
     <>
       <ListTile
         title="Wishlists"
-        icon={<Gift size={15} />}
+        icon={FEATURE_ILLUSTRATIONS.surprise}
         lists={wishlists}
         loading={listsLoading}
         view={listsView}
@@ -100,7 +97,7 @@ export default function Home() {
       />
       <ListTile
         title="Collections"
-        icon={<Library size={15} />}
+        icon={FEATURE_ILLUSTRATIONS.collection}
         lists={collections}
         loading={listsLoading}
         view={listsView}
@@ -126,53 +123,7 @@ export default function Home() {
     return (
       <div className="page">
         <div className="home-hub">
-          <section className="home-hub-hero tile tile-sky">
-            <SkyArt scene="hello" className="tile-sky-scene home-hub-sky-scene" />
-            <div className="tile-sky-copy home-hub-hero-copy">
-              <p className="home-hub-hero-greeting">
-                {greeting()}
-                {firstName && (
-                  <>
-                    , <span className="tile-sky-name">{firstName}</span>
-                  </>
-                )}
-              </p>
-              <div className="home-hub-hero-actions">
-                <h1 className="display home-hub-hero-prompt">Let&apos;s start something...</h1>
-                <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'link' })}>
-                  <span className="art-icon" aria-hidden>
-                    {FEATURE_ILLUSTRATIONS.store}
-                  </span>
-                  <span className="home-hub-hero-cta-copy">
-                    <strong>Via URL</strong>
-                    <span>Paste a product URL</span>
-                  </span>
-                  <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
-                </button>
-                <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'upload' })}>
-                  <span className="art-icon" aria-hidden>
-                    {FEATURE_ILLUSTRATIONS.camera}
-                  </span>
-                  <span className="home-hub-hero-cta-copy">
-                    <strong>Via Photo</strong>
-                    <span>Camera, scan, or upload</span>
-                  </span>
-                  <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
-                </button>
-                <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'listScan' })}>
-                  <span className="art-icon" aria-hidden>
-                    {FEATURE_ILLUSTRATIONS.tasks}
-                  </span>
-                  <span className="home-hub-hero-cta-copy">
-                    <strong>Via Written List</strong>
-                    <span>Photo a list — each line becomes an item</span>
-                  </span>
-                  <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
-                </button>
-              </div>
-            </div>
-            <CloudBank className="tile-sky-bank" />
-          </section>
+          <StartWishHero firstName={firstName} skyClassName="tile-sky-scene home-hub-sky-scene" />
 
           <div className="home-hub-ctas">
             <div className="home-hub-secondary">
@@ -225,71 +176,12 @@ export default function Home() {
   return (
     <div className="page">
       <div className="bento">
-        <section className="tile tile-sky span-4">
-          <SkyArt scene="hello" className="tile-sky-scene" />
-          <div className="tile-sky-copy">
-            <p className="tile-sky-date">{today}</p>
-            <h1 className="display">
-              {greeting()}
-              {firstName && (
-                <>
-                  , <span className="tile-sky-name">{firstName}</span>
-                </>
-              )}
-            </h1>
-            <div className="tile-sky-add">
-              <label className="tile-sky-add-label" htmlFor="home-sky-link">
-                Add something you want
-              </label>
-              <form
-                className="tile-sky-add-form"
-                onSubmit={(e: FormEvent) => {
-                  e.preventDefault();
-                  const next = hubLink.trim();
-                  if (!next) {
-                    openAddItem({ mode: 'link' });
-                    return;
-                  }
-                  openAddItem({ mode: 'link', url: next });
-                  setHubLink('');
-                }}
-              >
-                <input
-                  id="home-sky-link"
-                  className="input"
-                  type="url"
-                  inputMode="url"
-                  autoComplete="off"
-                  enterKeyHint="go"
-                  placeholder="Paste a product link…"
-                  value={hubLink}
-                  onChange={(e) => setHubLink(e.target.value)}
-                  onPaste={(e) => {
-                    const pasted = e.clipboardData.getData('text').trim();
-                    if (isHttpUrl(pasted)) {
-                      e.preventDefault();
-                      setHubLink('');
-                      openAddItem({ mode: 'link', url: pasted });
-                    }
-                  }}
-                />
-                <Button type="submit" variant="primary" size="sm" icon={<Wand2 size={15} aria-hidden />}>
-                  Add
-                </Button>
-              </form>
-              <button type="button" className="tile-sky-add-more" onClick={() => openAddItem()}>
-                More options
-                <ArrowRight size={14} aria-hidden />
-              </button>
-            </div>
-          </div>
-          <CloudBank className="tile-sky-bank" />
-        </section>
+        <StartWishHero firstName={firstName} className="span-4" skyClassName="tile-sky-scene" />
 
         <section className="tile span-4 tile-flush quick-actions-tile">
           <div className="tile-header">
             <span className="tile-header-icon" aria-hidden>
-              <Zap size={14} />
+              {FEATURE_ILLUSTRATIONS.idea}
             </span>
             <h2 className="tile-title">Quick actions</h2>
           </div>
@@ -310,7 +202,7 @@ export default function Home() {
         {listSections}
 
         <section className="tile span-2 tile-flush">
-          <TileHeader title="Upcoming" icon={<CalendarHeart size={15} />} />
+          <TileHeader title="Upcoming" icon={COVER_ICON_ART.heart} />
           {upcoming.length ? (
             <div className="tile-rows">
               {upcoming.map((w) => {
@@ -336,12 +228,12 @@ export default function Home() {
               })}
             </div>
           ) : (
-            <TileNote icon={<CalendarHeart size={17} />}>Add a date to a wishlist and it will show up here with a countdown.</TileNote>
+            <TileNote icon={COVER_ICON_ART.heart}>Add a date to a wishlist and it will show up here with a countdown.</TileNote>
           )}
         </section>
 
         <section className="tile span-2 tile-flush">
-          <TileHeader title="Recent activity" icon={<Bell size={15} />} />
+          <TileHeader title="Recent activity" icon={FEATURE_ILLUSTRATIONS.bell} />
           {notifications.length ? (
             <div className="tile-rows">
               {notifications.slice(0, 4).map((n) =>
@@ -357,13 +249,13 @@ export default function Home() {
               )}
             </div>
           ) : (
-            <TileNote icon={<Bell size={17} />}>Lists shared with you, collaborator edits and reminders will appear here.</TileNote>
+            <TileNote icon={FEATURE_ILLUSTRATIONS.bell}>Lists shared with you, collaborator edits and reminders will appear here.</TileNote>
           )}
         </section>
 
         {!isNew && (
           <section className="tile span-4">
-            <TileHeader title="Recently added" icon={<Sparkles size={15} />} to="/app/items" linkLabel="Items" inline />
+            <TileHeader title="Recently added" icon={COVER_ICON_ART.sparkles} to="/app/items" linkLabel="Items" inline />
             {itemsLoading ? (
               <div className="mini-items">
                 {Array.from({ length: 3 }, (_, i) => (
@@ -384,6 +276,67 @@ export default function Home() {
       </div>
       <div style={{ height: 'var(--s-12)' }} />
     </div>
+  );
+}
+
+function StartWishHero({
+  firstName,
+  className,
+  skyClassName = 'tile-sky-scene',
+}: {
+  firstName: string;
+  className?: string;
+  skyClassName?: string;
+}) {
+  const { openAddItem } = useAppActions();
+  return (
+    <section className={['home-hub-hero', 'tile', 'tile-sky', className].filter(Boolean).join(' ')}>
+      <SkyArt scene="hello" className={skyClassName} />
+      <div className="tile-sky-copy home-hub-hero-copy">
+        <p className="home-hub-hero-greeting">
+          {greeting()}
+          {firstName && (
+            <>
+              , <span className="tile-sky-name">{firstName}</span>
+            </>
+          )}
+        </p>
+        <div className="home-hub-hero-actions">
+          <h1 className="display home-hub-hero-prompt">Start a wish</h1>
+          <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'link' })}>
+            <span className="art-icon" aria-hidden>
+              {FEATURE_ILLUSTRATIONS.store}
+            </span>
+            <span className="home-hub-hero-cta-copy">
+              <strong>Via URL</strong>
+              <span>Paste a product URL</span>
+            </span>
+            <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
+          </button>
+          <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'upload' })}>
+            <span className="art-icon" aria-hidden>
+              {FEATURE_ILLUSTRATIONS.camera}
+            </span>
+            <span className="home-hub-hero-cta-copy">
+              <strong>Via Photo</strong>
+              <span>Camera, scan, or upload</span>
+            </span>
+            <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
+          </button>
+          <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'listScan' })}>
+            <span className="art-icon" aria-hidden>
+              {FEATURE_ILLUSTRATIONS.tasks}
+            </span>
+            <span className="home-hub-hero-cta-copy">
+              <strong>Via Written List</strong>
+              <span>Photo a list — each line becomes an item</span>
+            </span>
+            <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
+          </button>
+        </div>
+      </div>
+      <CloudBank className="tile-sky-bank" />
+    </section>
   );
 }
 

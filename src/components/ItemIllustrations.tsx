@@ -353,7 +353,7 @@ const Lightbulb = (
 /** A record and books on a shelf: collections, and the default collection cover icon. */
 const Shelf = (
   <Svg>
-    <g className="fa-record">
+    <g>
       <circle cx="16" cy="27" r="12.5" fill={INK} />
       <circle cx="16" cy="27" r="9" stroke="#4a5162" strokeWidth="1" />
       <circle cx="16" cy="27" r="4.6" fill="#e8745b" />
@@ -443,6 +443,27 @@ const ChecklistPad = (
   </Svg>
 );
 
+/** Notification bell for chrome (top bar). */
+const BellNotify = (
+  <Svg>
+    <path
+      d="M24 6c-6.5 0-11.5 5.2-11.5 11.5V24c0 2.2-1.2 4.2-3.1 5.3-.9.5-.6 1.7.4 1.7h28.4c1 0 1.3-1.2.4-1.7-1.9-1.1-3.1-3.1-3.1-5.3v-6.5C35.5 11.2 30.5 6 24 6z"
+      fill="#5b8fd6"
+    />
+    <path d="M19.5 33.5a4.5 4.5 0 0 0 9 0" fill="#3f6fb5" />
+  </Svg>
+);
+
+/** Rounded menu tile — three equal bars for the overflow menu (fill follows logo accent). */
+const MenuStack = (
+  <Svg>
+    <rect x="2" y="2" width="44" height="44" rx="12" fill="currentColor" />
+    <rect x="11" y="14" width="26" height="5" rx="2.5" fill="#fff" />
+    <rect x="11" y="21.5" width="26" height="5" rx="2.5" fill="#fff" />
+    <rect x="11" y="29" width="26" height="5" rx="2.5" fill="#fff" />
+  </Svg>
+);
+
 export const FEATURE_ILLUSTRATIONS = {
   store: ShoppingBag,
   barcode: BarcodeScan,
@@ -459,6 +480,8 @@ export const FEATURE_ILLUSTRATIONS = {
   idea: Lightbulb,
   collection: Shelf,
   boxes: ScannedBox,
+  bell: BellNotify,
+  menu: MenuStack,
 };
 
 export const ILLUSTRATED_ITEMS: IllustratedItem[] = [

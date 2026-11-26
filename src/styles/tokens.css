@@ -124,7 +124,7 @@
   --sidebar-w: 252px;
   --content-max: 1180px;
   --topbar-h: 60px;
-  --bottom-nav-h: 64px;
+  --bottom-nav-h: 72px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 

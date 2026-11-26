@@ -147,9 +147,11 @@ interface MenuItemProps {
   onSelect: () => void;
   danger?: boolean;
   disabled?: boolean;
+  /** Stronger visual weight for primary actions in dense menus. */
+  emphasis?: boolean;
 }
 
-export function MenuItem({ icon, children, onSelect, danger, disabled }: MenuItemProps) {
+export function MenuItem({ icon, children, onSelect, danger, disabled, emphasis }: MenuItemProps) {
   const ctx = useContext(MenuContext);
   return (
     <button
@@ -157,7 +159,7 @@ export function MenuItem({ icon, children, onSelect, danger, disabled }: MenuIte
       role="menuitem"
       tabIndex={-1}
       disabled={disabled}
-      className={['menu-item', danger && 'danger'].filter(Boolean).join(' ')}
+      className={['menu-item', danger && 'danger', emphasis && 'is-emphasis'].filter(Boolean).join(' ')}
       onClick={() => {
         ctx?.close();
         onSelect();

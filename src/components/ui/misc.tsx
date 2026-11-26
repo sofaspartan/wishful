@@ -8,8 +8,9 @@ import { CloudBank } from '../Cloud';
 import { ErrorSplash } from '../ErrorSplash';
 
 export function Avatar({ name, src, size = 32 }: { name: string; src?: string | null; size?: number }) {
+  const text = !src;
   return (
-    <span className="avatar" style={{ ['--size' as string]: `${size}px` }} aria-hidden>
+    <span className={['avatar', text && 'avatar-text'].filter(Boolean).join(' ')} style={{ ['--size' as string]: `${size}px` }} aria-hidden>
       {src ? <img src={src} alt="" referrerPolicy="no-referrer" /> : initials(name)}
     </span>
   );
