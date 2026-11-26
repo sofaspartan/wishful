@@ -104,7 +104,7 @@ strong {
   color: inherit;
 }
 .popup-brand {
-  font-family: var(--font-display);
+  font-family: 'Wishful', var(--font-display);
   font-weight: 650;
   font-size: 1.22rem;
   letter-spacing: -0.05em;
@@ -350,11 +350,14 @@ strong {
 }
 .popup-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: 'Wishful', var(--font-display);
   font-size: 1.5rem;
   line-height: 1.2;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.05em;
   color: var(--ink);
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  text-box: trim-both cap alphabetic;
 }
 .popup-muted {
   margin: 0;
@@ -649,10 +652,10 @@ textarea.input {
 }
 .lists-heading {
   margin: 10px 0 0;
-  font-family: var(--font-display);
+  font-family: 'Wishful', var(--font-display);
   font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.05em;
   color: var(--ink);
   line-height: 1.2;
 }
@@ -792,10 +795,10 @@ textarea.input {
 }
 .import-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: 'Wishful', var(--font-display);
   font-size: 1.15rem;
   line-height: 1.25;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.05em;
 }
 .inline-spin {
   vertical-align: -2px;
