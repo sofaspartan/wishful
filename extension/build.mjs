@@ -24,7 +24,7 @@ const siteUrl = (process.env.WISHFUL_URL || (dev ? 'http://localhost:5174' : pro
 const site = new URL(siteUrl);
 const outDir = path.join(root, dev ? 'dist-dev' : 'dist');
 const define = { __WISHFUL_URL__: JSON.stringify(siteUrl) };
-const VERSION = '0.1.6';
+const VERSION = '0.1.8';
 
 await build({
   root,
@@ -85,8 +85,9 @@ const manifest = {
   action: { default_popup: 'popup.html', default_title: 'Save to Wishful', default_icon: icons },
   background: { service_worker: 'background.js' },
   side_panel: { default_path: 'popup.html' },
-  permissions: ['activeTab', 'scripting', 'storage', 'sidePanel'],
-  host_permissions: [`${origin}/*`],
+  permissions: ['activeTab', 'scripting', 'storage', 'sidePanel', 'tabs'],
+  // Any storefront the user browses — needed so sidebar refresh works after navigating.
+  host_permissions: [`${origin}/*`, 'http://*/*', 'https://*/*'],
   content_scripts: [{ matches: [`${origin}/extension/connect*`], js: ['connect.js'], run_at: 'document_start' }],
 };
 await fs.writeFile(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');

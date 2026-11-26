@@ -22,17 +22,27 @@ body {
   );
   -webkit-font-smoothing: antialiased;
 }
+/* Chrome caps action popups at 600px — lock the shell so the footer isn't clipped. */
+html:not([data-shell='sidebar']),
+html:not([data-shell='sidebar']) body,
+html:not([data-shell='sidebar']) #root {
+  max-height: 600px;
+  overflow: hidden;
+}
 html[data-shell='sidebar'],
 html[data-shell='sidebar'] body {
   width: 100%;
   height: 100%;
   min-height: 100%;
+  max-height: none;
+  overflow: hidden;
 }
 html[data-shell='sidebar'] #root,
 html[data-shell='sidebar'] .popup {
   height: 100%;
   max-height: none;
   min-height: 100%;
+  overflow: hidden;
 }
 button,
 input,
@@ -62,8 +72,10 @@ strong {
   flex-direction: column;
   min-height: 300px;
   max-height: 600px;
+  overflow: hidden;
 }
 .popup-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -151,6 +163,10 @@ strong {
   background: var(--surface);
   color: var(--ink);
   border-color: color-mix(in srgb, var(--soft-tint) 28%, var(--border));
+}
+.soft-look-trigger:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 .soft-look-trigger:focus-visible {
   outline: 2px solid var(--soft-accent, var(--accent));
@@ -533,14 +549,26 @@ textarea.input {
   height: auto;
 }
 
+/* Wraps mode switch + save/import so the middle flexes and the footer stays on-screen. */
+.page-forms {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
 /* Save form */
 .save-form {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  flex: 1;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 .save-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 14px 14px 16px;
   display: flex;
@@ -741,6 +769,7 @@ textarea.input {
   color: #fff;
 }
 .save-bar {
+  flex-shrink: 0;
   padding: 12px 14px 14px;
   border-top: 1px solid var(--soft-border, var(--border));
   background:
@@ -749,6 +778,7 @@ textarea.input {
 
 /* Single item / whole list switch */
 .mode-switch {
+  flex-shrink: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2px;
@@ -904,9 +934,10 @@ textarea.input {
 
 .popup-footer {
   position: relative;
+  flex-shrink: 0;
   margin-top: auto;
   overflow: hidden;
-  --cloud-bank-h: 36px;
+  --cloud-bank-h: 28px;
   background: linear-gradient(
     180deg,
     transparent 0%,
@@ -944,7 +975,7 @@ textarea.input {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 14px calc(8px + var(--cloud-bank-h) * 0.35);
+  padding: 8px 14px calc(6px + var(--cloud-bank-h) * 0.3);
   background: color-mix(in srgb, var(--cloud-fill) 72%, transparent);
 }
 .popup-footer .popup-text-btn {

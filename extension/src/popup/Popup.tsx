@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
-import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, LoaderCircle, PanelRight, Settings, StickyNote, MessageSquare } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, LoaderCircle, PanelRight, RefreshCw, Settings, StickyNote, MessageSquare } from 'lucide-react';
 import type { ExtensionSession } from '../../../shared/types';
 import { CURRENCIES, LIMITS } from '../../../shared/constants';
 import { parsePrice } from '../../../shared/metadata';
@@ -101,6 +101,8 @@ export function Popup() {
   };
 
   const pickDisplayMode = async (mode: DisplayMode) => {
+    const prev = displayMode;
+    if (mode === prev) return;
     setDisplayModeState(mode);
     document.documentElement.dataset.shell = mode;
     await setDisplayMode(mode);
@@ -118,6 +120,28 @@ export function Popup() {
         }
       } catch {
         /* User can click the icon again to open the sidebar */
+      }
+      return;
+    }
+    // Leaving sidebar → tooltip: dismiss the panel and open the toolbar popup.
+    if (prev === 'sidebar') {
+      try {
+        const win = await chrome.windows.getCurrent();
+        const windowId = win.id;
+        if (windowId != null && chrome.sidePanel.close) {
+          await chrome.sidePanel.close({ windowId });
+        } else {
+          // Older Chrome: toggling enabled closes an open panel.
+          await chrome.sidePanel.setOptions({ enabled: false });
+          await chrome.sidePanel.setOptions({ enabled: true, path: 'popup.html' });
+        }
+      } catch {
+        /* panel may already be closing */
+      }
+      try {
+        await chrome.action.openPopup();
+      } catch {
+        /* Gesture / Chrome version — toolbar icon opens the tooltip next */
       }
     }
   };
@@ -153,6 +177,28 @@ export function Popup() {
     void load();
   }, []);
 
+  // Sidebar stays open across navigations — re-collect when the active tab’s page changes.
+  useEffect(() => {
+    if (displayMode !== 'sidebar') return;
+    let debounce = 0;
+    const refresh = () => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => void load(), 280);
+    };
+    const onUpdated = (_tabId: number, info: { url?: string; status?: string }, tab: chrome.tabs.Tab) => {
+      if (!tab.active) return;
+      if (info.url || info.status === 'complete') refresh();
+    };
+    const onActivated = () => refresh();
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.onActivated.addListener(onActivated);
+    return () => {
+      window.clearTimeout(debounce);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.onActivated.removeListener(onActivated);
+    };
+  }, [displayMode]);
+
   const disconnect = async () => {
     await api('/api/extension/disconnect', { method: 'POST' }).catch(() => undefined);
     await clearToken();
@@ -160,6 +206,8 @@ export function Popup() {
   };
 
   const session = view.kind === 'form' || view.kind === 'unsupported' ? view.session : null;
+  const canRefresh = view.kind === 'form' || view.kind === 'unsupported' || view.kind === 'saved' || view.kind === 'error';
+  const refreshing = view.kind === 'loading';
 
   return (
     <div className="popup" data-soft={softLook} style={softStyle}>
@@ -169,6 +217,18 @@ export function Popup() {
           <span className="popup-brand">{brand.name}</span>
         </a>
         <span className="popup-spacer" />
+        {canRefresh && (
+          <button
+            type="button"
+            className="soft-look-trigger"
+            aria-label="Refresh this page"
+            title="Refresh from the current tab"
+            disabled={refreshing}
+            onClick={() => void load()}
+          >
+            <RefreshCw size={15} className={refreshing ? 'spin' : undefined} aria-hidden />
+          </button>
+        )}
         <SettingsMenu softLook={softLook} onSoftLook={pickSoftLook} displayMode={displayMode} onDisplayMode={(m) => void pickDisplayMode(m)} />
         <a className="popup-link" href={`${SITE_URL}/app`} target="_blank" rel="noreferrer">
           Open <ExternalLink size={12} aria-hidden />
@@ -412,7 +472,7 @@ function PageForms({
   const [mode, setMode] = useState<'item' | 'list'>(scan?.isListPage ? 'list' : 'item');
 
   return (
-    <>
+    <div className="page-forms">
       {scan && (
         <div className="mode-switch" role="tablist" aria-label="What to save">
           <button type="button" role="tab" aria-selected={mode === 'item'} className={mode === 'item' ? 'is-on' : ''} onClick={() => setMode('item')}>
@@ -435,7 +495,7 @@ function PageForms({
       ) : (
         <SaveForm session={session} page={tab.page} initialSelected={initialSelected} onSaved={onSaved} onUnauthorized={onUnauthorized} />
       )}
-    </>
+    </div>
   );
 }
 
