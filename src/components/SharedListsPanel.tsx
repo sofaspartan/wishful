@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Link2, Users, X } from 'lucide-react';
 import type { ListKind } from '../../shared/types';
+import { isTaskList } from '../../shared/constants';
 import { useSharedWishlists } from '../lib/queries';
 import { countdownLabel, relativeTime } from '../lib/format';
 import { forgetVisit, listVisits } from '../lib/visited';
@@ -11,11 +12,18 @@ import { Button } from './ui/Button';
 import { EmptyState } from './ui/misc';
 import { SkyArt } from './SkyArt';
 
+type KindFilter = ListKind | 'lists';
+
 /** Collaborating lists + share links opened on this device, for the Lists → Shared tab. */
-export function SharedListsPanel({ kind, view = 'grid' }: { kind?: ListKind; view?: CardListView }) {
+export function SharedListsPanel({ kind, view = 'grid' }: { kind?: KindFilter; view?: CardListView }) {
   const { data: lists = [], isLoading } = useSharedWishlists();
   const [visits, setVisits] = useState(listVisits);
-  const active = lists.filter((w) => !w.archivedAt && (!kind || w.kind === kind));
+  const matches = (w: { kind?: ListKind }) => {
+    if (!kind) return true;
+    if (kind === 'lists') return isTaskList(w);
+    return w.kind === kind;
+  };
+  const active = lists.filter((w) => !w.archivedAt && matches(w));
 
   return (
     <>
@@ -40,7 +48,13 @@ export function SharedListsPanel({ kind, view = 'grid' }: { kind?: ListKind; vie
         ) : (
           <EmptyState art={<SkyArt scene="invites" />} title="No shared lists yet">
             When someone adds you as a viewer or editor
-            {kind === 'collection' ? ' on a collection' : kind === 'wishlist' ? ' on a wishlist' : ''}, it will show up here. They can invite you by
+            {kind === 'collection'
+              ? ' on a collection'
+              : kind === 'wishlist'
+                ? ' on a wishlist'
+                : kind === 'lists'
+                  ? ' on a list'
+                  : ''}, it will show up here. They can invite you by
             username or email.
           </EmptyState>
         )}

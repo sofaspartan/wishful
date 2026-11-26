@@ -1,5 +1,5 @@
 import type { FriendProfileView, FriendsOverview, PeopleSearchHit, Visibility } from '../../shared/types';
-import { isDiscoverableProfile } from '../../shared/constants';
+import { isDiscoverableProfile, listRowCount } from '../../shared/constants';
 import { profileVisibilityOf } from '../../shared/profileVisibility';
 import { atomicUpdate, db, getMany } from '../storage';
 import { badRequest, conflict, notFound } from '../http';
@@ -252,7 +252,7 @@ export async function friendProfile(viewerId: string, friendId: string): Promise
       eventDate: w.eventDate,
       visibility: w.visibility,
       shareToken: w.shareToken!,
-      itemCount: w.entries.length,
+      itemCount: listRowCount(w),
       updatedAt: w.updatedAt,
       recipients: publicPeople(recipients.get(w.id) ?? []),
       madeBy: w.ownerId === friend.id ? null : (makers.get(w.ownerId) ?? null),

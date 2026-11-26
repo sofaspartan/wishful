@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, ImagePlus, ScanSearch } from 'lucide-react';
+import { Camera, CameraOff, ImagePlus, ScanText } from 'lucide-react';
 import { Button } from './ui/Button';
 import { FormNote } from './ui/Field';
 
@@ -10,12 +10,12 @@ interface Props {
   onCapture: (file: File) => void | Promise<void>;
   /** Optional gallery pick — shown as a circular control on the camera frame. */
   onUpload?: (file: File) => void | Promise<void>;
-  /** Lens mode emphasizes Vision search on the shutter. */
-  variant?: 'camera' | 'lens';
+  /** Text / list modes emphasize OCR on the shutter; list shows a list-shaped reticule. */
+  variant?: 'camera' | 'text' | 'list';
   disabled?: boolean;
 }
 
-/** Live rear-camera preview with a shutter (and optional upload) for product matching. */
+/** Live rear-camera preview with a shutter (and optional upload) for photo / text scan. */
 export function CameraCapture({ active, onCapture, onUpload, variant = 'camera', disabled }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -23,7 +23,8 @@ export function CameraCapture({ active, onCapture, onUpload, variant = 'camera',
   const [camera, setCamera] = useState<CameraState>('starting');
   const [message, setMessage] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
-  const isLens = variant === 'lens';
+  const isText = variant === 'text' || variant === 'list';
+  const isList = variant === 'list';
 
   useEffect(() => {
     if (!active || disabled) return;
@@ -130,6 +131,23 @@ export function CameraCapture({ active, onCapture, onUpload, variant = 'camera',
     <div className="camera-capture stack">
       <div className={`barcode-viewport camera-viewport${camera === 'live' ? ' is-live' : ''}`}>
         <video ref={videoRef} className="barcode-video" muted playsInline autoPlay />
+        {camera === 'live' && isList && (
+          <div className="camera-list-reticule" aria-hidden>
+            <div className="camera-list-reticule-frame">
+              <span className="camera-list-reticule-corner camera-list-reticule-tl" />
+              <span className="camera-list-reticule-corner camera-list-reticule-tr" />
+              <span className="camera-list-reticule-corner camera-list-reticule-bl" />
+              <span className="camera-list-reticule-corner camera-list-reticule-br" />
+              <ul className="camera-list-reticule-rows">
+                <li />
+                <li />
+                <li />
+                <li />
+                <li />
+              </ul>
+            </div>
+          </div>
+        )}
         {camera !== 'live' && (
           <div className="barcode-fallback">
             {camera === 'starting' ? (
@@ -169,12 +187,12 @@ export function CameraCapture({ active, onCapture, onUpload, variant = 'camera',
               <button
                 type="button"
                 className="camera-shutter"
-                aria-label={capturing ? (isLens ? 'Searching' : 'Taking photo') : isLens ? 'Search with Lens' : 'Take photo'}
+                aria-label={capturing ? (isText ? 'Reading text' : 'Taking photo') : isText ? 'Scan text from photo' : 'Take photo'}
                 disabled={disabled || capturing}
                 onClick={() => void takePhoto()}
               >
                 <span className="camera-shutter-ring" aria-hidden />
-                {isLens ? <ScanSearch size={22} aria-hidden /> : <Camera size={22} aria-hidden />}
+                {isText ? <ScanText size={22} aria-hidden /> : <Camera size={22} aria-hidden />}
               </button>
             )}
             {onUpload && <span className="camera-controls-spacer" aria-hidden />}

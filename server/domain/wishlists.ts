@@ -1,14 +1,24 @@
-import type { AccessRole, ListPerson, PublicUser, WishlistSummary } from '../../shared/types';
-import { COLLECTION_SETTINGS, DEFAULT_PREFERENCES, ACCENT_COLORS, defaultCoverArt, isCollection } from '../../shared/constants';
-import type { WishlistCreateInput } from '../../shared/schemas';
+import type { AccessRole, ListPerson, ListTask, PublicUser, WishlistSummary } from '../../shared/types';
+import {
+  COLLECTION_SETTINGS,
+  DEFAULT_PREFERENCES,
+  ACCENT_COLORS,
+  TASK_LIST_SETTINGS,
+  defaultCoverArt,
+  isCollection,
+  isTaskList,
+  listRowCount,
+} from '../../shared/constants';
+import type { TaskCreateInput, TaskUpdateInput, WishlistCreateInput } from '../../shared/schemas';
 import { atomicUpdate, atomicUpdateExisting, db, getMany } from '../storage';
-import { conflict, forbidden, notFound } from '../http';
+import { badRequest, conflict, forbidden, notFound } from '../http';
 import type { ItemRecord, ShareRecord, UserRecord, WishlistRecord } from '../records';
 import { getUserIndex, updateUserIndex } from '../services/auth';
 import { deletedUser, toPublicUser } from '../serialize';
 import { newId, newToken, nowIso } from '../util';
 
 export const MAX_ENTRIES_PER_LIST = 1000;
+export const MAX_TASKS_PER_LIST = 1000;
 
 export async function getWishlist(id: string): Promise<WishlistRecord | null> {
   const res = await db('wishlists').get<WishlistRecord>(id);
@@ -158,19 +168,40 @@ export function applyCollectionRules(w: WishlistRecord): void {
   }
 }
 
+/** Standard / checklist / todo: text rows only, no gifting or catalog entries. */
+export function applyTaskListRules(w: WishlistRecord): void {
+  if (!isTaskList(w)) return;
+  w.surpriseMode = false;
+  w.occasion = '';
+  w.eventDate = null;
+  w.cashFund = null;
+  w.recipients = undefined;
+  w.includeOwner = undefined;
+  w.settings = { ...TASK_LIST_SETTINGS, showReviews: w.settings?.showReviews ?? true };
+  w.entries = [];
+  if (!w.tasks) w.tasks = [];
+  if (w.kind === 'list') {
+    for (const t of w.tasks) {
+      t.done = false;
+      t.completedAt = null;
+    }
+  }
+}
+
 export async function createWishlist(owner: UserRecord, input: WishlistCreateInput): Promise<WishlistRecord> {
   const prefs = { ...DEFAULT_PREFERENCES, ...owner.preferences };
   const id = newId();
   const shareToken = await createShare(id);
   const stamp = nowIso();
+  const kind = input.kind ?? 'wishlist';
   const wishlist: WishlistRecord = {
     id,
     ownerId: owner.id,
-    kind: input.kind ?? 'wishlist',
+    kind,
     title: input.title,
     description: input.description ?? '',
     coverImage: input.coverImage ?? null,
-    coverArt: input.coverArt !== undefined ? input.coverArt : input.coverImage ? null : defaultCoverArt(input.kind ?? 'wishlist'),
+    coverArt: input.coverArt !== undefined ? input.coverArt : input.coverImage ? null : defaultCoverArt(kind),
     pageBackdrop: input.pageBackdrop !== undefined ? input.pageBackdrop : 'match',
     pageColors: input.pageColors !== undefined ? input.pageColors : null,
     accentColor: input.accentColor ?? ACCENT_COLORS[0].value,
@@ -184,15 +215,64 @@ export async function createWishlist(owner: UserRecord, input: WishlistCreateInp
     createdAt: stamp,
     updatedAt: stamp,
     entries: [],
+    tasks: isTaskList({ kind }) ? [] : undefined,
     collaborators: [],
     pendingInvites: [],
   };
   applyCollectionRules(wishlist);
+  applyTaskListRules(wishlist);
   await db('wishlists').set(id, wishlist, { onlyIfNew: true });
   await updateUserIndex(owner.id, (idx) => {
     idx.wishlistIds.unshift(id);
   });
   return wishlist;
+}
+
+export async function addTask(wishlistId: string, userId: string, input: TaskCreateInput): Promise<ListTask> {
+  const stamp = nowIso();
+  const task: ListTask = {
+    id: newId(),
+    text: input.text,
+    done: false,
+    completedAt: null,
+    addedBy: userId,
+    createdAt: stamp,
+    updatedAt: stamp,
+  };
+  await mutateWishlist(wishlistId, (w) => {
+    if (!isTaskList(w)) throw badRequest('Only lists, checklists, and to-dos use text rows.');
+    if (!w.tasks) w.tasks = [];
+    if (w.tasks.length >= MAX_TASKS_PER_LIST) throw badRequest(`This list can hold up to ${MAX_TASKS_PER_LIST} rows.`);
+    w.tasks.push(task);
+  });
+  return task;
+}
+
+export async function updateTask(wishlistId: string, taskId: string, input: TaskUpdateInput): Promise<ListTask> {
+  let updated: ListTask | null = null;
+  await mutateWishlist(wishlistId, (w) => {
+    if (!isTaskList(w)) throw badRequest('Only lists, checklists, and to-dos use text rows.');
+    const task = (w.tasks ?? []).find((t) => t.id === taskId);
+    if (!task) throw notFound('That row is no longer on this list.');
+    if (input.text !== undefined) task.text = input.text;
+    if (input.done !== undefined) {
+      if (w.kind === 'list') throw badRequest('Regular lists don’t have checkboxes.');
+      task.done = input.done;
+      task.completedAt = input.done ? nowIso() : null;
+    }
+    task.updatedAt = nowIso();
+    updated = { ...task };
+  });
+  return updated!;
+}
+
+export async function removeTask(wishlistId: string, taskId: string): Promise<void> {
+  await mutateWishlist(wishlistId, (w) => {
+    if (!isTaskList(w)) throw badRequest('Only lists, checklists, and to-dos use text rows.');
+    const next = (w.tasks ?? []).filter((t) => t.id !== taskId);
+    if (next.length === (w.tasks ?? []).length) throw notFound('That row is no longer on this list.');
+    w.tasks = next;
+  });
 }
 
 export async function regenerateShareToken(wishlist: WishlistRecord): Promise<WishlistRecord> {
@@ -274,17 +354,31 @@ export async function duplicateWishlist(source: WishlistRecord, owner: UserRecor
   });
   const stamp = nowIso();
   const updated = await mutateWishlist(copy.id, (w) => {
-    w.entries = source.entries.map((e) => ({ ...e, id: newId(), createdAt: stamp, updatedAt: stamp }));
-    // Still for the same people, but not shared with them until the owner links it again.
-    if (source.recipients?.length) {
-      w.recipients = source.recipients.map((r) => ({ ...r, userId: null }));
-      if (source.includeOwner) w.includeOwner = true;
+    if (isTaskList(source)) {
+      w.tasks = (source.tasks ?? []).map((t) => ({
+        ...t,
+        id: newId(),
+        done: source.kind === 'list' ? false : t.done,
+        completedAt: source.kind === 'list' ? null : t.completedAt,
+        createdAt: stamp,
+        updatedAt: stamp,
+      }));
+      w.entries = [];
+    } else {
+      w.entries = source.entries.map((e) => ({ ...e, id: newId(), createdAt: stamp, updatedAt: stamp }));
+      // Still for the same people, but not shared with them until the owner links it again.
+      if (source.recipients?.length) {
+        w.recipients = source.recipients.map((r) => ({ ...r, userId: null }));
+        if (source.includeOwner) w.includeOwner = true;
+      }
     }
   });
-  await linkItems(
-    updated.entries.map((e) => e.itemId),
-    updated.id,
-  );
+  if (!isTaskList(updated)) {
+    await linkItems(
+      updated.entries.map((e) => e.itemId),
+      updated.id,
+    );
+  }
   // Place the copy directly after the original.
   await updateUserIndex(owner.id, (idx) => {
     idx.wishlistIds = idx.wishlistIds.filter((id) => id !== copy.id);
@@ -319,7 +413,7 @@ export async function summarize(lists: WishlistRecord[], viewerId: string): Prom
     archivedAt: l.archivedAt,
     createdAt: l.createdAt,
     updatedAt: l.updatedAt,
-    itemCount: l.entries.length,
+    itemCount: listRowCount(l),
     collaboratorCount: l.collaborators.length,
     role: accessRole(l, viewerId) ?? 'viewer',
     owner: owners.get(l.ownerId)!,

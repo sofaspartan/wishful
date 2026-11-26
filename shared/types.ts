@@ -27,9 +27,28 @@ export type AccessRole = 'owner' | CollaboratorRole;
 
 export type ClaimStatus = 'available' | 'reserved' | 'purchased';
 
-/** Wishlists hold things you want (and support gifting); collections chronicle things you already have. */
-export const LIST_KINDS = ['wishlist', 'collection'] as const;
+/**
+ * Wishlists = gifts/wants; collections = owned things;
+ * list / checklist / todo = simple text rows (no catalog items or gifting).
+ */
+export const LIST_KINDS = ['wishlist', 'collection', 'list', 'checklist', 'todo'] as const;
 export type ListKind = (typeof LIST_KINDS)[number];
+
+/** Kinds that use `tasks` instead of product/gift entries. */
+export const TASK_LIST_KINDS = ['list', 'checklist', 'todo'] as const;
+export type TaskListKind = (typeof TASK_LIST_KINDS)[number];
+
+/** A simple text row on a standard / checklist / todo list. */
+export interface ListTask {
+  id: string;
+  text: string;
+  /** Checklist & todo only — regular lists keep this false. */
+  done: boolean;
+  completedAt: string | null;
+  addedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 /** Peer-to-peer apps that support amount-prefilled pay links (no processor on Wishful). */
 export const PAYMENT_PROVIDERS = ['venmo', 'cashapp', 'paypal'] as const;
@@ -626,7 +645,7 @@ export interface Wishlist {
   recipients?: ListRecipient[];
   /** When true (and recipients is non-empty), the owner is also someone the list is for — shown alongside the recipients. */
   includeOwner?: boolean;
-  /** Fixed at creation. Collections have no gifting (claims, pledges, Surprise Mode, event dates). */
+  /** Fixed at creation. Collections and task lists have no gifting (claims, pledges, Surprise Mode, event dates). */
   kind: ListKind;
   title: string;
   description: string;
@@ -656,6 +675,8 @@ export interface Wishlist {
   createdAt: string;
   updatedAt: string;
   entries: WishlistEntry[];
+  /** Present on list / checklist / todo kinds (empty array when none). Absent/ignored on wishlists & collections. */
+  tasks?: ListTask[];
   collaborators: Collaborator[];
   pendingInvites: PendingInvite[];
 }
@@ -795,6 +816,8 @@ export interface PublicWishlistView {
   owner: PublicUser & { bio: string };
   recipients: Array<Omit<ListPerson, 'userId'>>;
   entries: PublicEntry[];
+  /** Task rows for list / checklist / todo kinds (read-only on the public page). */
+  tasks: ListTask[];
   /** Present when the list has a cash fund and the owner has at least one pay link. */
   cashFund: PublicCashFundView | null;
   viewer: {

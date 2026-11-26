@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
-import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, LoaderCircle, Palette, StickyNote } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, ExternalLink, ImageOff, LoaderCircle, PanelRight, Settings, StickyNote, MessageSquare } from 'lucide-react';
 import type { ExtensionSession } from '../../../shared/types';
 import { CURRENCIES, LIMITS } from '../../../shared/constants';
 import { parsePrice } from '../../../shared/metadata';
@@ -8,6 +8,15 @@ import { CloudBank } from '../../../src/components/Cloud';
 import { COVER_ICON_ART } from '../../../src/components/CoverArt';
 import { LogoMark } from '../../../src/components/Logo';
 import { ApiError, SITE_URL, api } from '../api';
+import {
+  DISPLAY_MODES,
+  DISPLAY_MODE_HINTS,
+  DISPLAY_MODE_LABELS,
+  applyDisplayMode,
+  getDisplayMode,
+  setDisplayMode,
+  type DisplayMode,
+} from '../displayMode';
 import {
   SOFT_LOOKS,
   SOFT_LOOK_HINTS,
@@ -68,9 +77,14 @@ const offersList = (scan: ListScan | null): scan is ListScan => Boolean(scan && 
 export function Popup() {
   const [view, setView] = useState<View>({ kind: 'loading' });
   const [softLook, setSoftLookState] = useState<SoftLook>('sky');
+  const [displayMode, setDisplayModeState] = useState<DisplayMode>('tooltip');
 
   useEffect(() => {
     void getSoftLook().then(setSoftLookState);
+    void getDisplayMode().then((mode) => {
+      setDisplayModeState(mode);
+      document.documentElement.dataset.shell = mode;
+    });
   }, []);
 
   useEffect(() => {
@@ -84,6 +98,28 @@ export function Popup() {
   const pickSoftLook = (scene: SoftLook) => {
     setSoftLookState(scene);
     void setSoftLook(scene);
+  };
+
+  const pickDisplayMode = async (mode: DisplayMode) => {
+    setDisplayModeState(mode);
+    document.documentElement.dataset.shell = mode;
+    await setDisplayMode(mode);
+    try {
+      await applyDisplayMode(mode);
+    } catch {
+      /* background also syncs via storage */
+    }
+    if (mode === 'sidebar') {
+      try {
+        const win = await chrome.windows.getCurrent();
+        if (win.id != null) {
+          await chrome.sidePanel.open({ windowId: win.id });
+          window.close();
+        }
+      } catch {
+        /* User can click the icon again to open the sidebar */
+      }
+    }
   };
 
   const softStyle = useMemo((): CSSProperties => {
@@ -133,7 +169,7 @@ export function Popup() {
           <span className="popup-brand">{brand.name}</span>
         </a>
         <span className="popup-spacer" />
-        <SoftLookPicker value={softLook} onChange={pickSoftLook} />
+        <SettingsMenu softLook={softLook} onSoftLook={pickSoftLook} displayMode={displayMode} onDisplayMode={(m) => void pickDisplayMode(m)} />
         <a className="popup-link" href={`${SITE_URL}/app`} target="_blank" rel="noreferrer">
           Open <ExternalLink size={12} aria-hidden />
         </a>
@@ -210,7 +246,17 @@ export function Popup() {
   );
 }
 
-function SoftLookPicker({ value, onChange }: { value: SoftLook; onChange: (scene: SoftLook) => void }) {
+function SettingsMenu({
+  softLook,
+  onSoftLook,
+  displayMode,
+  onDisplayMode,
+}: {
+  softLook: SoftLook;
+  onSoftLook: (scene: SoftLook) => void;
+  displayMode: DisplayMode;
+  onDisplayMode: (mode: DisplayMode) => void;
+}) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -235,47 +281,87 @@ function SoftLookPicker({ value, onChange }: { value: SoftLook; onChange: (scene
       <button
         type="button"
         className={`soft-look-trigger${open ? ' is-open' : ''}`}
-        aria-label="Color style"
+        aria-label="Settings"
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((v) => !v)}
       >
-        <Palette size={16} aria-hidden />
+        <Settings size={16} aria-hidden />
       </button>
       {open && (
-        <div className="soft-look-panel" role="dialog" aria-label="Color style">
+        <div className="soft-look-panel settings-panel" role="dialog" aria-label="Settings">
           <div className="soft-look-head">
-            <strong>Color style</strong>
-            <span>Soft washes for the popup</span>
+            <strong>Settings</strong>
+            <span>Look and how Wishful opens</span>
           </div>
-          <div className="soft-look-grid" role="listbox" aria-label="Soft looks">
-            {SOFT_LOOKS.map((id) => {
-              const on = value === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="option"
-                  aria-selected={on}
-                  className={`soft-look-card${on ? ' is-on' : ''}`}
-                  onClick={() => {
-                    onChange(id);
-                    setOpen(false);
-                  }}
-                >
-                  <span className="soft-look-preview" aria-hidden>
-                    <span className={`soft-look-mini soft-look-mini-${id}`} />
+
+          <div className="settings-section">
+            <p className="settings-section-label">Display</p>
+            <div className="display-mode-list" role="listbox" aria-label="Display mode">
+              {DISPLAY_MODES.map((id) => {
+                const on = displayMode === id;
+                const Icon = id === 'sidebar' ? PanelRight : MessageSquare;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    role="option"
+                    aria-selected={on}
+                    className={`display-mode-card${on ? ' is-on' : ''}`}
+                    onClick={() => {
+                      onDisplayMode(id);
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="display-mode-icon" aria-hidden>
+                      <Icon size={16} />
+                    </span>
+                    <span className="display-mode-copy">
+                      <span className="soft-look-label">{DISPLAY_MODE_LABELS[id]}</span>
+                      <span className="soft-look-hint">{DISPLAY_MODE_HINTS[id]}</span>
+                    </span>
                     {on && (
-                      <span className="soft-look-check">
-                        <Check size={11} strokeWidth={3} />
+                      <span className="display-mode-check" aria-hidden>
+                        <Check size={12} strokeWidth={3} />
                       </span>
                     )}
-                  </span>
-                  <span className="soft-look-label">{SOFT_LOOK_LABELS[id]}</span>
-                  <span className="soft-look-hint">{SOFT_LOOK_HINTS[id]}</span>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <p className="settings-section-label">Color style</p>
+            <div className="soft-look-grid" role="listbox" aria-label="Soft looks">
+              {SOFT_LOOKS.map((id) => {
+                const on = softLook === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    role="option"
+                    aria-selected={on}
+                    className={`soft-look-card${on ? ' is-on' : ''}`}
+                    onClick={() => {
+                      onSoftLook(id);
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="soft-look-preview" aria-hidden>
+                      <span className={`soft-look-mini soft-look-mini-${id}`} />
+                      {on && (
+                        <span className="soft-look-check">
+                          <Check size={11} strokeWidth={3} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="soft-look-label">{SOFT_LOOK_LABELS[id]}</span>
+                    <span className="soft-look-hint">{SOFT_LOOK_HINTS[id]}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

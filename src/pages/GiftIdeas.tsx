@@ -127,7 +127,7 @@ export default function GiftIdeas({ banner = false }: { banner?: boolean }) {
     <>
       <PageSky
         eyebrow="Gift ideas"
-        title="Find something they'll love"
+        title="Find something they'll absolutely love"
         subtitle="Search popular stores in one place, then add anything you find to a list."
         art={<SkyArt scene="gifts" />}
       >

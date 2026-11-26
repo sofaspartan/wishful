@@ -1,0 +1,11 @@
+/* Wishful — logo-matched display face for headlines. */
+@font-face {
+  font-family: 'Wishful';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  /* Slightly larger optical size so headlines feel closer to the wordmark. */
+  size-adjust: 110%;
+  src: url('/fonts/Wishful-Regular.woff2') format('woff2'),
+    url('/fonts/Wishful-Regular.ttf') format('truetype');
+}

@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run test && npm run build",
     "extension:build": "node extension/build.mjs",
-    "extension:dev": "node extension/build.mjs --dev"
+    "extension:dev": "node extension/build.mjs --dev",
+    "font:build": "node scripts/build-wishful-font.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -42,8 +43,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
+    "opentype.js": "^2.0.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "wawoff2": "^2.0.1"
   }
 }

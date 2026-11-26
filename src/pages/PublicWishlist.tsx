@@ -3,7 +3,8 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, Check, Copy, Eye, EyeOff, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, Search, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
 import { isDarkCover, type PublicEntry, type PublicWishlistView } from '../../shared/types';
-import { PRIORITY_RANK, firstName as givenName, joinNames, possessiveNames, priorityLayout } from '../../shared/constants';
+import { LIST_KIND_LABELS, PRIORITY_RANK, firstName as givenName, isTaskList, joinNames, possessiveNames, priorityLayout } from '../../shared/constants';
+import { TaskListPanel } from '../components/TaskListPanel';
 import { ListPeopleLinks } from '../components/WishlistCard';
 import { Popover } from '../components/ui/Popover';
 import { keys, useMe, usePublicList } from '../lib/queries';
@@ -223,8 +224,56 @@ const listPeople = (view: PublicWishlistView) =>
 /** What to call them in a sentence: the names it was made for as written, or the owner's first name. */
 const listNames = (view: PublicWishlistView) => (view.recipients.length ? view.recipients.map((r) => r.name) : [view.owner.displayName.split(' ')[0]]);
 
+function PublicTaskListView({ view }: { view: PublicWishlistView }) {
+  const { wishlist: w, owner, viewer } = view;
+  const tasks = view.tasks ?? [];
+  return (
+    <ThemedPage className="public-shell" pageBackdrop={w.pageBackdrop} pageColors={w.pageColors} coverArt={w.coverArt} accentColor={w.accentColor}>
+      <PublicHeader />
+      {viewer.isOwner && (
+        <div className="public-hero" style={{ marginBottom: 'var(--s-4)' }}>
+          <div className="notice notice-accent" style={{ marginBottom: 0 }}>
+            <Info size={18} aria-hidden />
+            <div style={{ flex: 1 }}>
+              <strong>This is your shared page.</strong> Visitors can read this {LIST_KIND_LABELS[w.kind].toLowerCase()} but can’t check things off.
+            </div>
+            <Link to={`/app/lists/${w.id}`} className="btn btn-sm">
+              <Pencil size={14} aria-hidden /> Edit list
+            </Link>
+          </div>
+        </div>
+      )}
+      <section className="public-hero public-wl-hero">
+        <div className="wl-hero-body">
+          <CoverAvatar
+            className="wl-hero-avatar"
+            icon={(w.coverArt ?? suggestCoverArt('', w.kind)).icon}
+            frame={w.coverArt?.frame}
+            photo={w.coverImage}
+          />
+          <div className="wl-hero-main">
+            <p className="eyebrow">{LIST_KIND_LABELS[w.kind]}</p>
+            <h1 className="wl-hero-title display">{w.title}</h1>
+            {w.description && <p className="page-subtitle">{w.description}</p>}
+            <p className="muted text-sm" style={{ marginTop: 8 }}>
+              By {owner.displayName}
+              {tasks.length ? ` · ${tasks.length} ${tasks.length === 1 ? 'row' : 'rows'}` : ''}
+            </p>
+          </div>
+        </div>
+      </section>
+      <main id="main" className="public-content">
+        <TaskListPanel wishlistId={w.id} kind={w.kind} tasks={tasks} canEdit={false} readOnly onChange={() => undefined} />
+      </main>
+      <PublicFooter />
+    </ThemedPage>
+  );
+}
+
 function PublicListView({ view, token }: { view: PublicWishlistView; token: string }) {
   const { wishlist: w, owner, viewer, cashFund } = view;
+  if (isTaskList(w)) return <PublicTaskListView view={view} />;
+
   const people = listPeople(view);
   const forOthers = view.recipients.length > 0;
   const { data: me } = useMe();

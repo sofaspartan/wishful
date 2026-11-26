@@ -1,7 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Check, FileText, Image, Palette, Shapes, Users } from 'lucide-react';
-import { VISIBILITIES, type CoverArt, type ListKind, type PageBackdrop, type Visibility, type Wishlist } from '../../shared/types';
-import { ACCENT_COLORS, SUGGESTED_OCCASIONS, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS, peopleForList, possessiveNames } from '../../shared/constants';
+import { TASK_LIST_KINDS, VISIBILITIES, type CoverArt, type ListKind, type PageBackdrop, type TaskListKind, type Visibility, type Wishlist } from '../../shared/types';
+import {
+  ACCENT_COLORS,
+  LIST_KIND_DESCRIPTIONS,
+  LIST_KIND_LABELS,
+  SUGGESTED_OCCASIONS,
+  VISIBILITY_DESCRIPTIONS,
+  VISIBILITY_LABELS,
+  isTaskList,
+  peopleForList,
+  possessiveNames,
+} from '../../shared/constants';
 import { wishlistCreateSchema, zodFieldErrors } from '../../shared/schemas';
 import { useQueryClient } from '@tanstack/react-query';
 import { keys, useCircle, useFriends, useMe, useInvalidate } from '../lib/queries';
@@ -58,9 +68,11 @@ interface Props {
 
 /** Create or edit list details (name, description, cover, colour, occasion, visibility). Collections skip occasion and date. */
 export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: createKind = 'wishlist' }: Props) {
-  const kind = wishlist?.kind ?? createKind;
+  const [pickedKind, setPickedKind] = useState<ListKind>(createKind);
+  const kind = wishlist?.kind ?? pickedKind;
   const collection = kind === 'collection';
-  const noun = collection ? 'collection' : 'wishlist';
+  const taskList = isTaskList({ kind });
+  const noun = collection ? 'collection' : taskList ? LIST_KIND_LABELS[kind].toLowerCase() : 'wishlist';
   const { data: me } = useMe();
   const { data: friendsOverview } = useFriends(open);
   const { data: circle = [] } = useCircle(open);
@@ -95,12 +107,13 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
   // Only reset when the modal opens: a background refetch mid-edit must not wipe changes or jump the form.
   useEffect(() => {
     if (!open) return;
-    const { wishlist, me, kind } = latest.current;
+    const { wishlist, me } = latest.current;
+    setPickedKind(wishlist?.kind ?? createKind);
     setTab('details');
     setTitle(wishlist?.title ?? '');
     setDescription(wishlist?.description ?? '');
     setCoverImage(wishlist?.coverImage ?? null);
-    setCoverArt(wishlist ? (wishlist.coverArt ?? null) : suggestCoverArt('', kind));
+    setCoverArt(wishlist ? (wishlist.coverArt ?? null) : suggestCoverArt('', createKind));
     setCoverMode(wishlist ? (wishlist.coverImage ? 'photo' : wishlist.coverArt ? 'graphic' : 'none') : 'graphic');
     setPageBackdrop(wishlist ? (wishlist.pageBackdrop ?? null) : 'match');
     setPageColors(wishlist ? (wishlist.pageColors ?? null) : null);
@@ -115,7 +128,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
     setSurprise(wishlist?.recipients?.length ? wishlist.surpriseMode : true);
     setErrors({});
     setFormError(null);
-  }, [open, wishlist?.id]);
+  }, [open, wishlist?.id, createKind]);
 
   useEffect(() => {
     if (!wishlist && !artTouched) setCoverArt(suggestCoverArt(occasion, kind));
@@ -154,9 +167,10 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
             ...(forOthers && linkedRecipients(recipients).length && !collection ? { surpriseMode: surprise } : {}),
           }
         : {};
-    const body = collection
-      ? { title, description, ...coverFields, accentColor, visibility, settings: { showReviews }, ...who }
-      : { title, description, ...coverFields, accentColor, occasion, eventDate: eventDate || null, visibility, ...who };
+    const body =
+      collection || taskList
+        ? { title, description, ...coverFields, accentColor, visibility, settings: { showReviews }, ...(taskList ? {} : who) }
+        : { title, description, ...coverFields, accentColor, occasion, eventDate: eventDate || null, visibility, ...who };
     const showErrors = (next: Record<string, string>) => {
       setErrors(next);
       const bad = firstInvalidTab(TAB_FIELDS, next);
@@ -174,7 +188,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
       if (forOthers && recipients.some((p) => !p.circlePersonId && p.saveToCircle)) {
         void qc.invalidateQueries({ queryKey: keys.circle });
       }
-      toast.success(wishlist ? `${collection ? 'Collection' : 'Wishlist'} updated` : `Created “${saved.title}”`);
+      toast.success(wishlist ? `${LIST_KIND_LABELS[kind]} updated` : `Created “${saved.title}”`);
       onSaved(saved);
     } catch (err) {
       showErrors(fieldErrors(err));
@@ -193,16 +207,30 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
     forWhom === 'someone' || forWhom === 'both'
       ? peopleForList(otherPreview, forWhom === 'both', me ?? { displayName: 'You', avatarUrl: null, id: undefined })
       : [];
-  const placeholder = collection ? 'Your collection' : 'Your wishlist';
+  const placeholder = collection ? 'Your collection' : taskList ? `Your ${noun}` : 'Your wishlist';
 
   const details = (
     <>
+      {!wishlist && isTaskList({ kind: createKind }) && (
+        <fieldset className="stack" style={{ gap: 8, border: 0, margin: 0, padding: 0 }}>
+          <legend className="field-label">List type</legend>
+          <Segmented
+            label="List type"
+            value={pickedKind}
+            onChange={(v) => setPickedKind(v as TaskListKind)}
+            options={TASK_LIST_KINDS.map((k) => ({ value: k, label: LIST_KIND_LABELS[k] }))}
+          />
+          <p className="muted text-sm" style={{ margin: 0 }}>
+            {LIST_KIND_DESCRIPTIONS[kind]}
+          </p>
+        </fieldset>
+      )}
       <Field label="Name" error={errors.title}>
         <input
           className="input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={collection ? 'Vinyl records' : 'Birthday 2027'}
+          placeholder={collection ? 'Vinyl records' : taskList ? 'Weekend errands' : 'Birthday 2027'}
           maxLength={120}
           required
         />
@@ -217,7 +245,7 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
           maxLength={2000}
         />
       </Field>
-      {!collection && (
+      {!collection && !taskList && (
         <div className="form-grid cols-2">
           <Field label="Occasion" optional error={errors.occasion}>
             <input
@@ -305,45 +333,52 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
 
   const sharing = (
     <>
-      <div className="field">
-        <span className="field-label">Who’s it for?</span>
-        <Segmented<ForWhom>
-          label="Who it's for"
-          full
-          value={forWhom}
-          onChange={setForWhom}
-          options={[
-            { value: 'me', label: 'Me' },
-            { value: 'someone', label: 'Someone else' },
-            { value: 'both', label: 'Me + someone' },
-          ]}
-        />
-        {forWhom === 'me' ? (
-          <span className="field-hint">
-            Making a {noun} for someone else, or for you and others together? Choose Someone else or Me + someone and add their names.
-          </span>
-        ) : (
-          <>
-            {forWhom === 'both' && (
-              <span className="field-hint">You’ll be included, plus anyone you add below — one person or several.</span>
-            )}
-            <RecipientFields
-              value={recipients}
-              onChange={setRecipients}
-              friends={friends}
-              circle={circle}
-              surprise={collection ? undefined : { value: surprise, onChange: setSurprise }}
-              noun={noun}
-              errors={errors}
-              onUploadingChange={setUploading}
-            />
-          </>
-        )}
-      </div>
+      {!taskList && (
+        <div className="field">
+          <span className="field-label">Who’s it for?</span>
+          <Segmented<ForWhom>
+            label="Who it's for"
+            full
+            value={forWhom}
+            onChange={setForWhom}
+            options={[
+              { value: 'me', label: 'Me' },
+              { value: 'someone', label: 'Someone else' },
+              { value: 'both', label: 'Me + someone' },
+            ]}
+          />
+          {forWhom === 'me' ? (
+            <span className="field-hint">
+              Making a {noun} for someone else, or for you and others together? Choose Someone else or Me + someone and add their names.
+            </span>
+          ) : (
+            <>
+              {forWhom === 'both' && (
+                <span className="field-hint">You’ll be included, plus anyone you add below — one person or several.</span>
+              )}
+              <RecipientFields
+                value={recipients}
+                onChange={setRecipients}
+                friends={friends}
+                circle={circle}
+                surprise={collection ? undefined : { value: surprise, onChange: setSurprise }}
+                noun={noun}
+                errors={errors}
+                onUploadingChange={setUploading}
+              />
+            </>
+          )}
+        </div>
+      )}
       <div className="field">
         <span className="field-label" id="visibility-label">
           Who can see it
         </span>
+        {taskList && (
+          <span className="field-hint" style={{ display: 'block', marginBottom: 8 }}>
+            Viewers with the link can read this {noun}. Invite people as collaborators if they should edit.
+          </span>
+        )}
         <div className="check-list" role="radiogroup" aria-labelledby="visibility-label">
           {VISIBILITIES.map((v) => (
             <label key={v} className="check">
@@ -389,15 +424,15 @@ export function WishlistFormModal({ open, onClose, onSaved, wishlist, kind: crea
             coverArt: coverMode === 'graphic' ? coverArt : null,
             accentColor,
             visibility,
-            occasion: collection ? '' : occasion,
-            eventDate: collection ? null : eventDate || null,
+            occasion: collection || taskList ? '' : occasion,
+            eventDate: collection || taskList ? null : eventDate || null,
           }}
-          recipients={previewRecipients}
-          itemCount={wishlist?.entries.length}
+          recipients={taskList ? [] : previewRecipients}
+          itemCount={wishlist ? (wishlist.tasks?.length ?? wishlist.entries.length) : 0}
           placeholder={placeholder}
         />
       </PreviewBlock>
-      <PreviewBlock caption={`${collection ? 'Collection' : 'Wishlist'} page`} className="editor-preview-page">
+      <PreviewBlock caption={`${LIST_KIND_LABELS[kind]} page`} className="editor-preview-page">
         <PageThemePreview
           pageBackdrop={pageBackdrop}
           pageColors={pageColors}

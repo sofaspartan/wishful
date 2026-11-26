@@ -1,5 +1,5 @@
 import type { PublicEntry, PublicProfileView, PublicWishlistView, Visibility } from '../../shared/types';
-import { isCollection } from '../../shared/constants';
+import { isCollection, isTaskList, listRowCount } from '../../shared/constants';
 import { filterPaymentMethods } from '../../shared/paymentLinks';
 import { ageFromBirthYear, profileVisibilityOf } from '../../shared/profileVisibility';
 import { db, getMany } from '../storage';
@@ -212,7 +212,8 @@ export async function buildPublicView(wishlist: WishlistRecord, viewer: UserReco
       bio: owner?.bio ?? '',
     },
     recipients: publicPeople(recipients),
-    entries,
+    entries: isTaskList(wishlist) ? [] : entries,
+    tasks: isTaskList(wishlist) ? (wishlist.tasks ?? []) : [],
     cashFund,
     viewer: { isOwner: side !== null, isRecipient: side === 'recipient', claimsHidden: side !== null && activityHidden(wishlist, side) },
   };
@@ -256,7 +257,7 @@ export async function buildPublicProfile(rawUsername: string, viewer: UserRecord
       occasion: w.occasion,
       eventDate: w.eventDate,
       shareToken: w.shareToken!,
-      itemCount: w.entries.length,
+      itemCount: listRowCount(w),
       updatedAt: w.updatedAt,
       recipients: publicPeople(recipients.get(w.id) ?? []),
     }));

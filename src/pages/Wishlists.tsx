@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Archive, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { WishlistSummary } from '../../shared/types';
+import { isTaskList } from '../../shared/constants';
 import { keys, useSharedWishlists, useWishlists } from '../lib/queries';
 import { errorMessage, put } from '../lib/api';
 import { useLocalPref } from '../lib/prefs';
@@ -23,8 +24,14 @@ import { useToast } from '../components/ui/Toast';
 
 const SORTS = ['custom', 'updated', 'date', 'name'] as const;
 type Sort = (typeof SORTS)[number];
-type KindFilter = 'wishlist' | 'collection';
+type KindFilter = 'wishlist' | 'collection' | 'lists';
 type StatusTab = 'active' | 'archived' | 'shared';
+
+function kindFromParams(value: string | null): KindFilter {
+  if (value === 'collection') return 'collection';
+  if (value === 'lists') return 'lists';
+  return 'wishlist';
+}
 
 function sortLists(lists: WishlistSummary[], sort: Sort): WishlistSummary[] {
   if (sort === 'custom') return lists;
@@ -47,7 +54,7 @@ export default function Wishlists() {
   const qc = useQueryClient();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
-  const kind: KindFilter = params.get('kind') === 'collection' ? 'collection' : 'wishlist';
+  const kind = kindFromParams(params.get('kind'));
   const tab = statusFromParams(params.get('status'));
   const [sort, setSort] = useLocalPref<Sort>('lists.sort', 'custom', SORTS);
   const [view, setView] = useLocalPref<CardListView>('lists.view', 'grid', CARD_LIST_VIEWS);
@@ -68,7 +75,8 @@ export default function Wishlists() {
   const archived = all.filter((w) => w.archivedAt);
   const byId = useMemo(() => new Map(all.map((w) => [w.id, w])), [all]);
 
-  const ofKind = (w: WishlistSummary) => w.kind === kind;
+  const ofKind = (w: WishlistSummary) =>
+    kind === 'lists' ? isTaskList(w) : kind === 'collection' ? w.kind === 'collection' : w.kind === 'wishlist' || !w.kind;
   const q = query.trim().toLowerCase();
   const matchesQuery = (w: WishlistSummary) =>
     !q || [w.title, w.description, w.occasion, ...(w.recipients?.map((r) => r.name) ?? [])].some((s) => (s ?? '').toLowerCase().includes(q));
@@ -78,7 +86,8 @@ export default function Wishlists() {
   const activeIds = order ?? kindActiveIds;
   const canDrag = tab === 'active' && sort === 'custom' && kindActiveIds.length > 1 && view === 'grid' && !q;
   const collectionsOnly = kind === 'collection';
-  const sharedCount = shared.filter((w) => !w.archivedAt && w.kind === kind).length;
+  const taskListsOnly = kind === 'lists';
+  const sharedCount = shared.filter((w) => !w.archivedAt && ofKind(w)).length;
   const panelFiltersActive = tab !== 'active' || sort !== 'custom';
 
   const statusControls = (
@@ -110,8 +119,11 @@ export default function Wishlists() {
 
   const reorder = async (ids: string[]) => {
     setOrder(ids);
-    const otherActive = active.filter((w) => w.kind !== kind).map((w) => w.id);
-    const full = kind === 'wishlist' ? [...ids, ...otherActive, ...archived.map((w) => w.id)] : [...otherActive, ...ids, ...archived.map((w) => w.id)];
+    const otherActive = active.filter((w) => !ofKind(w)).map((w) => w.id);
+    const full =
+      kind === 'wishlist'
+        ? [...ids, ...otherActive, ...archived.map((w) => w.id)]
+        : [...otherActive, ...ids, ...archived.map((w) => w.id)];
     qc.setQueryData<WishlistSummary[]>(keys.wishlists, (prev) => (prev ? full.map((id) => prev.find((w) => w.id === id)!).filter(Boolean) : prev));
     try {
       await put('/api/wishlists/order', { ids: full });
@@ -125,12 +137,14 @@ export default function Wishlists() {
     <div className="page">
       <ListsSwitch />
       <PageSky
-        eyebrow={collectionsOnly ? 'Collections' : 'Wishlists'}
-        title={collectionsOnly ? 'My Collections' : 'My Wishlists'}
+        eyebrow={collectionsOnly ? 'Collections' : taskListsOnly ? 'Lists' : 'Wishlists'}
+        title={collectionsOnly ? 'My Collections' : taskListsOnly ? 'My Lists' : 'My Wishlists'}
         subtitle={
           collectionsOnly
             ? 'A record of the things you already have — vinyl, sneakers, books, plants.'
-            : 'Lists for birthdays, holidays, and everything you’re hoping for.'
+            : taskListsOnly
+              ? 'Simple lists, checklists, and to-dos — share them read-only or invite collaborators.'
+              : 'Lists for birthdays, holidays, and everything you’re hoping for.'
         }
         art={<SkyArt scene={collectionsOnly ? 'collection' : 'wishlist'} />}
       >
@@ -145,10 +159,10 @@ export default function Wishlists() {
           <input
             className="input"
             type="search"
-            placeholder={collectionsOnly ? 'Search collections' : 'Search wishlists'}
+            placeholder={collectionsOnly ? 'Search collections' : taskListsOnly ? 'Search lists' : 'Search wishlists'}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label={collectionsOnly ? 'Search collections' : 'Search wishlists'}
+            aria-label={collectionsOnly ? 'Search collections' : taskListsOnly ? 'Search lists' : 'Search wishlists'}
           />
         </div>
         <div className="toolbar-items-mobile-actions">
@@ -203,6 +217,18 @@ export default function Wishlists() {
               }
             >
               Keep a record of what you already have — vinyl, sneakers, books, plants. When you get something from a wishlist, tap “Got it” to move it here.
+            </EmptyState>
+          ) : taskListsOnly ? (
+            <EmptyState
+              art={<SkyArt scene="wishlist" />}
+              title="No lists yet"
+              action={
+                <Button variant="primary" icon={<Plus size={16} />} onClick={() => openCreateWishlist({ kind: 'list' })}>
+                  Create a list
+                </Button>
+              }
+            >
+              Make a simple list, a checklist with boxes, or a to-do list that strikes things out when they’re done.
             </EmptyState>
           ) : (
             <EmptyState

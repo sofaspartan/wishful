@@ -1392,12 +1392,15 @@
   animation: brand-splash-star 0.75s cubic-bezier(0.34, 1.45, 0.64, 1) 0.4s forwards;
 }
 .brand-splash-word {
-  font-family: var(--font-display);
-  font-weight: 650;
-  font-size: clamp(1.4rem, 4vw, 1.85rem);
-  letter-spacing: -0.02em;
+  font-family: 'Wishful', var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.55rem, 4.5vw, 2.05rem);
+  letter-spacing: -0.05em;
   color: var(--ink);
   opacity: 0;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  text-box: trim-both cap alphabetic;
   animation: brand-splash-word 0.5s ease 0.55s forwards;
 }
 @keyframes brand-splash-cloud {
@@ -2047,6 +2050,86 @@ button.add-mode-more-btn {
   flex: 1;
   min-height: min(48vh, 420px);
   aspect-ratio: auto;
+}
+.camera-list-reticule {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 12% 14% 22%;
+}
+.camera-list-reticule-frame {
+  position: relative;
+  width: min(78%, 280px);
+  aspect-ratio: 3 / 4;
+  max-height: 70%;
+  border-radius: 14px;
+  background: color-mix(in srgb, #fff 6%, transparent);
+  box-shadow: 0 0 0 9999px color-mix(in srgb, #000 40%, transparent);
+}
+.camera-list-reticule-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid color-mix(in srgb, #fff 88%, transparent);
+}
+.camera-list-reticule-tl {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+  border-top-left-radius: 12px;
+}
+.camera-list-reticule-tr {
+  top: -1px;
+  right: -1px;
+  border-left: 0;
+  border-bottom: 0;
+  border-top-right-radius: 12px;
+}
+.camera-list-reticule-bl {
+  bottom: -1px;
+  left: -1px;
+  border-right: 0;
+  border-top: 0;
+  border-bottom-left-radius: 12px;
+}
+.camera-list-reticule-br {
+  bottom: -1px;
+  right: -1px;
+  border-left: 0;
+  border-top: 0;
+  border-bottom-right-radius: 12px;
+}
+.camera-list-reticule-rows {
+  list-style: none;
+  margin: 0;
+  padding: 18% 14%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  box-sizing: border-box;
+}
+.camera-list-reticule-rows li {
+  position: relative;
+  height: 2px;
+  margin-left: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 72%, transparent);
+}
+.camera-list-reticule-rows li::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, #fff 80%, transparent);
+  transform: translateY(-50%);
 }
 .camera-controls {
   position: absolute;
@@ -2892,4 +2975,64 @@ kbd {
 }
 .card.recovery-missing {
   border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+}
+
+/* Task lists (standard / checklist / todo) */
+.task-list-panel { gap: var(--s-4); }
+.task-add-row {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+.task-add-row .input { flex: 1; }
+.task-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid var(--border);
+}
+.task-row.is-done .task-text {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.task-text {
+  flex: 1;
+  min-width: 0;
+  font-weight: 550;
+  line-height: 1.35;
+}
+.task-toggle {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 22%, var(--border));
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+.task-toggle:disabled { opacity: 0.55; cursor: default; }
+.task-toggle-check { border-radius: 7px; }
+.task-toggle-radio { border-radius: 999px; }
+.task-toggle[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.task-check-box {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 35%, var(--border));
 }

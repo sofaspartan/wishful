@@ -34,12 +34,14 @@ import { isDarkCover, type Item, type OwnerClaimView, type OwnerPledgeView, type
 import {
   PRIORITY_LABELS,
   PRIORITY_LAYOUTS,
+  isTaskList,
   joinNames,
   possessiveNames,
   priorityLayout,
   priorityLayoutSettings,
   type PriorityLayout,
 } from '../../shared/constants';
+import { TaskListDetail } from '../components/TaskListDetail';
 import { keys, useMe, useStaleSync, useWishlist, useInvalidate } from '../lib/queries';
 import { linkedListNote, syncSourceName } from '../lib/syncSource';
 import { ApiError, del, errorMessage, patch, post, put } from '../lib/api';
@@ -116,6 +118,8 @@ export default function WishlistDetailPage() {
 
 function WishlistView({ detail }: { detail: Detail }) {
   const w = detail.wishlist;
+  if (isTaskList(w)) return <TaskListDetail detail={detail} />;
+
   const { data: me } = useMe();
   const navigate = useNavigate();
   const qc = useQueryClient();

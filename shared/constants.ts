@@ -17,9 +17,24 @@ import type {
 /** Lists saved before collections existed have no `kind`; they are wishlists. */
 export const isCollection = (list: { kind?: ListKind }): boolean => list.kind === 'collection';
 
+/** Standard / checklist / todo — text rows, no gift catalog. */
+export const isTaskList = (list: { kind?: ListKind }): boolean =>
+  list.kind === 'list' || list.kind === 'checklist' || list.kind === 'todo';
+
 export const LIST_KIND_LABELS: Record<ListKind, string> = {
   wishlist: 'Wishlist',
   collection: 'Collection',
+  list: 'List',
+  checklist: 'Checklist',
+  todo: 'To-do',
+};
+
+export const LIST_KIND_DESCRIPTIONS: Record<ListKind, string> = {
+  wishlist: 'Things you want — gifts, links, and reservations.',
+  collection: 'Things you already have — a catalog of your stuff.',
+  list: 'A simple ordered list of text lines.',
+  checklist: 'Text lines with checkboxes you can tick off.',
+  todo: 'Tasks you mark done (strikeout) until you delete them.',
 };
 
 export const ACQUIRED_VIA_LABELS: Record<AcquiredVia, string> = {
@@ -47,6 +62,9 @@ export const COLLECTION_SETTINGS: WishlistSettings = {
   itemOrder: 'custom',
   reservationDays: 0,
 };
+
+/** Same gift-off settings for standard / checklist / todo lists. */
+export const TASK_LIST_SETTINGS: WishlistSettings = { ...COLLECTION_SETTINGS };
 
 export const DEFAULT_WISHLIST_SETTINGS: WishlistSettings = {
   allowClaims: true,
@@ -244,7 +262,17 @@ export function possessiveNames(names: string[]): string {
 /** The cover graphic a new list starts with when none is chosen. */
 export function defaultCoverArt(kind: ListKind): CoverArt {
   const frame = { shape: 'rounded', fill: 'glass', color: '#ffffff' } as const;
-  return kind === 'collection' ? { icon: 'collection', backdrop: 'blush', frame } : { icon: 'gift', backdrop: 'sky', frame };
+  if (kind === 'collection') return { icon: 'collection', backdrop: 'blush', frame };
+  if (kind === 'checklist' || kind === 'todo' || kind === 'list') {
+    return { icon: 'book', backdrop: kind === 'todo' ? 'lilac' : kind === 'checklist' ? 'mint' : 'sky', frame };
+  }
+  return { icon: 'gift', backdrop: 'sky', frame };
+}
+
+/** Row count for cards / profiles (entries or tasks depending on kind). */
+export function listRowCount(list: { kind?: ListKind; entries?: { length: number }; tasks?: { length: number } | null }): number {
+  if (isTaskList(list)) return list.tasks?.length ?? 0;
+  return list.entries?.length ?? 0;
 }
 
 // ── Boxes ───────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { ChevronDown, Library, List, Package, Plus, ScanBarcode } from 'lucide-react';
+import { ChevronDown, Library, List, ListTodo, Package, Plus, ScanBarcode } from 'lucide-react';
 import { useAppActions } from './appActions';
 import { buttonClass } from './ui/Button';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
@@ -48,6 +48,9 @@ export function CreateMenu({ variant = 'new', block, align }: Props) {
       </MenuItem>
       <MenuItem icon={<Library size={16} />} onSelect={() => openCreateWishlist({ kind: 'collection' })}>
         New collection
+      </MenuItem>
+      <MenuItem icon={<ListTodo size={16} />} onSelect={() => openCreateWishlist({ kind: 'list' })}>
+        New list / checklist
       </MenuItem>
       <MenuItem icon={<Package size={16} />} onSelect={() => openCreateBox()}>
         New box

@@ -35,7 +35,7 @@ const FONT_FILES = [
   { name: 'Inter', weight: 400, file: 'inter-latin-400-normal.woff' },
   { name: 'Inter', weight: 600, file: 'inter-latin-600-normal.woff' },
   { name: 'Inter', weight: 700, file: 'inter-latin-700-normal.woff' },
-  { name: 'Fraunces', weight: 600, file: 'fraunces-latin-600-normal.woff' },
+  { name: 'Wishful', weight: 600, file: 'Wishful-Regular.ttf' },
 ] as const;
 
 async function readFont(file: string): Promise<Buffer> {
@@ -233,7 +233,7 @@ function Logo({ dark }: { dark: boolean }) {
       <div style={{ width: 50, height: 50, borderRadius: 14, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img src={LOGO_MARK} width={31} height={31} />
       </div>
-      <span style={{ fontFamily: 'Fraunces', fontWeight: 600, fontSize: 38, letterSpacing: -0.5, color: dark ? '#fff' : INK }}>{brand.name}</span>
+      <span style={{ fontFamily: 'Wishful', fontWeight: 600, fontSize: 38, letterSpacing: -0.5, color: dark ? '#fff' : INK }}>{brand.name}</span>
     </div>
   );
 }
@@ -423,7 +423,7 @@ export function ListCard(d: ListCardData) {
               {plainText(d.ownerLabel, 34)} {collection ? 'collection' : 'wishlist'}
             </span>
           </div>
-          <div style={{ display: 'flex', fontFamily: 'Fraunces', fontWeight: 600, fontSize: titleSize(title), lineHeight: 1.04, letterSpacing: -1, color: dark ? '#fff' : INK }}>
+          <div style={{ display: 'flex', fontFamily: 'Wishful', fontWeight: 600, fontSize: titleSize(title), lineHeight: 1.04, letterSpacing: -1, color: dark ? '#fff' : INK }}>
             {title}
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -510,7 +510,7 @@ export function ProfileCard(d: ProfileCardData) {
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 22, minWidth: 0 }}>
           <Avatar name={d.name} src={d.avatar} size={132} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontFamily: 'Fraunces', fontWeight: 600, fontSize: titleSize(d.name) - 4, lineHeight: 1.05, letterSpacing: -1 }}>{plainText(d.name, 40)}</span>
+            <span style={{ fontFamily: 'Wishful', fontWeight: 600, fontSize: titleSize(d.name) - 4, lineHeight: 1.05, letterSpacing: -1 }}>{plainText(d.name, 40)}</span>
             <span style={{ fontSize: 26, fontWeight: 600, color: INK_2 }}>@{d.username}</span>
           </div>
           {d.bio && <span style={{ fontSize: 25, lineHeight: 1.35, color: INK_2, maxWidth: 560 }}>{plainText(d.bio, 110)}</span>}
@@ -550,7 +550,7 @@ export function SiteCard({ host }: { host: string }) {
       <Logo dark={false} />
       <div style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 36 }}>
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 26 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', fontFamily: 'Fraunces', fontWeight: 600, fontSize: 60, lineHeight: 1.06, letterSpacing: -1.2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', fontFamily: 'Wishful', fontWeight: 600, fontSize: 60, lineHeight: 1.06, letterSpacing: -1.2 }}>
             <span>{taglineParts[0].trim()}</span>
             <span style={{ color: ACCENT }}>{taglineParts[1]}</span>
           </div>
@@ -659,7 +659,7 @@ export function BoxLabelCard(d: BoxLabelData) {
       </div>
       <div style={{ height: 22, background: d.color, display: 'flex' }} />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, padding: '34px 70px 40px', gap: 18 }}>
-        <div style={{ display: 'flex', fontFamily: 'Fraunces', fontWeight: 600, fontSize: name.length > 30 ? 56 : 72, lineHeight: 1.05, letterSpacing: -1, textAlign: 'center' }}>
+        <div style={{ display: 'flex', fontFamily: 'Wishful', fontWeight: 600, fontSize: name.length > 30 ? 56 : 72, lineHeight: 1.05, letterSpacing: -1, textAlign: 'center' }}>
           {name}
         </div>
         {room && (

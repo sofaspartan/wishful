@@ -7,6 +7,8 @@ import {
   entryUpdateSchema,
   moveEntrySchema,
   orderSchema,
+  taskCreateSchema,
+  taskUpdateSchema,
   wishlistCreateSchema,
   wishlistUpdateSchema,
   type WishlistCreateInput,
@@ -20,9 +22,11 @@ import { sendEmail } from '../services/email';
 import { rateLimit } from '../services/rateLimit';
 import { toSelfUser } from '../serialize';
 import { appUrl, nowIso, sha256 } from '../util';
-import { isCollection } from '../../shared/constants';
+import { isCollection, isTaskList } from '../../shared/constants';
 import {
+  addTask,
   applyCollectionRules,
+  applyTaskListRules,
   createWishlist,
   deleteWishlist,
   disableShareLink,
@@ -34,10 +38,12 @@ import {
   listSharedWishlists,
   mutateWishlist,
   regenerateShareToken,
+  removeTask,
   reorderOwnedWishlists,
   requireWishlistAccess,
   resolveListRecipients,
   summarize,
+  updateTask,
   unlinkRecipient,
 } from '../domain/wishlists';
 import { addEntry, getItem, noteCollaboratorEdit, removeEntry, syncedItemConflict } from '../domain/items';
@@ -53,6 +59,7 @@ function toWishlistDto(w: WishlistRecord, role: AccessRole): Wishlist {
     ...rest,
     kind: w.kind ?? 'wishlist',
     entries: w.entries.map((e) => ({ ...e, alreadyHaveItemIds: e.alreadyHaveItemIds ?? [] })),
+    tasks: isTaskList(w) ? (w.tasks ?? []) : undefined,
     shareToken: role === 'owner' || w.visibility !== 'private' ? w.shareToken : null,
     pendingInvites: role === 'owner' ? w.pendingInvites : [],
   };
@@ -267,6 +274,7 @@ export function registerWishlistRoutes(router: Router) {
       if (input.cashFund !== undefined) w.cashFund = input.cashFund;
       if (input.archived !== undefined) w.archivedAt = input.archived ? (w.archivedAt ?? nowIso()) : null;
       applyCollectionRules(w);
+      applyTaskListRules(w);
     });
     updated = await applyRecipients(updated, user, recipients, targets, input.includeOwner);
     // A list that becomes shareable needs a link.
@@ -302,11 +310,59 @@ export function registerWishlistRoutes(router: Router) {
     return json({ shareToken: null });
   });
 
+  // ── Tasks (list / checklist / todo text rows) ──────────────────────────────
+
+  router.post('/api/wishlists/:id/tasks', async (ctx) => {
+    const user = await requireUser(ctx);
+    const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'editor');
+    if (!isTaskList(wishlist)) throw badRequest('Only lists, checklists, and to-dos use text rows.');
+    const input = await readJson(ctx.req, taskCreateSchema);
+    const task = await addTask(wishlist.id, user.id, input);
+    await noteCollaboratorEdit(wishlist, user);
+    return json({ task }, 201);
+  });
+
+  router.put('/api/wishlists/:id/tasks/order', async (ctx) => {
+    const user = await requireUser(ctx);
+    const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'editor');
+    if (!isTaskList(wishlist)) throw badRequest('Only lists, checklists, and to-dos use text rows.');
+    const { ids } = await readJson(ctx.req, orderSchema);
+    await mutateWishlist(wishlist.id, (w) => {
+      const byId = new Map((w.tasks ?? []).map((t) => [t.id, t]));
+      if (ids.length !== byId.size || !ids.every((id) => byId.has(id))) {
+        throw conflict('This list changed while you were reordering — refresh and try again.', 'stale_order');
+      }
+      w.tasks = ids.map((id) => byId.get(id)!);
+    });
+    await noteCollaboratorEdit(wishlist, user);
+    return json({ ok: true });
+  });
+
+  router.patch('/api/wishlists/:id/tasks/:taskId', async (ctx) => {
+    const user = await requireUser(ctx);
+    const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'editor');
+    if (!isTaskList(wishlist)) throw badRequest('Only lists, checklists, and to-dos use text rows.');
+    const input = await readJson(ctx.req, taskUpdateSchema);
+    const task = await updateTask(wishlist.id, ctx.params.taskId, input);
+    await noteCollaboratorEdit(wishlist, user);
+    return json({ task });
+  });
+
+  router.delete('/api/wishlists/:id/tasks/:taskId', async (ctx) => {
+    const user = await requireUser(ctx);
+    const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'editor');
+    if (!isTaskList(wishlist)) throw badRequest('Only lists, checklists, and to-dos use text rows.');
+    await removeTask(wishlist.id, ctx.params.taskId);
+    await noteCollaboratorEdit(wishlist, user);
+    return json({ ok: true });
+  });
+
   // ── Entries (wishlist ↔ item relationship) ────────────────────────────────
 
   router.post('/api/wishlists/:id/entries', async (ctx) => {
     const user = await requireUser(ctx);
     const { wishlist } = await requireWishlistAccess(ctx.params.id, user, 'editor');
+    if (isTaskList(wishlist)) throw badRequest('Add text rows on this list, not catalog items.');
     const input = await readJson(ctx.req, entryCreateSchema);
     const item = await getItem(input.itemId);
     if (!item || item.ownerId !== wishlist.ownerId) throw notFound('Item not found.');

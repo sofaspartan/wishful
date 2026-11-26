@@ -439,6 +439,15 @@ export const wishlistUpdateSchema = z
 
 export const orderSchema = z.object({ ids: z.array(idSchema).max(5000) });
 
+export const taskCreateSchema = z.object({
+  text: z.string().trim().min(1, 'Write something').max(LIMITS.title),
+});
+
+export const taskUpdateSchema = z.object({
+  text: z.string().trim().min(1, 'Write something').max(LIMITS.title).optional(),
+  done: z.boolean().optional(),
+});
+
 export const entryCreateSchema = z.object({
   itemId: idSchema,
   priority: prioritySchema.nullable().optional(),
@@ -625,6 +634,8 @@ export type OwnershipInput = z.infer<typeof ownershipSchema>;
 export type GotItInput = z.infer<typeof gotItSchema>;
 export type WishlistCreateInput = z.infer<typeof wishlistCreateSchema>;
 export type WishlistUpdateInput = z.infer<typeof wishlistUpdateSchema>;
+export type TaskCreateInput = z.infer<typeof taskCreateSchema>;
+export type TaskUpdateInput = z.infer<typeof taskUpdateSchema>;
 export type BoxCreateInput = z.infer<typeof boxCreateSchema>;
 export type BoxUpdateInput = z.infer<typeof boxUpdateSchema>;
 

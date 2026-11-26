@@ -9,7 +9,7 @@ import { importList } from '../services/listImport';
 import { UnsafeUrlError } from '../services/safeFetch';
 import { listNotifications, markRead } from '../services/notifications';
 import { emailConfigured } from '../services/email';
-import { searchProductFromImage, visionConfigured } from '../services/productImageSearch';
+import { extractTextFromImage, visionConfigured } from '../services/imageOcr';
 import { newId, nowIso } from '../util';
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
@@ -36,8 +36,8 @@ export function registerMiscRoutes(router: Router) {
     }),
   );
 
-  /** Photo → Vision Web Detection → metadata shortlist. Body is raw image bytes (same as /api/images). */
-  router.post('/api/vision/product', async (ctx) => {
+  /** Photo → Vision OCR → text + suggested title. Body is raw image bytes (same as /api/images). */
+  router.post('/api/vision/text', async (ctx) => {
     const user = await requireUser(ctx);
     await rateLimit('vision', user.id);
     const declared = Number(ctx.req.headers.get('content-length') || 0);
@@ -46,7 +46,7 @@ export function registerMiscRoutes(router: Router) {
     if (buf.byteLength === 0) throw badRequest('No image was uploaded.');
     if (buf.byteLength > LIMITS.imageBytes) throw new HttpError(413, 'Images must be 5 MB or smaller.', 'too_large');
     if (!sniffImageType(buf)) throw badRequest('Please upload a JPEG, PNG, WebP or GIF image.');
-    return json(await searchProductFromImage(buf));
+    return json(await extractTextFromImage(buf));
   });
 
   router.post('/api/images', async (ctx) => {

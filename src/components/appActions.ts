@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { ListKind, Wishlist } from '../../shared/types';
 
-export type AddItemMode = 'link' | 'idea' | 'upload' | 'bulk' | 'barcode';
+export type AddItemMode = 'link' | 'idea' | 'upload' | 'bulk' | 'barcode' | 'listScan';
 
 export interface AddItemOptions {
   mode?: AddItemMode;

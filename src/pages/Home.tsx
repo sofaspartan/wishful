@@ -129,22 +129,22 @@ export default function Home() {
           <section className="home-hub-hero tile tile-sky">
             <SkyArt scene="hello" className="tile-sky-scene home-hub-sky-scene" />
             <div className="tile-sky-copy home-hub-hero-copy">
-              <p className="tile-sky-date">{today}</p>
-              <h1 className="display">
+              <p className="home-hub-hero-greeting">
                 {greeting()}
                 {firstName && (
                   <>
                     , <span className="tile-sky-name">{firstName}</span>
                   </>
                 )}
-              </h1>
+              </p>
               <div className="home-hub-hero-actions">
+                <h1 className="display home-hub-hero-prompt">Let&apos;s start something...</h1>
                 <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'link' })}>
                   <span className="art-icon" aria-hidden>
                     {FEATURE_ILLUSTRATIONS.store}
                   </span>
                   <span className="home-hub-hero-cta-copy">
-                    <strong>Drop link</strong>
+                    <strong>Via URL</strong>
                     <span>Paste a product URL</span>
                   </span>
                   <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
@@ -154,8 +154,18 @@ export default function Home() {
                     {FEATURE_ILLUSTRATIONS.camera}
                   </span>
                   <span className="home-hub-hero-cta-copy">
-                    <strong>Via photo</strong>
+                    <strong>Via Photo</strong>
                     <span>Camera, scan, or upload</span>
+                  </span>
+                  <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
+                </button>
+                <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'listScan' })}>
+                  <span className="art-icon" aria-hidden>
+                    {FEATURE_ILLUSTRATIONS.tasks}
+                  </span>
+                  <span className="home-hub-hero-cta-copy">
+                    <strong>Via Written List</strong>
+                    <span>Photo a list — each line becomes an item</span>
                   </span>
                   <ArrowRight size={18} className="home-hub-cta-arrow" aria-hidden />
                 </button>

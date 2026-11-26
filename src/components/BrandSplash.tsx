@@ -8,33 +8,54 @@ function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-/** One-shot cloud mark intro on first open this session. */
+async function ensureWishfulFont() {
+  if (typeof document === 'undefined' || !document.fonts?.load) return;
+  try {
+    await Promise.race([
+      document.fonts.load("600 48px Wishful"),
+      new Promise<void>((resolve) => window.setTimeout(resolve, 400)),
+    ]);
+  } catch {
+    /* fall through with fallback stack */
+  }
+}
+
+/** One-shot cloud mark + Wishful wordmark intro on first open this session. */
 export function BrandSplash() {
-  const [show, setShow] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    if (prefersReducedMotion()) return false;
-    try {
-      return sessionStorage.getItem(SPLASH_KEY) !== '1';
-    } catch {
-      return false;
-    }
-  });
+  const [show, setShow] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    if (!show) return;
+    if (prefersReducedMotion()) return;
     try {
-      sessionStorage.setItem(SPLASH_KEY, '1');
+      if (sessionStorage.getItem(SPLASH_KEY) === '1') return;
     } catch {
-      /* ignore */
+      return;
     }
-    const leaveAt = window.setTimeout(() => setLeaving(true), 1100);
-    const hideAt = window.setTimeout(() => setShow(false), 1500);
+
+    let cancelled = false;
+    let leaveAt = 0;
+    let hideAt = 0;
+
+    void (async () => {
+      await ensureWishfulFont();
+      if (cancelled) return;
+      try {
+        sessionStorage.setItem(SPLASH_KEY, '1');
+      } catch {
+        /* ignore */
+      }
+      setShow(true);
+      leaveAt = window.setTimeout(() => setLeaving(true), 1100);
+      hideAt = window.setTimeout(() => setShow(false), 1500);
+    })();
+
     return () => {
+      cancelled = true;
       window.clearTimeout(leaveAt);
       window.clearTimeout(hideAt);
     };
-  }, [show]);
+  }, []);
 
   if (!show) return null;
 
@@ -43,7 +64,7 @@ export function BrandSplash() {
       <div className="brand-splash-mark play">
         <BrandMarkSvg />
       </div>
-      <span className="brand-splash-word">{brand.name}</span>
+      <span className="brand-splash-word display">{brand.name}</span>
     </div>
   );
 }

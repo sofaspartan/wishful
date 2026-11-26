@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ChevronDown, Globe, ImagePlus, Plus, ScanBarcode, Sparkles, Wand2 } from 'lucide-react';
 import type { BarcodeProduct } from '../../shared/barcode';
 import type { Item, ItemType, Priority, UrlMetadata, WishlistSummary } from '../../shared/types';
-import { PRIORITY_LABELS } from '../../shared/constants';
+import { LIMITS, PRIORITY_LABELS } from '../../shared/constants';
 import { isHttpUrl } from '../../shared/schemas';
 import { useMe, useSharedWishlists, useWishlists, useInvalidate } from '../lib/queries';
 import { api, errorMessage, fieldErrors, get, post } from '../lib/api';
 import { brand } from '../config/brand';
 import { prepareImage, uploadImage } from '../lib/images';
+import { parseBulkText } from '../lib/bulkText';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { FormError, FormNote } from './ui/Field';
@@ -17,7 +18,6 @@ import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { useToast } from './ui/Toast';
 import { BarcodeScanner } from './BarcodeScanner';
 import { CameraCapture } from './CameraCapture';
-import { ItemImage } from './ItemVisuals';
 import { ItemFormFields, draftToInput, emptyDraft, mapItemErrors, validateDraft, type ItemDraft } from './ItemForm';
 import type { AddItemMode, AddItemOptions } from './appActions';
 import { BulkPaste, BulkReview, bulkRowErrors, bulkRowToInput, useBulkRows } from './BulkAdd';
@@ -27,7 +27,6 @@ import { buildImport, CSV_FIELDS, guessMapping, importBatches, limitRows, type C
 import { applyPreset, defaultFilter, detectPreset, presetCounts, type CsvPreset } from '../lib/csvPresets';
 import type { Wishlist } from '../../shared/types';
 import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
-import { formatPrice } from '../lib/format';
 
 const ADD_MODES: { value: AddItemMode; label: string; icon: ReactNode }[] = [
   { value: 'link', label: 'Link', icon: FEATURE_ILLUSTRATIONS.store },
@@ -35,10 +34,11 @@ const ADD_MODES: { value: AddItemMode; label: string; icon: ReactNode }[] = [
   { value: 'idea', label: 'Idea', icon: FEATURE_ILLUSTRATIONS.idea },
   { value: 'upload', label: 'Photo', icon: FEATURE_ILLUSTRATIONS.camera },
   { value: 'bulk', label: 'Several', icon: FEATURE_ILLUSTRATIONS.lists },
+  { value: 'listScan', label: 'List', icon: FEATURE_ILLUSTRATIONS.tasks },
 ];
 
 const CAPTURE_MODES: AddItemMode[] = ['upload', 'barcode'];
-const MORE_MODES: AddItemMode[] = ['idea', 'bulk'];
+const MORE_MODES: AddItemMode[] = ['idea', 'bulk', 'listScan'];
 const MORE_ENTRY_TYPES: { type: ItemType; label: string; icon: ReactNode }[] = [
   { type: 'product', label: 'Product', icon: FEATURE_ILLUSTRATIONS.store },
   { type: 'experience', label: 'Experience', icon: FEATURE_ILLUSTRATIONS.tickets },
@@ -46,10 +46,17 @@ const MORE_ENTRY_TYPES: { type: ItemType; label: string; icon: ReactNode }[] = [
   { type: 'gift_card', label: 'Gift card', icon: FEATURE_ILLUSTRATIONS.giftCard },
   { type: 'custom', label: 'Something else', icon: FEATURE_ILLUSTRATIONS.barcode },
 ];
-type CaptureTab = 'photo' | 'barcode' | 'lens';
+type CaptureTab = 'photo' | 'barcode' | 'text';
 
 function entryTypeLabel(type: ItemType): string {
   return MORE_ENTRY_TYPES.find((t) => t.type === type)?.label ?? 'Idea';
+}
+
+function moreModeLabel(mode: AddItemMode, itemType: ItemType): string {
+  if (mode === 'listScan') return 'Scan list';
+  if (mode === 'bulk') return 'Several';
+  if (mode === 'idea') return entryTypeLabel(itemType);
+  return 'More';
 }
 
 function AddModeSwitch({
@@ -65,7 +72,7 @@ function AddModeSwitch({
 }) {
   const captureOn = CAPTURE_MODES.includes(mode);
   const moreOn = MORE_MODES.includes(mode);
-  const moreLabel = mode === 'bulk' ? 'Several' : mode === 'idea' ? entryTypeLabel(itemType) : 'More';
+  const moreLabel = moreModeLabel(mode, itemType);
 
   return (
     <>
@@ -138,6 +145,12 @@ function AddModeSwitch({
           ))}
           <MenuSeparator />
           <MenuItem
+            icon={<span className="art-icon art-icon-tab">{FEATURE_ILLUSTRATIONS.tasks}</span>}
+            onSelect={() => onChange('listScan')}
+          >
+            Scan list
+          </MenuItem>
+          <MenuItem
             icon={<span className="art-icon art-icon-tab">{FEATURE_ILLUSTRATIONS.lists}</span>}
             onSelect={() => onChange('bulk')}
           >
@@ -148,12 +161,6 @@ function AddModeSwitch({
     </>
   );
 }
-
-type VisionCandidate = {
-  url: string;
-  score: number;
-  metadata: UrlMetadata | null;
-};
 
 const BARCODE_SOURCE_LABELS: Record<string, string> = {
   openfoodfacts: 'Open Food Facts',
@@ -167,7 +174,7 @@ interface Props {
   onCreateWishlist: (opts: { onCreated?: (w: Wishlist) => void }) => void;
 }
 
-type Step = 'start' | 'details' | 'photo-matches' | 'review' | 'csv' | 'website' | 'website-review';
+type Step = 'start' | 'details' | 'review' | 'csv' | 'website' | 'website-review';
 
 /**
  * The Add Item workflow: paste a link (with automatic detail extraction),
@@ -198,8 +205,6 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [visionCandidates, setVisionCandidates] = useState<VisionCandidate[]>([]);
-  const [visionMessage, setVisionMessage] = useState<string | null>(null);
   const [barcodeMiss, setBarcodeMiss] = useState(false);
   const fetchSeq = useRef(0);
   const barcodeBusy = useRef(false);
@@ -255,8 +260,6 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     setPriority('none');
     setErrors({});
     setFormError(null);
-    setVisionCandidates([]);
-    setVisionMessage(null);
     setBarcodeMiss(false);
     setBulkText('');
     setBulkErrors({});
@@ -365,27 +368,10 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     }
   }, []);
 
-  const applyVisionMeta = (meta: UrlMetadata, imageUrl: string | null) => {
-    setDraft((d) => ({
-      ...d,
-      type: d.type === 'idea' || d.type === 'custom' ? 'product' : d.type,
-      title: meta.title || d.title,
-      description: meta.description || d.description,
-      imageUrl: meta.imageUrl || imageUrl || d.imageUrl,
-      externalUrl: meta.url || d.externalUrl,
-      retailer: meta.retailer || d.retailer,
-      brand: meta.brand || d.brand,
-      price: meta.price != null ? String(meta.price) : d.price,
-      currency: meta.currency || d.currency,
-    }));
-  };
-
-  /** Camera tab: keep the photo and continue to details (no Vision). */
+  /** Camera tab: keep the photo and continue to details. */
   const attachPhoto = async (file: File) => {
     setFetching(true);
     setFormError(null);
-    setVisionCandidates([]);
-    setVisionMessage(null);
     try {
       const imageUrl = await uploadImage(file);
       setDraft((d) => ({ ...d, imageUrl, type: d.type === 'idea' ? 'product' : d.type }));
@@ -399,38 +385,36 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     }
   };
 
-  /** Lens tab: Google Cloud Vision Web Detection → match shortlist. */
-  const identifyFromPhoto = async (file: File) => {
+  /** Text tab: Vision OCR → prefill title + description from recognized text. */
+  const readTextFromPhoto = async (file: File) => {
     setFetching(true);
     setFormError(null);
-    setVisionCandidates([]);
-    setVisionMessage(null);
     try {
       const [imageUrl, blob] = await Promise.all([uploadImage(file), prepareImage(file)]);
       setDraft((d) => ({ ...d, imageUrl, type: d.type === 'idea' ? 'product' : d.type }));
       const result = await api<{
         configured: boolean;
-        candidates: VisionCandidate[];
-        message?: string;
+        text: string;
         suggestedTitle?: string;
-      }>('/api/vision/product', {
+        message?: string;
+      }>('/api/vision/text', {
         method: 'POST',
         raw: blob,
         contentType: blob.type || 'image/jpeg',
       });
-      if (result.suggestedTitle) {
-        setDraft((d) => ({ ...d, title: d.title.trim() ? d.title : result.suggestedTitle! }));
-      }
-      const usable = result.candidates.filter((c) => c.metadata && (c.metadata.title || c.metadata.extracted));
-      if (usable.length) {
-        setVisionCandidates(usable);
-        setVisionMessage(result.message ?? null);
-        setStep('photo-matches');
-      } else {
-        setExtractNote(result.message ?? 'Couldn’t identify a product — check the photo and fill in the details.');
-        setExtractHelp({ blocked: false, noPhoto: false });
-        setStep('details');
-      }
+      setDraft((d) => {
+        const title = d.title.trim() ? d.title : result.suggestedTitle || d.title;
+        const description =
+          d.description.trim() || !result.text
+            ? d.description
+            : result.suggestedTitle && result.text.startsWith(result.suggestedTitle)
+              ? result.text.slice(result.suggestedTitle.length).replace(/^\s*\n+/, '').trim() || result.text
+              : result.text;
+        return { ...d, title, description };
+      });
+      setExtractNote(result.message ?? (result.text ? 'Pulled text from the photo.' : 'No text found — fill in the details.'));
+      setExtractHelp({ blocked: false, noPhoto: false });
+      setStep('details');
     } catch (err) {
       setExtractNote(`${errorMessage(err)} You can still save the photo and fill in the details.`);
       setExtractHelp({ blocked: false, noPhoto: false });
@@ -440,8 +424,45 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
     }
   };
 
+  /** Written-list capture: OCR → one bulk row per line → review. */
+  const readListFromPhoto = async (file: File) => {
+    setFetching(true);
+    setFormError(null);
+    setExtractNote(null);
+    try {
+      const blob = await prepareImage(file);
+      const result = await api<{
+        configured: boolean;
+        text: string;
+        message?: string;
+      }>('/api/vision/text', {
+        method: 'POST',
+        raw: blob,
+        contentType: blob.type || 'image/jpeg',
+      });
+      const lines = parseBulkText(result.text).slice(0, LIMITS.bulkItems);
+      if (!lines.length) {
+        setFormError(result.message ?? 'No list lines found. Try a clearer photo, or type the list instead.');
+        return;
+      }
+      setBulkText(result.text);
+      setBulkErrors({});
+      bulk.start(lines);
+      setExtractNote(`Found ${lines.length} entr${lines.length === 1 ? 'y' : 'ies'} — check them, then pick a list.`);
+      setStep('review');
+    } catch (err) {
+      setFormError(`${errorMessage(err)} Try again, or type the list instead.`);
+    } finally {
+      setFetching(false);
+    }
+  };
+
   const onCaptureFile = (file: File) => {
-    void (captureTab === 'lens' ? identifyFromPhoto(file) : attachPhoto(file));
+    if (mode === 'listScan') {
+      void readListFromPhoto(file);
+      return;
+    }
+    void (captureTab === 'text' ? readTextFromPhoto(file) : attachPhoto(file));
   };
 
   const fetchDetails = async (raw = url) => {
@@ -661,7 +682,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           <Button
             variant="ghost"
             icon={<ArrowLeft size={16} />}
-            onClick={() => setStep(visionCandidates.length ? 'photo-matches' : 'start')}
+            onClick={() => setStep('start')}
             className="hide-xs"
             style={{ marginRight: 'auto' }}
           >
@@ -673,20 +694,13 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           Save item
         </Button>
       </>
-    ) : step === 'photo-matches' ? (
-      <>
-        <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => setStep('start')} style={{ marginRight: 'auto' }}>
-          Back
-        </Button>
-        <Button onClick={onClose}>Cancel</Button>
-      </>
-    ) : step === 'start' && (mode === 'barcode' || mode === 'upload') && fetching ? (
+    ) : step === 'start' && (mode === 'barcode' || mode === 'upload' || mode === 'listScan') && fetching ? (
       <>
         <Button onClick={onClose} disabled>
           Cancel
         </Button>
         <Button variant="primary" loading>
-          Looking up…
+          {mode === 'listScan' ? 'Reading list…' : 'Looking up…'}
         </Button>
       </>
     ) : step === 'start' && mode === 'link' ? (
@@ -727,6 +741,41 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
           <AddModeSwitch mode={mode} itemType={draft.type} onChange={switchMode} onSelectType={selectEntryType} />
         )}
 
+        {step === 'start' && mode === 'listScan' && (
+          <div className="capture-stage">
+            <div className="capture-stage-main capture-shell">
+              <FormError message={formError} />
+              {fetching ? (
+                <FormNote icon={<Sparkles size={16} aria-hidden />}>Reading each line from the photo…</FormNote>
+              ) : (
+                <CameraCapture
+                  active={open && step === 'start' && mode === 'listScan'}
+                  disabled={fetching || uploading}
+                  variant="list"
+                  onCapture={onCaptureFile}
+                  onUpload={onCaptureFile}
+                />
+              )}
+            </div>
+            {!fetching && (
+              <div className="capture-stage-actions">
+                <button
+                  type="button"
+                  className="capture-continue-link"
+                  onClick={() => {
+                    setFormError(null);
+                    setMode('bulk');
+                    setStep('start');
+                  }}
+                >
+                  Type or paste the list instead
+                  <ArrowRight size={14} aria-hidden />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {step === 'start' && (mode === 'barcode' || mode === 'upload') && (
           <div className="capture-stage">
             <div className="capture-stage-main capture-shell">
@@ -736,7 +785,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                   icon={
                     captureTab === 'barcode' ? (
                       <ScanBarcode size={16} aria-hidden />
-                    ) : captureTab === 'lens' ? (
+                    ) : captureTab === 'text' ? (
                       <Sparkles size={16} aria-hidden />
                     ) : (
                       <ImagePlus size={16} aria-hidden />
@@ -745,8 +794,8 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                 >
                   {captureTab === 'barcode'
                     ? 'Looking up that barcode…'
-                    : captureTab === 'lens'
-                      ? 'Searching with Lens…'
+                    : captureTab === 'text'
+                      ? 'Reading text from the photo…'
                       : 'Saving your photo…'}
                 </FormNote>
               ) : barcodeMiss ? (
@@ -783,9 +832,9 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                 <BarcodeScanner active={open && step === 'start' && captureTab === 'barcode'} onDetected={(code) => void lookupFromBarcode(code)} />
               ) : (
                 <CameraCapture
-                  active={open && step === 'start' && (captureTab === 'photo' || captureTab === 'lens')}
+                  active={open && step === 'start' && (captureTab === 'photo' || captureTab === 'text')}
                   disabled={fetching || uploading}
-                  variant={captureTab === 'lens' ? 'lens' : 'camera'}
+                  variant={captureTab === 'text' ? 'text' : 'camera'}
                   onCapture={onCaptureFile}
                   onUpload={onCaptureFile}
                 />
@@ -798,7 +847,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                     [
                       { id: 'photo' as const, label: 'Camera', icon: FEATURE_ILLUSTRATIONS.camera },
                       { id: 'barcode' as const, label: 'Scan', icon: FEATURE_ILLUSTRATIONS.barcode },
-                      { id: 'lens' as const, label: 'Lens', icon: FEATURE_ILLUSTRATIONS.lens },
+                      { id: 'text' as const, label: 'Text', icon: FEATURE_ILLUSTRATIONS.text },
                     ] as const
                   ).map((tab) => {
                     const selected = captureTab === tab.id;
@@ -825,7 +874,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
                   onClick={() => setStep('details')}
                   disabled={uploading}
                 >
-                  {captureTab === 'lens' ? 'Continue without search' : 'Continue without image'}
+                  {captureTab === 'text' ? 'Continue without scan' : 'Continue without image'}
                   <ArrowRight size={14} aria-hidden />
                 </button>
               </div>
@@ -994,6 +1043,7 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
         {step === 'review' && (
           <form id="bulk-add-form" className="stack" onSubmit={saveBulk} noValidate>
             <FormError message={formError} />
+            {extractNote && mode === 'listScan' ? <FormNote icon={<Sparkles size={16} aria-hidden />}>{extractNote}</FormNote> : null}
             <BulkReview
               rows={bulk.rows}
               errors={bulkErrors}
@@ -1003,7 +1053,11 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
               }}
               onRemove={(key) => bulk.setRows((rs) => rs.filter((r) => r.key !== key))}
             />
-            {bulk.rows.length === 0 && <p className="muted text-sm">Nothing left to add. Go back to paste more.</p>}
+            {bulk.rows.length === 0 && (
+              <p className="muted text-sm">
+                {mode === 'listScan' ? 'Nothing left to add. Go back to photograph the list again.' : 'Nothing left to add. Go back to paste more.'}
+              </p>
+            )}
             <hr className="divider" />
             <Destinations
               options={options}
@@ -1017,55 +1071,6 @@ export function AddItemModal({ options, onClose, onCreateWishlist }: Props) {
               hintSome="Every item goes on each list you pick."
             />
           </form>
-        )}
-
-        {step === 'photo-matches' && (
-          <div className="stack">
-            <FormError message={formError} />
-            {visionMessage && <FormNote>{visionMessage}</FormNote>}
-            <p className="muted text-sm" style={{ margin: 0 }}>
-              Lens found these matches — pick one, or keep your photo and enter details yourself.
-            </p>
-            <div className="vision-matches">
-              {visionCandidates.map((c) => {
-                const meta = c.metadata!;
-                const price = formatPrice(meta.price, meta.currency || draft.currency);
-                return (
-                  <button
-                    key={c.url}
-                    type="button"
-                    className="vision-match"
-                    onClick={() => {
-                      applyVisionMeta(meta, draft.imageUrl);
-                      setExtractNote('Matched from your photo. Check the details, then save.');
-                      setExtractHelp({ blocked: false, noPhoto: !meta.imageUrl && !draft.imageUrl });
-                      setStep('details');
-                    }}
-                  >
-                    <span className="vision-match-thumb" aria-hidden>
-                      <ItemImage src={meta.imageUrl || draft.imageUrl} type="product" iconSize={18} />
-                    </span>
-                    <span className="vision-match-body">
-                      <strong className="clamp-2">{meta.title || meta.url}</strong>
-                      <span className="muted text-xs truncate">
-                        {[meta.retailer, price].filter(Boolean).join(' · ') || meta.url}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setExtractNote('Keeping your photo — add a name and any other details.');
-                setStep('details');
-              }}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              Use photo only
-            </Button>
-          </div>
         )}
 
         {step === 'details' && (

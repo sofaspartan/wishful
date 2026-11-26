@@ -24,7 +24,7 @@ const siteUrl = (process.env.WISHFUL_URL || (dev ? 'http://localhost:5174' : pro
 const site = new URL(siteUrl);
 const outDir = path.join(root, dev ? 'dist-dev' : 'dist');
 const define = { __WISHFUL_URL__: JSON.stringify(siteUrl) };
-const VERSION = '0.1.4';
+const VERSION = '0.1.5';
 
 await build({
   root,
@@ -59,6 +59,19 @@ await build({
   },
 });
 
+await build({
+  root,
+  configFile: false,
+  logLevel: 'warn',
+  define: { ...define, 'process.env.NODE_ENV': JSON.stringify('production') },
+  publicDir: false,
+  build: {
+    outDir,
+    emptyOutDir: false,
+    lib: { entry: path.join(root, 'src/background.ts'), formats: ['iife'], name: 'WishfulBackground', fileName: () => 'background.js' },
+  },
+});
+
 // Match patterns ignore ports, so the dev build also works on any localhost port.
 const origin = `${site.protocol}//${site.hostname}`;
 const icons = { 16: 'icons/icon-16.png', 32: 'icons/icon-32.png', 48: 'icons/icon-48.png', 128: 'icons/icon-128.png' };
@@ -70,7 +83,9 @@ const manifest = {
   description: 'Save products from any store to your Wishful wishlists and collections in one click.',
   icons,
   action: { default_popup: 'popup.html', default_title: 'Save to Wishful', default_icon: icons },
-  permissions: ['activeTab', 'scripting', 'storage'],
+  background: { service_worker: 'background.js' },
+  side_panel: { default_path: 'popup.html' },
+  permissions: ['activeTab', 'scripting', 'storage', 'sidePanel'],
   host_permissions: [`${origin}/*`],
   content_scripts: [{ matches: [`${origin}/extension/connect*`], js: ['connect.js'], run_at: 'document_start' }],
 };

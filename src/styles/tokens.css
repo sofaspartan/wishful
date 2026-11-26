@@ -3,7 +3,7 @@
    ───────────────────────────────────────────────────────────────────────── */
 :root {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Fraunces Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-display: 'Wishful', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
 
   /* Visual centre of the Cloud shape within its 200×110 box (see components/Cloud.tsx). */
   --cloud-cx: 53%;
@@ -282,12 +282,15 @@ button {
   color: var(--accent-ink);
 }
 
-/* Fraunces with the SOFT axis maxed out: rounded, marshmallowy serifs. */
+/* Wishful: soft logo-matched blob lettering for headlines.
+   Optical box (cap → alphabetic) instead of metric ascent/descent leading. */
 .display {
   font-family: var(--font-display);
   font-weight: 600;
-  font-variation-settings: 'SOFT' 100;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.05em;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  text-box: trim-both cap alphabetic;
 }
 
 .sr-only {

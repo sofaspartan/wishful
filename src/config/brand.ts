@@ -18,7 +18,7 @@ export const brand = {
     accentInk: '#1f4ea6',
   },
   fonts: {
-    display: "'Fraunces Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif",
+    display: "'Wishful', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif",
     sans: "'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
   },
 } as const;

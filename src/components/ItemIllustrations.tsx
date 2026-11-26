@@ -16,6 +16,16 @@ function Svg({ children }: { children: ReactNode }) {
   );
 }
 
+/** Classic 5-point star (same geometry as the cover-art “smiley” star). */
+function starPath(cx: number, cy: number, outer: number, inner: number): string {
+  const pts = Array.from({ length: 10 }, (_, i) => {
+    const r = i % 2 ? inner : outer;
+    const a = ((-90 + i * 36) * Math.PI) / 180;
+    return `${(cx + r * Math.cos(a)).toFixed(2)} ${(cy + r * Math.sin(a)).toFixed(2)}`;
+  });
+  return `M${pts.join('L')}Z`;
+}
+
 const Camera = (
   <Svg>
     <path d="M16 14l2.5-4.5h11L32 14z" fill={INK} />
@@ -220,17 +230,20 @@ const BarcodeScan = (
   </Svg>
 );
 
+/** Stacked wish cards with a plain star at bottom-right — used anywhere “wishlist” is illustrated. */
 const StackedLists = (
   <Svg>
-    <rect className="fa-card-back" x="14" y="5" width="24" height="30" rx="4" fill="#f2c14e" />
-    <rect className="fa-card-mid" x="11" y="9" width="25" height="31" rx="4" fill="#7c6cf0" />
-    <rect x="10" y="12" width="26" height="31" rx="4" fill="#fff" stroke="#e3e6ec" strokeWidth="1.5" />
-    <rect x="14" y="17" width="5" height="5" rx="1.5" fill="#e8745b" />
-    <rect className="fa-bar" x="21" y="18.2" width="11" height="2.6" rx="1.3" fill="#c9ced8" />
-    <rect x="14" y="25" width="5" height="5" rx="1.5" fill="#4fa3a5" />
-    <rect className="fa-bar fa-bar-2" x="21" y="26.2" width="9" height="2.6" rx="1.3" fill="#c9ced8" />
-    <rect x="14" y="33" width="5" height="5" rx="1.5" fill="#3f6fb5" />
-    <rect className="fa-bar fa-bar-3" x="21" y="34.2" width="10" height="2.6" rx="1.3" fill="#c9ced8" />
+    <rect className="fa-card-back" x="10" y="6" width="22" height="28" rx="4" fill="#f2c14e" />
+    <rect className="fa-card-mid" x="7" y="10" width="23" height="29" rx="4" fill="#7c6cf0" />
+    <rect x="6" y="13" width="24" height="29" rx="4" fill="#fff" stroke="#e3e6ec" strokeWidth="1.5" />
+    <rect x="10" y="18" width="4.5" height="4.5" rx="1.3" fill="#e8745b" />
+    <rect className="fa-bar" x="16.5" y="19.1" width="9" height="2.3" rx="1.1" fill="#c9ced8" />
+    <rect x="10" y="25.5" width="4.5" height="4.5" rx="1.3" fill="#4fa3a5" />
+    <rect className="fa-bar fa-bar-2" x="16.5" y="26.6" width="7.5" height="2.3" rx="1.1" fill="#c9ced8" />
+    <rect x="10" y="33" width="4.5" height="4.5" rx="1.3" fill="#3f6fb5" />
+    <rect className="fa-bar fa-bar-3" x="16.5" y="34.1" width="8.5" height="2.3" rx="1.1" fill="#c9ced8" />
+    {/* Cover-art style star — slightly smaller, bottom-right of the stack. */}
+    <path d={starPath(32.5, 36, 11, 4.8)} fill="#f6c443" strokeLinejoin="round" stroke="#f6c443" strokeWidth="2.5" />
   </Svg>
 );
 
@@ -386,16 +399,47 @@ const ScannedBox = (
   </Svg>
 );
 
-/** Magnifying glass over a photo — Lens / Vision product search. */
-const LensSearch = (
+/** Typography “Aa” — image-to-text / OCR. */
+const TextScan = (
   <Svg>
-    <rect x="5" y="10" width="28" height="28" rx="5" fill={INK} />
-    <rect x="8" y="13" width="22" height="16" rx="2" fill="#eef1f5" />
-    <path d="M10 27l5.5-7 4 5 3-3.5 5.5 5.5" fill="#5b7bb5" />
-    <circle cx="14" cy="18" r="2.2" fill="#f2c14e" />
-    <circle cx="33.5" cy="33.5" r="9.5" fill="#4fa3a5" stroke={INK} strokeWidth="2" />
-    <circle cx="33.5" cy="33.5" r="5.2" fill="#eef1f5" />
-    <path d="M40.2 40.2L45 45" stroke={INK} strokeWidth="3.2" strokeLinecap="round" />
+    <text
+      x="5"
+      y="34"
+      fill={INK}
+      fontFamily="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
+      fontSize="28"
+      fontWeight="700"
+      dominantBaseline="alphabetic"
+    >
+      A
+    </text>
+    <text
+      x="24"
+      y="34"
+      fill={INK}
+      fontFamily="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
+      fontSize="28"
+      fontWeight="700"
+      dominantBaseline="alphabetic"
+    >
+      a
+    </text>
+  </Svg>
+);
+
+/** Single notepad with checkboxes — standard / checklist / to-do hub (distinct from stacked wishlist cards). */
+const ChecklistPad = (
+  <Svg>
+    <rect x="9" y="6" width="30" height="38" rx="5" fill="#5f9e6e" />
+    <rect x="12" y="10" width="24" height="30" rx="3" fill="#f4faf5" />
+    <rect x="20" y="6" width="8" height="5" rx="1.5" fill="#f2c14e" />
+    <rect x="15" y="16" width="5" height="5" rx="1.4" fill="#5f9e6e" />
+    <path d="M16.2 18.5l1.2 1.3 2.4-2.8" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="23" y="17.2" width="10" height="2.5" rx="1.2" fill="#b7d4bc" />
+    <rect x="15" y="25" width="5" height="5" rx="1.4" fill="#fff" stroke="#5f9e6e" strokeWidth="1.6" />
+    <rect x="23" y="26.2" width="11" height="2.5" rx="1.2" fill="#c9ced8" />
+    <circle cx="17.5" cy="36.5" r="2.6" fill="#fff" stroke="#7c6cf0" strokeWidth="1.6" />
+    <rect x="23" y="35.2" width="9" height="2.5" rx="1.2" fill="#c9ced8" />
   </Svg>
 );
 
@@ -410,7 +454,8 @@ export const FEATURE_ILLUSTRATIONS = {
   together: People,
   phone: Phone,
   camera: Camera,
-  lens: LensSearch,
+  text: TextScan,
+  tasks: ChecklistPad,
   idea: Lightbulb,
   collection: Shelf,
   boxes: ScannedBox,
