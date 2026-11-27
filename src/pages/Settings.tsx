@@ -162,7 +162,7 @@ export default function Settings() {
           {tab === 'account' && <AccountSection me={me} />}
         </div>
       </div>
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
     </div>
   );
 }

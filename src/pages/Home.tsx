@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Plus } from 'lucide-react';
 import type { Item, WishlistSummary } from '../../shared/types';
 import { joinNames } from '../../shared/constants';
-import { useItems, useMe, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
-import { countdownLabel, formatDate, formatPrice, greeting, parseDateOnly, relativeTime } from '../lib/format';
+import { useItems, useNotifications, useSharedWishlists, useWishlists } from '../lib/queries';
+import { countdownLabel, formatDate, formatPrice, parseDateOnly, relativeTime } from '../lib/format';
 import { useLocalPref } from '../lib/prefs';
 import { useCaptureHub } from '../lib/layoutMode';
 import { useAppActions } from '../components/appActions';
@@ -35,7 +35,6 @@ function hasStoredListsView(): boolean {
 }
 
 export default function Home() {
-  const { data: me } = useMe();
   const { data: lists, isLoading: listsLoading } = useWishlists();
   const { data: shared = [] } = useSharedWishlists();
   const { data: itemsData, isLoading: itemsLoading } = useItems();
@@ -66,7 +65,6 @@ export default function Home() {
       .slice(0, 4);
   }, [active, shared]);
 
-  const firstName = me?.displayName.split(' ')[0] ?? '';
   const loading = listsLoading || itemsLoading;
   const isNew = !loading && active.length === 0 && items.length === 0;
 
@@ -123,7 +121,7 @@ export default function Home() {
     return (
       <div className="page">
         <div className="home-hub">
-          <StartWishHero firstName={firstName} skyClassName="tile-sky-scene home-hub-sky-scene" />
+          <StartWishHero skyClassName="tile-sky-scene home-hub-sky-scene" />
 
           <div className="home-hub-ctas">
             <div className="home-hub-secondary">
@@ -168,7 +166,7 @@ export default function Home() {
 
           <div className="home-hub-lists bento">{listSections}</div>
         </div>
-        <div style={{ height: 'var(--s-12)' }} />
+        <div className="page-end-space" />
       </div>
     );
   }
@@ -176,7 +174,7 @@ export default function Home() {
   return (
     <div className="page">
       <div className="bento">
-        <StartWishHero firstName={firstName} className="span-4" skyClassName="tile-sky-scene" />
+        <StartWishHero className="span-4" skyClassName="tile-sky-scene" />
 
         <section className="tile span-4 tile-flush quick-actions-tile">
           <div className="tile-header">
@@ -254,8 +252,8 @@ export default function Home() {
         </section>
 
         {!isNew && (
-          <section className="tile span-4">
-            <TileHeader title="Recently added" icon={COVER_ICON_ART.sparkles} to="/app/items" linkLabel="Items" inline />
+          <section className="tile span-4 tile-flush">
+            <TileHeader title="Recently added" icon={COVER_ICON_ART.sparkles} to="/app/items" linkLabel="Items" />
             {itemsLoading ? (
               <div className="mini-items">
                 {Array.from({ length: 3 }, (_, i) => (
@@ -274,35 +272,30 @@ export default function Home() {
           </section>
         )}
       </div>
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
     </div>
   );
 }
 
 function StartWishHero({
-  firstName,
   className,
   skyClassName = 'tile-sky-scene',
 }: {
-  firstName: string;
   className?: string;
   skyClassName?: string;
 }) {
   const { openAddItem } = useAppActions();
   return (
-    <section className={['home-hub-hero', 'tile', 'tile-sky', className].filter(Boolean).join(' ')}>
+    <section className={['home-hub-hero', 'tile', 'tile-sky', 'tile-flush', className].filter(Boolean).join(' ')}>
+      <div className="tile-header">
+        <span className="tile-header-icon" aria-hidden>
+          {COVER_ICON_ART.sparkles}
+        </span>
+        <h2 className="tile-title">Start a wish</h2>
+      </div>
       <SkyArt scene="hello" className={skyClassName} />
       <div className="tile-sky-copy home-hub-hero-copy">
-        <p className="home-hub-hero-greeting">
-          {greeting()}
-          {firstName && (
-            <>
-              , <span className="tile-sky-name">{firstName}</span>
-            </>
-          )}
-        </p>
         <div className="home-hub-hero-actions">
-          <h1 className="display home-hub-hero-prompt">Start a wish</h1>
           <button type="button" className="home-hub-hero-cta" onClick={() => openAddItem({ mode: 'link' })}>
             <span className="art-icon" aria-hidden>
               {FEATURE_ILLUSTRATIONS.store}

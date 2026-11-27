@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, Check, Copy, Eye, EyeOff, Gift, HandHeart, Info, Link2Off, PartyPopper, Pencil, Search, ShoppingBag, UserRoundPlus, Users } from 'lucide-react';
-import { isDarkCover, type PublicEntry, type PublicWishlistView } from '../../shared/types';
+import { coverPaint, isDarkCover, type PublicEntry, type PublicWishlistView } from '../../shared/types';
 import { LIST_KIND_LABELS, PRIORITY_RANK, firstName as givenName, isTaskList, joinNames, possessiveNames, priorityLayout } from '../../shared/constants';
 import { TaskListPanel } from '../components/TaskListPanel';
 import { ListPeopleLinks } from '../components/WishlistCard';
@@ -18,7 +18,6 @@ import { Logo } from '../components/Logo';
 import { ItemCard, ItemCardSkeleton } from '../components/ItemCard';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { CollectionBadge, StatusBadge } from '../components/ItemVisuals';
-import { CloudBank } from '../components/Cloud';
 import { CoverArt, CoverAvatar, suggestCoverArt } from '../components/CoverArt';
 import { ThemedPage } from '../components/PageTheme';
 import { CollectionStats } from '../components/CollectionStats';
@@ -477,7 +476,12 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
 
       <section className="public-hero">
         <header
-          className={['wl-hero', 'public-wl-hero', !w.coverImage && isDarkCover(w.coverArt) && 'wl-hero-dark']
+          className={[
+            'wl-hero',
+            'public-wl-hero',
+            !w.coverImage && isDarkCover(w.coverArt) && 'wl-hero-dark',
+            !(w.coverArt && !w.coverImage && !coverPaint(w.coverArt) && w.coverArt.backdrop !== 'confetti') && 'wl-hero-no-bank',
+          ]
             .filter(Boolean)
             .join(' ')}
         >
@@ -485,9 +489,7 @@ function PublicListView({ view, token }: { view: PublicWishlistView; token: stri
             {!w.coverImage && w.coverArt ? (
               <CoverArt art={w.coverArt} showIcon={false} />
             ) : (
-              <div className="wl-hero-tint">
-                <CloudBank className="wl-hero-bank" />
-              </div>
+              <div className="wl-hero-tint" />
             )}
           </div>
           <div className="wl-hero-body">

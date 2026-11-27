@@ -992,16 +992,20 @@ textarea.input {
 
 /* List cover backdrops, matching .cover-bg-* in the app */
 .cover-bg-sky {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, var(--tint-base)) 0%, color-mix(in srgb, var(--accent) 9%, var(--tint-base)) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 62%, #8ebef0) 0%,
+    color-mix(in srgb, var(--accent) 28%, #d7e8fb) 100%
+  );
 }
 .cover-bg-blush {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--blush) 26%, var(--tint-base)) 0%, color-mix(in srgb, var(--blush) 10%, var(--tint-base)) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--blush, #e8a090) 72%, #f6cfc4) 0%, #fde8e0 100%);
 }
 .cover-bg-mint {
-  background: linear-gradient(180deg, color-mix(in srgb, #5f9e6e 26%, var(--tint-base)) 0%, color-mix(in srgb, #5f9e6e 10%, var(--tint-base)) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, #5f9e6e 68%, #9fd0ab) 0%, #dff0e4 100%);
 }
 .cover-bg-lilac {
-  background: linear-gradient(180deg, color-mix(in srgb, #7c6cf0 22%, var(--tint-base)) 0%, color-mix(in srgb, #7c6cf0 8%, var(--tint-base)) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, #7c6cf0 68%, #b5acf8) 0%, #e6e2fb 100%);
 }
 .cover-bg-sunset {
   background: linear-gradient(180deg, #f9c9b4 0%, #fde2cc 55%, #fbe0ea 100%);

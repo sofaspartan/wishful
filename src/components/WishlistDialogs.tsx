@@ -129,6 +129,8 @@ export function ShareDialog({ open, onClose, wishlist, whose }: { open: boolean;
         <Segmented
           label="Visibility"
           full
+          role="tablist"
+          className="lists-switch share-visibility-switch"
           value={wishlist.visibility}
           onChange={setVisibility}
           options={VISIBILITIES.map((v) => ({ value: v, label: VISIBILITY_LABELS[v] }))}
@@ -175,29 +177,18 @@ export function ShareDialog({ open, onClose, wishlist, whose }: { open: boolean;
               <a className="btn" href={`https://wa.me/?text=${encodeURIComponent(`${message} ${url}`)}`} target="_blank" rel="noopener noreferrer">
                 WhatsApp
               </a>
-              <a className="btn btn-ghost" href={url} target="_blank" rel="noopener noreferrer">
+              <a className="btn" href={url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink size={16} aria-hidden /> Preview
               </a>
             </div>
-            {collection ? (
+            {collection && (
               <FormNote icon={<Gift size={16} aria-hidden />}>Visitors can browse what you have. What you paid is never shown.</FormNote>
-            ) : (
-              <FormNote icon={<Gift size={16} aria-hidden />}>
-                {wishlist.recipients?.length
-                  ? wishlist.surpriseMode && wishlist.recipients.some((r) => r.userId)
-                    ? `It’s a surprise for ${joinNames(wishlist.recipients.map((r) => r.name))} — they won’t see who reserved or bought what. You will.`
-                    : 'You’ll see who reserved items.'
-                  : wishlist.surpriseMode
-                    ? 'Surprise Mode is on — you won’t see who reserved or bought what while you’re signed in. Previewing this link signed out shows it.'
-                    : 'Surprise Mode is off — you’ll see who reserved items.'}{' '}
-                Change this in Gift settings.
-              </FormNote>
             )}
             <div className="row-wrap" style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <Button size="sm" variant="ghost" icon={<RefreshCw size={14} />} loading={busy === 'regen'} onClick={regenerate}>
+              <Button size="sm" icon={<RefreshCw size={14} />} loading={busy === 'regen'} onClick={regenerate}>
                 Create new link
               </Button>
-              <Button size="sm" variant="danger-ghost" icon={<Trash2 size={14} />} loading={busy === 'revoke'} onClick={revoke}>
+              <Button size="sm" variant="danger-outline" icon={<Trash2 size={14} />} loading={busy === 'revoke'} onClick={revoke}>
                 Turn off link
               </Button>
             </div>

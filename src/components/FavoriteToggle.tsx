@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Star, StarOff } from 'lucide-react';
 import type { FavoriteTargetType } from '../../shared/types';
 import { del, errorMessage, post } from '../lib/api';
 import { keys, useFavoriteIndex } from '../lib/queries';
+import { COVER_ICON_ART } from './CoverArt';
 import { MenuItem } from './ui/Menu';
 import { useToast } from './ui/Toast';
 
@@ -43,7 +43,14 @@ export function FavoriteMenuItem({
   };
 
   return (
-    <MenuItem icon={starred ? <StarOff size={16} /> : <Star size={16} />} onSelect={() => void toggle()}>
+    <MenuItem
+      icon={
+        <span className="art-icon art-icon-tab" aria-hidden>
+          {COVER_ICON_ART.star}
+        </span>
+      }
+      onSelect={() => void toggle()}
+    >
       {starred ? 'Remove from Favorites' : 'Add to Favorites'}
     </MenuItem>
   );

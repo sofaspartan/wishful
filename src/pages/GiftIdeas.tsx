@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, ExternalLink, Plus, Search, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Plus, Search, Star, X } from 'lucide-react';
 import {
   GIFT_CATEGORIES,
   GIFT_PRICE_CAPS,
@@ -133,7 +133,7 @@ export default function GiftIdeas({ banner = false }: { banner?: boolean }) {
       >
         <form className="sky-form" role="search" onSubmit={submit}>
           <div className="sky-form-row">
-            <Search size={17} className="muted" aria-hidden />
+            <Search size={17} className="sky-form-search-icon" aria-hidden />
             <input
               className="input"
               type="search"
@@ -144,6 +144,16 @@ export default function GiftIdeas({ banner = false }: { banner?: boolean }) {
               maxLength={100}
               enterKeyHint="search"
             />
+            {text.trim() ? (
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon btn-sm sky-form-clear"
+                aria-label="Clear search"
+                onClick={() => setText('')}
+              >
+                <X size={16} strokeWidth={2.25} aria-hidden />
+              </button>
+            ) : null}
             <Button type="submit" variant="primary" disabled={!text.trim()}>
               Search
             </Button>
@@ -266,7 +276,7 @@ export default function GiftIdeas({ banner = false }: { banner?: boolean }) {
             <p>The term “Etsy” is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.</p>
           )}
         </footer>
-        <div style={{ height: 'var(--s-12)' }} />
+        <div className="page-end-space" />
 
         <Modal
           open={Boolean(loginFor)}
@@ -371,7 +381,16 @@ function GiftCard({ product: p, onAdd }: { product: GiftProduct; onAdd: () => vo
         <ItemImage src={p.imageUrl} type="product" />
       </div>
       <div className="item-overlay-tr">
-        <Button size="sm" iconOnly icon={<Plus size={16} />} aria-label={`Add ${p.title} to a list`} title="Add to a list" onClick={onAdd} />
+        <Button
+          variant="primary"
+          size="sm"
+          iconOnly
+          className="gift-add-btn"
+          icon={<Plus size={16} strokeWidth={2.5} />}
+          aria-label={`Add ${p.title} to a list`}
+          title="Add to a list"
+          onClick={onAdd}
+        />
       </div>
       <div className="item-body">
         <span className="item-source truncate">

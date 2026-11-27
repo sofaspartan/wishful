@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Cone -->
+  <path d="M7.58 42.58l27.42-9.45L15.66 13.79l-9.45 27.42C5.92 42.06 6.73 42.87 7.58 42.58Z" fill="#e5b13e"/>
+  <!-- Mouth oval (path, not transformed ellipse — survives CSS transform-box) -->
+  <path d="M28.863 19.927A4.46 13.68 -45 1 1 22.556 26.234A4.46 13.68 -45 1 1 28.863 19.927Z" fill="#a8791a"/>
+  <!-- Streamers -->
+  <path d="M26.48 22.11l2.68-1.34c2.84-1.42 5.14-3.75 6.53-6.61l1.2-2.47" stroke="#9800e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M30.87 10.93l.3-1.21c.32-1.29.98-2.52 1.88-3.49l.78-.84" stroke="#0027e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M41.82 15.02l-.31.64c-.33.69-.84 1.32-1.44 1.79l-.51.41" stroke="#15931d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M26.27 7.56l-.11 1.72c-.11 1.83-.67 3.68-1.59 5.26l-.79 1.37" stroke="#00bce8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M41.22 22.11l-1.84.08c-1.96.1-3.76.92-5.1 2.35l-1.17 1.24" stroke="#e92500" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

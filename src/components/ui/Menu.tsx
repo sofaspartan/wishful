@@ -27,9 +27,11 @@ interface MenuProps {
  * Accessible dropdown menu. Rendered in a portal with fixed positioning so it
  * is never clipped by cards with `overflow: hidden`.
  */
+type MenuPos = { top: number; left: number; maxHeight?: number };
+
 export function Menu({ label, icon, children, buttonClassName = 'btn btn-ghost btn-icon btn-sm', buttonContent, align = 'right', className }: MenuProps) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<MenuPos | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -43,15 +45,47 @@ export function Menu({ label, icon, children, buttonClassName = 'btn btn-ghost b
   useLayoutEffect(() => {
     if (!open || !triggerRef.current || !menuRef.current) return;
     const t = triggerRef.current.getBoundingClientRect();
-    const m = menuRef.current.getBoundingClientRect();
+    const menu = menuRef.current;
+    /* Measure natural size before any max-height clamp. */
+    menu.style.maxHeight = '';
+    menu.style.overflowY = '';
+    const m = menu.getBoundingClientRect();
+    const pad = 8;
+    const gap = 6;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     let left = align === 'right' ? t.right - m.width : align === 'center' ? t.left + t.width / 2 - m.width / 2 : t.left;
-    left = Math.max(8, Math.min(left, vw - m.width - 8));
-    let top = t.bottom + 6;
-    if (top + m.height > vh - 8 && t.top - m.height - 6 > 8) top = t.top - m.height - 6;
-    setPos({ top, left });
-    const first = menuRef.current.querySelector<HTMLElement>('[role="menuitem"]');
+    left = Math.max(pad, Math.min(left, vw - Math.min(m.width, vw - pad * 2) - pad));
+
+    const spaceBelow = vh - t.bottom - gap - pad;
+    const spaceAbove = t.top - gap - pad;
+    const fitsBelow = m.height <= spaceBelow;
+    const fitsAbove = m.height <= spaceAbove;
+
+    let top: number;
+    let maxHeight: number | undefined;
+    if (fitsBelow) {
+      top = t.bottom + gap;
+    } else if (fitsAbove) {
+      top = t.top - m.height - gap;
+    } else if (spaceBelow >= spaceAbove) {
+      top = t.bottom + gap;
+      maxHeight = Math.max(120, spaceBelow);
+    } else {
+      maxHeight = Math.max(120, spaceAbove);
+      top = Math.max(pad, t.top - gap - maxHeight);
+    }
+
+    if (top < pad) {
+      top = pad;
+      maxHeight = Math.max(120, Math.min(maxHeight ?? m.height, vh - pad * 2));
+    }
+    if (top + (maxHeight ?? m.height) > vh - pad) {
+      maxHeight = Math.max(120, vh - pad - top);
+    }
+
+    setPos({ top, left, maxHeight });
+    const first = menu.querySelector<HTMLElement>('[role="menuitem"]');
     first?.focus({ preventScroll: true });
   }, [open, align]);
 
@@ -128,14 +162,23 @@ export function Menu({ label, icon, children, buttonClassName = 'btn btn-ghost b
               role="menu"
               aria-label={label}
               className={['menu', className].filter(Boolean).join(' ')}
-              style={{ position: 'fixed', top: pos?.top ?? -9999, left: pos?.left ?? -9999, right: 'auto', bottom: 'auto' }}
+              style={{
+                position: 'fixed',
+                top: pos?.top ?? -9999,
+                left: pos?.left ?? -9999,
+                right: 'auto',
+                bottom: 'auto',
+                maxHeight: pos?.maxHeight,
+                overflowY: pos?.maxHeight ? 'auto' : undefined,
+              }}
               onKeyDown={onKeyDown}
               onClick={(e) => e.stopPropagation()}
             >
               {children}
             </div>
           </MenuContext.Provider>,
-          document.body,
+          /* Stay inside the themed shell so --page-tint / scene tokens inherit. */
+          (triggerRef.current?.closest('.app-shell, .modal-root, .public-shell') as HTMLElement | null) ?? document.body,
         )}
     </>
   );
@@ -166,7 +209,7 @@ export function MenuItem({ icon, children, onSelect, danger, disabled, emphasis 
       }}
     >
       {icon}
-      <span>{children}</span>
+      <span className="menu-item-label">{children}</span>
     </button>
   );
 }

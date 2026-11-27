@@ -248,7 +248,7 @@ export default function Boxes() {
           )}
         </>
       )}
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
     </div>
   );
 }

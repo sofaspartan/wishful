@@ -73,6 +73,31 @@ function ScrollToTop() {
   return null;
 }
 
+/** Flip CSS tooltips below the trigger when there isn’t room above the viewport. */
+function TooltipPlaceSync() {
+  useEffect(() => {
+    const sync = (el: HTMLElement) => {
+      const r = el.getBoundingClientRect();
+      el.dataset.tooltipPlace = r.top < 44 ? 'below' : 'above';
+    };
+    const onPointer = (e: Event) => {
+      const el = (e.target as Element | null)?.closest?.('[data-tooltip]') as HTMLElement | null;
+      if (el) sync(el);
+    };
+    const onFocus = (e: FocusEvent) => {
+      const el = (e.target as Element | null)?.closest?.('[data-tooltip]') as HTMLElement | null;
+      if (el) sync(el);
+    };
+    document.addEventListener('pointerover', onPointer, true);
+    document.addEventListener('focusin', onFocus, true);
+    return () => {
+      document.removeEventListener('pointerover', onPointer, true);
+      document.removeEventListener('focusin', onFocus, true);
+    };
+  }, []);
+  return null;
+}
+
 export function App() {
   const location = useLocation();
   useEffect(() => {
@@ -84,6 +109,7 @@ export function App() {
         Skip to content
       </a>
       <ScrollToTop />
+      <TooltipPlaceSync />
       <RememberDeviceAccount />
       <BrandSplash />
       <RecoveryCodeDialog />

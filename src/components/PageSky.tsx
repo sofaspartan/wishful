@@ -1,15 +1,14 @@
 import type { ReactNode } from 'react';
-import { CloudBank } from './Cloud';
 
-/** Page header drawn as a small sky: title and copy on the left, an optional illustration on the right, a cloud bank along the bottom. */
+/** Page header: title and copy on the left, optional illustration on the right. */
 export function PageSky({
-  eyebrow,
   title,
   subtitle,
   art,
   children,
   tone,
 }: {
+  /** @deprecated Unused — kept so call sites can drop it gradually. */
   eyebrow?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
@@ -21,7 +20,6 @@ export function PageSky({
   return (
     <header className={['page-sky', art && 'has-art', tone && `page-sky-${tone}`].filter(Boolean).join(' ')}>
       <div className="page-sky-copy">
-        {eyebrow && <span className="page-sky-eyebrow">{eyebrow}</span>}
         <h1 className="page-title display">{title}</h1>
         {subtitle && <p className="page-subtitle">{subtitle}</p>}
         {children}
@@ -31,7 +29,6 @@ export function PageSky({
           {art}
         </div>
       )}
-      <CloudBank className="page-sky-bank" />
     </header>
   );
 }

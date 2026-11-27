@@ -55,9 +55,12 @@ describe('plain colour covers', () => {
     expect(coverColors({ backdrop: 'gradient' })).toEqual(DEFAULT_GRADIENT);
   });
 
-  it('switches to white text on dark colours only', () => {
+  it('switches to white text on dark and mid-tone colours', () => {
     expect(isDarkCover({ backdrop: 'solid', colors: ['#1f2f5c'] })).toBe(true);
+    expect(isDarkCover({ backdrop: 'solid', colors: ['#3f6fb5'] })).toBe(true);
+    expect(isDarkCover({ backdrop: 'solid', colors: ['#4fa3a5'] })).toBe(true);
     expect(isDarkCover({ backdrop: 'solid', colors: ['#fff4dc'] })).toBe(false);
+    expect(isDarkCover({ backdrop: 'solid', colors: ['#d6e4fb'] })).toBe(false);
     expect(isDarkCover({ backdrop: 'gradient', colors: ['#2f3440', '#1f2f5c'] })).toBe(true);
     expect(isDarkCover({ backdrop: 'gradient', colors: ['#fbd5cb', '#d6e4fb'] })).toBe(false);
     expect(isDarkCover({ backdrop: 'night' })).toBe(true);

@@ -889,16 +889,19 @@ export function CoverArt({
   art,
   size = 'md',
   showIcon = true,
+  showBank: showBankProp,
   className,
 }: {
   art: CoverArtValue;
   size?: 'sm' | 'md';
   showIcon?: boolean;
+  /** Override the default cloud bank (scenes show a bank unless confetti). */
+  showBank?: boolean;
   className?: string;
 }) {
   const paint = coverPaint(art);
   const scene = size === 'md' && !paint;
-  const showBank = scene && art.backdrop !== 'confetti';
+  const showBank = showBankProp ?? (scene && art.backdrop !== 'confetti');
   return (
     <div
       className={['cover-art', `cover-bg-${art.backdrop}`, `cover-art-${size}`, paint && isDarkCover(art) && 'is-dark', className].filter(Boolean).join(' ')}

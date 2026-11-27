@@ -18,6 +18,7 @@ import {
   COVER_SOLID_COLORS,
   CoverArt as CoverArtView,
 } from './CoverArt';
+import { CloudBank } from './Cloud';
 import { ColorField, CoverHeaderPreview } from './CoverArtPicker';
 import { Segmented } from './ui/misc';
 
@@ -253,15 +254,24 @@ export function ThemedPage({
     <Tag className={classes} style={{ ...themeStyle(theme, accent), ...style }}>
       {backdrop && !paint && (
         <div className="page-theme-sky" aria-hidden>
-          <CoverArtView
-            art={{
-              icon: coverArt?.icon ?? 'gift',
-              backdrop,
-              colors: themeColors,
-              frame: coverArt?.frame,
-            }}
-            showIcon={false}
-          />
+          {/* Scene fades; bank stays opaque so footer clouds don’t go see-through. */}
+          <div className="page-theme-sky-scene">
+            <CoverArtView
+              art={{
+                icon: coverArt?.icon ?? 'gift',
+                backdrop,
+                colors: themeColors,
+                frame: coverArt?.frame,
+              }}
+              showIcon={false}
+              showBank={false}
+            />
+          </div>
+          {backdrop !== 'confetti' && (
+            <div className="page-theme-bank-wrap">
+              <CloudBank className="page-theme-bank cover-bank" />
+            </div>
+          )}
         </div>
       )}
       {children}

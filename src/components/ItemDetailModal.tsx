@@ -1,10 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ExternalLink, X } from 'lucide-react';
+import { MoreHorizontal, X } from 'lucide-react';
 import type { AlreadyHaveChip, Item, Priority, PublicItem } from '../../shared/types';
 import { ACQUIRED_VIA_LABELS, CONDITION_LABELS, ITEM_TYPE_LABELS } from '../../shared/constants';
 import { formatDate, formatPrice, hostname } from '../lib/format';
 import { AlreadyHaveChips } from './AlreadyHaveChips';
+import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
+import { menuArt } from './menuArt';
 import { Modal } from './ui/Modal';
+import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { ItemImage, ItemTypeIcon, PriorityBadge, Stars } from './ItemVisuals';
 import { effectivePrice } from './ItemForm';
 
@@ -18,22 +21,28 @@ interface Props {
   alreadyHave?: AlreadyHaveChip[];
   /** Rendered below the details (claim box, owner info…). */
   children?: ReactNode;
-  footer?: ReactNode;
+  /** Illustrated menu items for the ⋯ actions sheet (Edit, Lists, Got it…). */
+  actions?: ReactNode;
   badges?: ReactNode;
 }
 
-export function ItemFacts({ item }: { item: Item | PublicItem }) {
+function sourceKicker(item: Item | PublicItem): string {
+  if (item.type === 'experience') return item.metadata.venue || item.metadata.location || '';
+  return item.retailer || item.brand || '';
+}
+
+export function ItemFacts({ item, hideSource }: { item: Item | PublicItem; hideSource?: boolean }) {
   const m = item.metadata;
   const rows: Array<[string, ReactNode]> = [];
-  if (item.brand) rows.push(['Brand', item.brand]);
-  if (item.retailer) rows.push(['From', item.retailer]);
+  if (item.brand && !(hideSource && item.brand === sourceKicker(item))) rows.push(['Brand', item.brand]);
+  if (item.retailer && !(hideSource && item.retailer === sourceKicker(item))) rows.push(['From', item.retailer]);
   if (m.barcode) rows.push(['Barcode', m.barcode]);
   if (m.model) rows.push(['Model', m.model]);
   if (m.variant) rows.push(['Variant', m.variant]);
   if (m.size) rows.push(['Size', m.size]);
   if (m.color) rows.push(['Colour', m.color]);
-  if (m.venue) rows.push(['Venue', m.venue]);
-  if (m.location) rows.push(['Location', m.location]);
+  if (m.venue && !(hideSource && item.type === 'experience')) rows.push(['Venue', m.venue]);
+  if (m.location && !(hideSource && item.type === 'experience' && !m.venue)) rows.push(['Location', m.location]);
   if (m.timeframe) rows.push(['When', m.timeframe]);
   if (item.type === 'gift_card' && m.suggestedAmount != null) rows.push(['Suggested amount', formatPrice(m.suggestedAmount, item.currency)]);
   if (item.type === 'idea' && m.budget != null) rows.push(['Budget', `~${formatPrice(m.budget, item.currency)}`]);
@@ -63,10 +72,8 @@ function OwnershipFacts({ item }: { item: Item | PublicItem }) {
   if (o.quantity > 1) rows.push(['How many', String(o.quantity)]);
   if (paid != null) rows.push(['Paid', formatPrice(paid, item.currency)]);
   return (
-    <div className="card owned-box">
-      <div className="section-label" style={{ marginBottom: rows.length ? 6 : 0 }}>
-        Owned
-      </div>
+    <div className="detail-section detail-owned">
+      <div className="section-label">Owned</div>
       {rows.length > 0 && (
         <dl className="detail-facts">
           {rows.map(([k, v]) => (
@@ -78,7 +85,7 @@ function OwnershipFacts({ item }: { item: Item | PublicItem }) {
         </dl>
       )}
       {(o.rating || o.review) && (
-        <div style={{ marginTop: rows.length ? 'var(--s-3)' : 6 }}>
+        <div className="detail-owned-review">
           {o.rating ? <Stars value={o.rating} size={16} /> : null}
           {o.review && <p className="review-text">{o.review}</p>}
         </div>
@@ -110,73 +117,92 @@ function DetailMedia({ item }: { item: Item | PublicItem }) {
   );
 }
 
-export function ItemDetailModal({ item, onClose, priority, entryNote, alreadyHave, children, footer, badges }: Props) {
+export function ItemDetailModal({ item, onClose, priority, entryNote, alreadyHave, children, actions, badges }: Props) {
   if (!item) return null;
   const amount = effectivePrice(item);
   const price = formatPrice(amount, item.currency);
   const notes = 'notes' in item ? item.notes : '';
   const link = item.externalUrl || item.metadata.bookingUrl || null;
+  const linkLabel = item.type === 'experience' && !item.externalUrl ? 'Booking page' : `View on ${hostname(link ?? '') || 'site'}`;
+  const showMenu = Boolean(link || actions);
+  const kicker = sourceKicker(item);
 
   return (
     <Modal open onClose={onClose} title={item.title} size="lg" bare className="item-detail-modal">
       <div className="item-detail">
-        <button type="button" className="btn btn-ghost btn-icon btn-sm item-detail-close" onClick={onClose} aria-label="Close">
-          <X size={18} aria-hidden />
-        </button>
+        <div className="item-detail-chrome">
+          {showMenu && (
+            <Menu
+              label="Item actions"
+              icon={<MoreHorizontal size={18} aria-hidden />}
+              buttonClassName="btn btn-ghost btn-icon btn-sm item-detail-menu-btn"
+              className="card-actions-menu item-detail-actions-menu"
+              align="right"
+            >
+              {link && (
+                <MenuItem
+                  icon={menuArt(FEATURE_ILLUSTRATIONS.share)}
+                  onSelect={() => window.open(link, '_blank', 'noopener,noreferrer')}
+                >
+                  {linkLabel}
+                </MenuItem>
+              )}
+              {link && actions ? <MenuSeparator /> : null}
+              {actions}
+            </Menu>
+          )}
+          <button type="button" className="btn btn-ghost btn-icon btn-sm item-detail-close" onClick={onClose} aria-label="Close">
+            <X size={18} aria-hidden />
+          </button>
+        </div>
         <div className="detail-grid">
           <DetailMedia item={item} />
           <div className="detail-panel">
-            <div className="detail-panel-scroll stack">
-              <h2 className="detail-title display">{item.title}</h2>
-              <div className="row-wrap">
-                <span className="badge badge-outline">
-                  <ItemTypeIcon type={item.type} size={12} /> {ITEM_TYPE_LABELS[item.type]}
-                </span>
-                {priority && <PriorityBadge priority={priority} />}
-                {badges}
-              </div>
-              {price && (
-                <div className="display" style={{ fontSize: 'var(--text-2xl)' }}>
-                  {item.type === 'idea' ? '~' : ''}
-                  {price}
-                </div>
-              )}
-              {link && (
-                <a className="btn btn-primary" href={link} target="_blank" rel="noopener noreferrer nofollow" style={{ alignSelf: 'flex-start' }}>
-                  <ExternalLink size={16} aria-hidden /> {item.type === 'experience' && !item.externalUrl ? 'Booking page' : `View on ${hostname(link) || 'site'}`}
-                </a>
-              )}
-              {entryNote && <div className="owner-note">{entryNote}</div>}
-              {alreadyHave && alreadyHave.length > 0 && <AlreadyHaveChips items={alreadyHave} />}
-              {item.description && (
-                <p className="text-sm" style={{ whiteSpace: 'pre-line', color: 'var(--ink-2)' }}>
-                  {item.description}
-                </p>
-              )}
-              <ItemFacts item={item} />
-              <OwnershipFacts item={item} />
-              {item.tags.length > 0 && (
-                <div className="row-wrap">
-                  {item.tags.map((t) => (
-                    <span key={t} className="tag">
-                      #{t}
+            <div className="detail-panel-scroll">
+              <header className="detail-hero">
+                <h2 className="detail-title display">{item.title}</h2>
+                <div className="detail-hero-row">
+                  <div className="detail-hero-meta">
+                    {kicker ? <span className="detail-kicker">{kicker}</span> : null}
+                    <span className="badge badge-outline">
+                      <ItemTypeIcon type={item.type} size={12} /> {ITEM_TYPE_LABELS[item.type]}
                     </span>
-                  ))}
-                </div>
-              )}
-              {notes && (
-                <div className="card" style={{ padding: 'var(--s-3) var(--s-4)', background: 'var(--surface-2)' }}>
-                  <div className="section-label" style={{ marginBottom: 4 }}>
-                    Private notes
+                    {priority && <PriorityBadge priority={priority} />}
+                    {badges}
                   </div>
-                  <p className="text-sm" style={{ whiteSpace: 'pre-line' }}>
-                    {notes}
-                  </p>
+                  {price && (
+                    <div className="detail-price display">
+                      {item.type === 'idea' ? '~' : ''}
+                      {price}
+                    </div>
+                  )}
                 </div>
-              )}
-              {children}
+              </header>
+
+              <div className="detail-body">
+                {entryNote && <div className="owner-note">{entryNote}</div>}
+                {alreadyHave && alreadyHave.length > 0 && <AlreadyHaveChips items={alreadyHave} />}
+                {item.description && <p className="detail-description">{item.description}</p>}
+                <ItemFacts item={item} hideSource />
+                <OwnershipFacts item={item} />
+                {item.tags.length > 0 && (
+                  <div className="detail-tags">
+                    {item.tags.map((t) => (
+                      <span key={t} className="tag">
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {notes && (
+                  <div className="detail-section">
+                    <div className="section-label">Private notes</div>
+                    <p className="detail-notes">{notes}</p>
+                  </div>
+                )}
+                {children ? <div className="detail-extras">{children}</div> : null}
+              </div>
             </div>
-            {footer ? <div className="detail-actions">{footer}</div> : null}
           </div>
         </div>
       </div>

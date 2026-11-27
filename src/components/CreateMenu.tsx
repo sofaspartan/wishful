@@ -31,7 +31,7 @@ export function CreateMenu({ variant = 'new', block, align }: Props) {
     <Menu
       label="Add"
       align={align ?? (fab ? 'center' : add ? 'left' : 'right')}
-      className={fab ? 'bottom-add-menu' : undefined}
+      className="card-actions-menu"
       buttonClassName={fab ? 'bottom-add' : buttonClass({ variant: 'primary', block })}
       buttonContent={
         fab ? (

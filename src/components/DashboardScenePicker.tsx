@@ -18,8 +18,16 @@ function SelectedCheck({ label }: { label: string }) {
   );
 }
 
-/** Top-bar palette — soft washes and sky-family scenes in one list. */
-export function DashboardScenePicker() {
+/** Dashboard look palette — soft washes and sky-family scenes in one list. */
+export function DashboardScenePicker({
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
+} = {}) {
   const [look, setLook] = useDashboardLook();
 
   const pick = (next: DashboardLook, close: () => void) => {
@@ -31,6 +39,9 @@ export function DashboardScenePicker() {
     <Popover
       label="Dashboard look"
       buttonClassName="btn btn-ghost btn-icon topbar-art-btn"
+      showTrigger={showTrigger}
+      open={open}
+      onOpenChange={onOpenChange}
       buttonContent={
         <span className="art-icon art-icon-tab" aria-hidden>
           {COVER_ICON_ART.palette}

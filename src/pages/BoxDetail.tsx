@@ -23,7 +23,7 @@ import {
   Truck,
   X,
 } from 'lucide-react';
-import { isDarkCover, type BoxDetail as Detail, type BoxLine, type Item } from '../../shared/types';
+import { coverPaint, isDarkCover, type BoxDetail as Detail, type BoxLine, type Item } from '../../shared/types';
 import { BOX_MATERIAL_LABELS, BOX_SIZE_LABELS } from '../../shared/constants';
 import { MAX_BOX_LINES } from '../../shared/schemas';
 import { keys, useBox, useInvalidate } from '../lib/queries';
@@ -32,13 +32,15 @@ import { relativeTime } from '../lib/format';
 import { ItemCard } from '../components/ItemCard';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { EditItemModal } from '../components/EditItemModal';
-import { CoverArt, CoverAvatar } from '../components/CoverArt';
+import { CoverArt, CoverAvatar, COVER_ICON_ART } from '../components/CoverArt';
 import { ThemedPage } from '../components/PageTheme';
 import { FavoriteMenuItem } from '../components/FavoriteToggle';
+import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
 import { BoxFormModal } from '../components/BoxFormModal';
 import { BoxCodeDialog, PackItemsDialog, PutInBoxDialog } from '../components/BoxDialogs';
 import { useBoxActions } from '../components/BoxMenu';
 import { BoxNumberBadge, FragileBadge, OwnerOnlyBadge, thingCount } from '../components/BoxVisuals';
+import { menuArt, menuDeleteArt } from '../components/menuArt';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { Button } from '../components/ui/Button';
 import { EmptyState, PageLoader, useConfirm } from '../components/ui/misc';
@@ -153,7 +155,14 @@ function BoxView({ detail }: { detail: Detail }) {
       </Link>
 
       <header
-        className={['wl-hero', 'box-hero', isDarkCover(box.coverArt) && 'wl-hero-dark'].filter(Boolean).join(' ')}
+        className={[
+          'wl-hero',
+          'box-hero',
+          isDarkCover(box.coverArt) && 'wl-hero-dark',
+          !(!coverPaint(box.coverArt) && box.coverArt.backdrop !== 'confetti') && 'wl-hero-no-bank',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         style={{ ['--box-color' as string]: box.color }}
       >
         <div className="wl-hero-bg" aria-hidden>
@@ -204,27 +213,27 @@ function BoxView({ detail }: { detail: Detail }) {
                   </Button>
                 </>
               )}
-              <Menu label="More box actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
+              <Menu label="More box actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon" className="card-actions-menu">
                 <FavoriteMenuItem targetType="box" targetId={box.id} name={box.name} />
-                <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditing(true)}>
+                <MenuItem icon={menuArt(COVER_ICON_ART.pencil)} onSelect={() => setEditing(true)}>
                   Edit details
                 </MenuItem>
                 {!box.archivedAt && (
-                  <MenuItem icon={<Download size={16} />} onSelect={() => window.open(`/og/box/${box.id}.png`, '_blank', 'noopener')}>
+                  <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.barcode)} onSelect={() => window.open(`/og/box/${box.id}.png`, '_blank', 'noopener')}>
                     Label as an image
                   </MenuItem>
                 )}
                 {box.archivedAt ? (
-                  <MenuItem icon={<ArchiveRestore size={16} />} onSelect={() => boxActions.setArchived(box, false)}>
+                  <MenuItem icon={menuArt(COVER_ICON_ART['archive-box'])} onSelect={() => boxActions.setArchived(box, false)}>
                     Restore
                   </MenuItem>
                 ) : (
-                  <MenuItem icon={<Archive size={16} />} onSelect={() => boxActions.setArchived(box, true)}>
+                  <MenuItem icon={menuArt(COVER_ICON_ART['archive-box'])} onSelect={() => boxActions.setArchived(box, true)}>
                     Archive
                   </MenuItem>
                 )}
                 <MenuSeparator />
-                <MenuItem icon={<Trash2 size={16} />} danger onSelect={remove}>
+                <MenuItem icon={menuDeleteArt()} danger onSelect={remove}>
                   Delete box
                 </MenuItem>
               </Menu>
@@ -301,15 +310,20 @@ function BoxView({ detail }: { detail: Detail }) {
                     owned={item.owned}
                     onOpen={() => setOpenItem(item.id)}
                     menu={
-                      <Menu label={`Actions for ${item.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm">
-                        <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditingItem(item)}>
+                      <Menu
+                        label={`Actions for ${item.title}`}
+                        icon={<MoreHorizontal size={18} />}
+                        buttonClassName="btn btn-icon btn-sm"
+                        className="card-actions-menu"
+                      >
+                        <MenuItem icon={menuArt(COVER_ICON_ART.pencil)} onSelect={() => setEditingItem(item)}>
                           Edit item
                         </MenuItem>
-                        <MenuItem icon={<ArrowLeft size={16} style={{ transform: 'scaleX(-1)' }} />} onSelect={() => setMoving(item)}>
+                        <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.move)} onSelect={() => setMoving(item)}>
                           Move to another box
                         </MenuItem>
                         <MenuSeparator />
-                        <MenuItem icon={<PackageOpen size={16} />} onSelect={() => takeOut(item)}>
+                        <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.store)} onSelect={() => takeOut(item)}>
                           Take out of box
                         </MenuItem>
                       </Menu>
@@ -323,33 +337,32 @@ function BoxView({ detail }: { detail: Detail }) {
       )}
 
       <BoxLines lines={box.lines} shown={shownLines} filtered={Boolean(q)} onChange={saveLines} />
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
 
       <ItemDetailModal
         item={openItem}
         onClose={() => setOpenItem(null)}
-        footer={
+        actions={
           openItem ? (
             <>
-              <Button
-                icon={<ArrowLeft size={16} style={{ transform: 'scaleX(-1)' }} />}
-                onClick={() => {
+              <MenuItem
+                icon={menuArt(FEATURE_ILLUSTRATIONS.move)}
+                onSelect={() => {
                   setMoving(openItem);
                   setOpenItem(null);
                 }}
               >
-                Move
-              </Button>
-              <Button
-                variant="primary"
-                icon={<Pencil size={16} />}
-                onClick={() => {
+                Move…
+              </MenuItem>
+              <MenuItem
+                icon={menuArt(COVER_ICON_ART.pencil)}
+                onSelect={() => {
                   setEditingItem(openItem);
                   setOpenItem(null);
                 }}
               >
                 Edit item
-              </Button>
+              </MenuItem>
             </>
           ) : undefined
         }

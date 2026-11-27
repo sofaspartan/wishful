@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, ListChecks, MoreHorizontal, Package, PartyPopper, Pencil, Plus, Search, Filter, Trash2 } from 'lucide-react';
+import { Check, MoreHorizontal, Plus, Search, Filter } from 'lucide-react';
 import type { Item, Priority } from '../../shared/types';
 import { PRIORITY_LABELS, PRIORITY_RANK } from '../../shared/constants';
 import { useItems, useWishlists, useInvalidate } from '../lib/queries';
@@ -16,9 +16,12 @@ import { BoxChip, useBoxMap } from '../components/BoxVisuals';
 import { PutInBoxDialog } from '../components/BoxDialogs';
 import { PageSky } from '../components/PageSky';
 import { SkyArt } from '../components/SkyArt';
+import { COVER_ICON_ART } from '../components/CoverArt';
+import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
 import { effectivePrice } from '../components/ItemForm';
 import { CARD_LIST_VIEWS, ViewToggle, type CardListView } from '../components/ViewToggle';
 import { FavoriteMenuItem } from '../components/FavoriteToggle';
+import { menuArt, menuDeleteArt, menuPartyArt } from '../components/menuArt';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { Popover } from '../components/ui/Popover';
 import { Button } from '../components/ui/Button';
@@ -179,26 +182,34 @@ export default function SavedItems() {
   );
 
   const menu = (item: Item) => (
-    <Menu label={`Actions for ${item.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm">
+    <Menu
+      label={`Actions for ${item.title}`}
+      icon={<MoreHorizontal size={18} />}
+      buttonClassName="btn btn-icon btn-sm"
+      className="card-actions-menu"
+    >
       <FavoriteMenuItem targetType="item" targetId={item.id} name={item.title} />
-      <MenuItem icon={<Pencil size={16} />} onSelect={() => setEditing(item)}>
+      <MenuItem icon={menuArt(COVER_ICON_ART.pencil)} onSelect={() => setEditing(item)}>
         Edit
       </MenuItem>
       {!item.owned && !item.source && (
-        <MenuItem icon={<PartyPopper size={16} />} onSelect={() => setGotIt(item)}>
+        <MenuItem icon={menuPartyArt()} onSelect={() => setGotIt(item)}>
           Got it!
         </MenuItem>
       )}
-      <MenuItem icon={<ListChecks size={16} />} onSelect={() => setListsFor(item)}>
+      <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.lists)} onSelect={() => setListsFor(item)}>
         Lists…
       </MenuItem>
-      <MenuItem icon={<Package size={16} />} onSelect={() => setBoxFor(item)}>
+      <MenuItem
+        icon={menuArt(item.boxId ? FEATURE_ILLUSTRATIONS.move : FEATURE_ILLUSTRATIONS.boxes)}
+        onSelect={() => setBoxFor(item)}
+      >
         {item.boxId ? 'Move to another box…' : 'Put in a box…'}
       </MenuItem>
       {!item.source && (
         <>
           <MenuSeparator />
-          <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => remove(item)}>
+          <MenuItem icon={menuDeleteArt()} danger onSelect={() => remove(item)}>
             Delete
           </MenuItem>
         </>
@@ -334,71 +345,72 @@ export default function SavedItems() {
           </div>
         </>
       )}
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
 
       <ItemDetailModal
         item={openItem}
         onClose={() => setOpen(null)}
         priority={openItem ? priorities[openItem.id] : null}
-        footer={
+        actions={
           openItem ? (
             <>
               {!openItem.owned && !openItem.source && (
-                <Button
-                  icon={<PartyPopper size={16} />}
-                  onClick={() => {
+                <MenuItem
+                  icon={menuPartyArt()}
+                  onSelect={() => {
                     setGotIt(openItem);
                     setOpen(null);
                   }}
                 >
                   Got it!
-                </Button>
+                </MenuItem>
               )}
-              <Button icon={<ListChecks size={16} />} onClick={() => setListsFor(openItem)}>
-                Lists
-              </Button>
-              <Button
-                variant="primary"
-                icon={<Pencil size={16} />}
-                onClick={() => {
+              <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.lists)} onSelect={() => setListsFor(openItem)}>
+                Lists…
+              </MenuItem>
+              <MenuItem
+                icon={menuArt(COVER_ICON_ART.pencil)}
+                onSelect={() => {
                   setEditing(openItem);
                   setOpen(null);
                 }}
               >
                 Edit
-              </Button>
+              </MenuItem>
             </>
           ) : undefined
         }
       >
         {openItem && (
-          <div className="stack-sm">
-            <span className="section-label">On lists</span>
-            {openItem.wishlistIds.length ? (
-              <div className="row-wrap">
-                {openItem.wishlistIds.map((id) => {
-                  const l = listById.get(id);
-                  return l ? (
-                    <Link key={id} to={`/app/lists/${id}?item=${openItem.id}`} className="chip">
-                      <span className="swatch-dot" style={{ background: l.accentColor }} aria-hidden /> {l.title}
-                    </Link>
-                  ) : null;
-                })}
-              </div>
-            ) : (
-              <p className="text-sm muted">Not on any list yet.</p>
-            )}
+          <>
+            <div className="detail-section">
+              <div className="section-label">On lists</div>
+              {openItem.wishlistIds.length ? (
+                <div className="row-wrap">
+                  {openItem.wishlistIds.map((id) => {
+                    const l = listById.get(id);
+                    return l ? (
+                      <Link key={id} to={`/app/lists/${id}?item=${openItem.id}`} className="chip">
+                        <span className="swatch-dot" style={{ background: l.accentColor }} aria-hidden /> {l.title}
+                      </Link>
+                    ) : null;
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm muted" style={{ margin: 0 }}>
+                  Not on any list yet.
+                </p>
+              )}
+            </div>
             {boxOf(openItem) && (
-              <>
-                <span className="section-label" style={{ marginTop: 'var(--s-2)' }}>
-                  Packed in
-                </span>
+              <div className="detail-section">
+                <div className="section-label">Packed in</div>
                 <div className="row-wrap">
                   <BoxChip box={boxOf(openItem)!} />
                 </div>
-              </>
+              </div>
             )}
-          </div>
+          </>
         )}
       </ItemDetailModal>
       <EditItemModal item={editing} onClose={() => setEditing(null)} isOwner />

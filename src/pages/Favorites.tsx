@@ -47,7 +47,12 @@ function FavoritesMenu({ card }: { card: FavoriteCard }) {
   const { entry } = card;
   const name = cardName(card);
   return (
-    <Menu label={`Actions for ${name || 'favorite'}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm card-menu-btn">
+    <Menu
+      label={`Actions for ${name || 'favorite'}`}
+      icon={<MoreHorizontal size={18} />}
+      buttonClassName="btn btn-icon btn-sm card-menu-btn"
+      className="card-actions-menu"
+    >
       <FavoriteMenuItem targetType={entry.targetType} targetId={entry.targetId} name={name} />
     </Menu>
   );

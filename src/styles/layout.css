@@ -34,8 +34,15 @@
     --sidebar-foot-h: 92px;
   }
   .app-main {
-    padding-bottom: var(--s-12);
+    padding-bottom: var(--s-6);
   }
+  /* Bottom cloud clearance — mobile only; desktop has no main-column bank. */
+  .app-shell:not([data-layout-mode='mobile']) .page-end-space {
+    display: none;
+  }
+}
+.page-end-space {
+  height: var(--s-12);
 }
 .sidebar-drift {
   position: absolute;
@@ -62,12 +69,20 @@
   animation-iteration-count: infinite;
 }
 .sidebar-drift .sidebar-cloud {
+  z-index: 2;
   fill: var(--cloud-fill);
 }
 .sidebar-drift .sidebar-sil {
-  fill: color-mix(in srgb, var(--accent) 26%, var(--tint-base));
+  z-index: 1;
+  fill: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 28%, var(--tint-base));
 }
-/* Explicit durations — wide spread so lanes clearly move at different paces. */
+.app-shell.dashboard-themed:not(.dashboard-soft) .sidebar-drift .sidebar-sil {
+  fill: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint, var(--page-tint, var(--accent)))) 55%, #1a2744);
+}
+.app-shell.dashboard-themed-dark:not(.dashboard-soft) .sidebar-drift .sidebar-sil {
+  fill: var(--dash-cloud-back, color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 24%, var(--tint-base)));
+}
+/* Whites and darks on separate lanes / speeds — not drop-shadow locked. */
 .sidebar-drift .sidebar-cloud-1 {
   width: 148px;
   top: -34px;
@@ -92,18 +107,18 @@
 }
 .sidebar-drift .sidebar-sil-a {
   width: 124px;
-  top: 28px;
-  animation-duration: 24s;
-  animation-delay: -8s;
+  top: 22px;
+  animation-duration: 26s;
+  animation-delay: -9s;
+}
+.sidebar-drift .sidebar-sil-a.sidebar-phase-b {
+  animation-delay: -22s;
 }
 .sidebar-drift .sidebar-sil-b {
   width: 96px;
-  top: 78px;
-  animation-duration: 68s;
-  animation-delay: -41s;
-}
-.sidebar-drift .sidebar-sil-b.sidebar-phase-b {
-  animation-delay: -7s;
+  top: 72px;
+  animation-duration: 48s;
+  animation-delay: -27s;
 }
 @keyframes sidebar-cloud-ltr {
   from {
@@ -129,12 +144,6 @@
   }
   .sidebar-drift .sidebar-cloud-3 {
     transform: translateX(58%);
-  }
-  .sidebar-drift .sidebar-sil-a {
-    transform: translateX(-12%);
-  }
-  .sidebar-drift .sidebar-sil-b {
-    transform: translateX(38%);
   }
 }
 .sidebar-main {
@@ -164,6 +173,68 @@
   flex-direction: column;
   gap: 2px;
   margin-top: var(--s-2);
+}
+.sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  margin-bottom: var(--s-3);
+  padding: 0 10px 0 12px;
+  border: 1px solid color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 22%, var(--border-strong));
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--faint);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 450;
+  line-height: 1;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.55) inset;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+.sidebar-search > svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.sidebar-search > span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-search kbd {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.sidebar-search:hover {
+  border-color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 40%, var(--faint));
+  color: var(--ink-2);
+}
+.sidebar-search:hover > svg {
+  color: var(--ink-2);
+}
+.sidebar-search:focus-visible {
+  outline: none;
+  border-color: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  box-shadow: var(--focus-ring);
+}
+.user-button-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
 }
 .nav-link {
   display: flex;
@@ -304,6 +375,7 @@
   fill: var(--cloud-fill);
 }
 .user-button {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--s-3);
@@ -554,58 +626,104 @@
 .dashboard-theme-sky .cover-bank .cloud-bank-front {
   fill: var(--page-wash-deep, var(--page-wash, var(--bg))) !important;
 }
+@media (min-width: 1024px) {
+  .dashboard-theme-sky .cover-bank {
+    display: none;
+  }
+}
 /* Keep `.topbar` out — `position: relative` + `top` would offset it visually without
    layout space and make the floating desktop card overlap the tiles below. */
 .app-shell.dashboard-themed .app-column > :not(.dashboard-theme-sky):not(.topbar) {
   position: relative;
   z-index: 1;
 }
-/* Sidebar shares the theme but sits a touch deeper so it doesn’t blend with the page. */
+/* Scene sidebars: solid theme tint; white cloud bank + inverted wordmark. */
 @media (min-width: 1024px) {
   .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar {
-    --sidebar-wash: color-mix(in srgb, var(--page-wash) 78%, var(--dashboard-tint));
-    --sidebar-wash-deep: color-mix(in srgb, var(--page-wash-deep) 72%, var(--dashboard-tint));
-    border-right-color: color-mix(in srgb, var(--dashboard-tint) 28%, var(--border));
+    --sidebar-tint: var(--page-tint, var(--dashboard-tint, var(--accent)));
+    border-right-color: color-mix(in srgb, var(--sidebar-tint) 70%, #000);
     background:
       linear-gradient(to top, var(--cloud-fill) var(--sidebar-foot-h), transparent var(--sidebar-foot-h)),
-      linear-gradient(180deg, var(--sidebar-wash) 0%, var(--sidebar-wash-deep) 100%);
-    box-shadow: 1px 0 0 color-mix(in srgb, var(--ink) 5%, transparent);
+      var(--sidebar-tint);
+    box-shadow: 1px 0 0 color-mix(in srgb, #000 12%, transparent);
   }
-  .app-shell.dashboard-themed-dark .sidebar {
-    --sidebar-wash: color-mix(in srgb, var(--page-wash) 78%, #0a0e18);
-    --sidebar-wash-deep: color-mix(in srgb, var(--page-wash-deep) 70%, #0a0e18);
+  .app-shell.dashboard-themed-dark:not(.dashboard-soft) .sidebar {
     box-shadow: 1px 0 0 color-mix(in srgb, #000 35%, transparent);
   }
   .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar-bank .cloud-bank-back {
-    fill: color-mix(in srgb, var(--dashboard-tint) 24%, var(--tint-base));
+    fill: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint)) 55%, #1a2744);
   }
-  /* Light looks: keep sidebar type as dark as main content (not tint-washed). */
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar .section-label {
-    color: var(--muted);
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar-drift .sidebar-sil {
+    fill: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint)) 55%, #1a2744);
   }
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link {
-    color: var(--ink-2);
+  /* Wordmark: white cloud, theme-colored letters (readable on the solid tint). */
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .logo,
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .logo-wordmark {
+    color: #fff;
   }
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link:hover {
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .logo-wordmark .wm-glyph {
+    fill: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  }
+  /* Light type on the solid tint field. */
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .section-label {
+    color: rgb(255 255 255 / 0.7);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .nav-link {
+    color: rgb(255 255 255 / 0.92);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .sidebar-search {
+    background: rgb(255 255 255 / 0.94);
+    border-color: rgb(255 255 255 / 0.55);
+    color: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint, var(--accent))) 35%, var(--ink-2));
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.9) inset,
+      0 6px 14px rgb(16 38 92 / 0.12);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .sidebar-search > svg {
+    color: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint, var(--accent))) 45%, var(--muted));
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .sidebar-search kbd {
+    color: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint, var(--accent))) 40%, var(--muted));
+    border-color: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint, var(--accent))) 22%, var(--border));
+    background: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint, var(--accent))) 8%, var(--surface));
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .sidebar-search:hover {
+    background: #fff;
+    border-color: #fff;
     color: var(--ink);
-    background: color-mix(in srgb, var(--dashboard-tint) 10%, transparent);
   }
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .nav-link.active {
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .nav-link:hover {
+    color: #fff;
+    background: color-mix(in srgb, #fff 14%, transparent);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .user-button-dot {
+    box-shadow: 0 0 0 2px var(--sidebar-tint, var(--dashboard-tint, var(--accent)));
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .nav-link.active {
+    color: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint)) 42%, var(--ink));
+    background: var(--surface);
+    border-color: color-mix(in srgb, #fff 55%, transparent);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .sidebar-list-link {
+    color: rgb(255 255 255 / 0.9);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .sidebar-list-link:hover {
+    color: #fff;
+    background: color-mix(in srgb, #fff 14%, transparent);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .sidebar-list-link.active {
+    color: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint)) 42%, var(--ink));
+    background: var(--surface);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .nav-count,
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .sidebar-list-link .nav-count {
+    color: rgb(255 255 255 / 0.55);
+  }
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .user-button {
     color: var(--ink);
-    border-color: color-mix(in srgb, var(--dashboard-tint) 22%, transparent);
   }
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar-list-link {
-    color: var(--ink-2);
-  }
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar-list-link:hover {
-    color: var(--ink);
-  }
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar-list-link.active {
-    color: var(--ink);
-  }
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar .nav-count,
-  .app-shell.dashboard-themed:not(.dashboard-themed-dark) .sidebar-list-link .nav-count {
-    color: var(--faint);
+  .app-shell.dashboard-themed:not(.dashboard-soft) .sidebar .user-button:hover {
+    background: color-mix(in srgb, var(--sidebar-tint, var(--dashboard-tint)) 8%, var(--surface));
   }
   .app-shell.dashboard-themed .user-button:hover {
     background: color-mix(in srgb, var(--dashboard-tint) 10%, var(--tint-base));
@@ -647,21 +765,75 @@
     fill: var(--dash-cloud-back);
   }
 }
-/* Page headers / empty skies: keep theme tint but lift toward surface so they don’t melt into the page wash. */
+/* Page headers: solid theme tint; empty skies stay lifted surface cards. */
 .app-shell.dashboard-themed .page-sky,
-.app-shell.dashboard-themed .empty-sky {
+.app-shell.dashboard-themed .page-sky-blush,
+.app-shell.dashboard-themed .page-sky-kraft {
+  border-color: transparent;
+  background: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 22%, transparent);
+  color: #fff;
+}
+.app-shell.dashboard-themed .page-sky .page-title,
+.app-shell.dashboard-themed .page-sky-blush .page-title,
+.app-shell.dashboard-themed .page-sky-kraft .page-title {
+  color: #fff;
+}
+.app-shell.dashboard-themed .page-sky .page-subtitle,
+.app-shell.dashboard-themed .page-sky-blush .page-subtitle,
+.app-shell.dashboard-themed .page-sky-kraft .page-subtitle,
+.app-shell.dashboard-themed .page-sky .muted,
+.app-shell.dashboard-themed .page-sky .faint {
+  color: rgb(255 255 255 / 0.86);
+}
+.app-shell.dashboard-themed .page-sky .page-sky-eyebrow,
+.app-shell.dashboard-themed .page-sky-blush .page-sky-eyebrow,
+.app-shell.dashboard-themed .page-sky-kraft .page-sky-eyebrow {
+  display: none;
+}
+.app-shell.dashboard-themed .page-sky a.sky-stat,
+.app-shell.dashboard-themed .page-sky .sky-stat {
+  color: #fff;
+}
+.app-shell.dashboard-themed .page-sky .sky-handle {
+  color: rgb(255 255 255 / 0.9);
+}
+.app-shell.dashboard-themed .page-sky .sky-handle code {
+  color: #fff;
+}
+.app-shell.dashboard-themed .page-sky .sky-handle-copy {
+  border-color: color-mix(in srgb, #fff 55%, transparent);
+  background: color-mix(in srgb, #fff 18%, transparent);
+  color: #fff;
+}
+.app-shell.dashboard-themed .page-sky .sky-handle-copy:hover {
+  background: color-mix(in srgb, #fff 28%, transparent);
+  color: #fff;
+}
+.app-shell.dashboard-themed .page-sky .page-sky-actions .btn-primary {
+  --btn-bg: #fff;
+  --btn-fg: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 42%, var(--ink));
+  --btn-border: #fff;
+}
+.app-shell.dashboard-themed .page-sky .page-sky-actions .btn-primary:hover {
+  --btn-bg: color-mix(in srgb, #fff 90%, var(--page-tint, var(--dashboard-tint, var(--accent))));
+  --btn-border: #fff;
+  --btn-fg: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 48%, var(--ink));
+}
+.app-shell.dashboard-themed .page-sky .page-sky-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 55%, #1a2744);
+}
+.app-shell.dashboard-themed .page-sky .page-sky-bank .cloud-bank-front {
+  fill: var(--cloud-fill);
+}
+.app-shell.dashboard-themed .empty-sky,
+.app-shell.dashboard-themed .empty-sky.empty-blush,
+.app-shell.dashboard-themed .empty-sky.empty-kraft {
   border-color: color-mix(in srgb, var(--dashboard-tint) 26%, var(--border));
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.55) inset,
     0 1px 2px color-mix(in srgb, var(--dashboard-tint) 8%, transparent),
     0 10px 28px color-mix(in srgb, var(--dashboard-tint) 12%, transparent);
-}
-.app-shell.dashboard-themed .page-sky,
-.app-shell.dashboard-themed .empty-sky,
-.app-shell.dashboard-themed .page-sky-blush,
-.app-shell.dashboard-themed .page-sky-kraft,
-.app-shell.dashboard-themed .empty-sky.empty-blush,
-.app-shell.dashboard-themed .empty-sky.empty-kraft {
   background:
     var(--stars),
     linear-gradient(
@@ -675,60 +847,100 @@
         100%
     );
 }
-.app-shell.dashboard-themed .page-sky .page-sky-eyebrow,
-.app-shell.dashboard-themed .page-sky-blush .page-sky-eyebrow,
-.app-shell.dashboard-themed .page-sky-kraft .page-sky-eyebrow {
-  color: color-mix(in srgb, var(--dashboard-tint) 45%, var(--accent-ink));
-}
-.app-shell.dashboard-themed .page-sky .page-sky-bank .cloud-bank-back,
 .app-shell.dashboard-themed .empty-sky .empty-bank .cloud-bank-back {
   fill: color-mix(in srgb, var(--dashboard-tint) 18%, var(--surface));
 }
-.app-shell.dashboard-themed .page-sky .page-sky-bank .cloud-bank-front,
 .app-shell.dashboard-themed .empty-sky .empty-bank .cloud-bank-front {
   fill: color-mix(in srgb, var(--cloud-fill) 55%, var(--surface));
 }
-.app-shell.dashboard-themed .segmented.lists-switch,
-.app-shell.dashboard-themed .segmented.friends-switch {
-  border-color: color-mix(in srgb, var(--dashboard-tint) 20%, var(--border));
-  background:
-    radial-gradient(120% 80% at 12% 0%, color-mix(in srgb, var(--cloud-fill) 70%, transparent) 0%, transparent 55%),
-    radial-gradient(90% 70% at 88% 100%, color-mix(in srgb, var(--dashboard-tint) 12%, transparent) 0%, transparent 50%),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 10%, var(--surface)) 0%,
-      color-mix(in srgb, var(--page-tint-2, var(--page-tint, var(--dashboard-tint))) 7%, var(--surface)) 100%
-    );
+/* Themed modals: primary actions use the page tint instead of ink black. */
+.modal-root.dashboard-themed .btn-primary {
+  --btn-bg: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  --btn-fg: #fff;
+  --btn-border: var(--page-tint, var(--dashboard-tint, var(--accent)));
+}
+.modal-root.dashboard-themed .btn-primary:hover {
+  --btn-bg: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 86%, #000);
+  --btn-border: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 86%, #000);
+}
+.modal-root .segmented.share-visibility-switch {
+  margin-bottom: 0;
+}
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch {
+  border-color: transparent;
+  background: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 22%, transparent);
+}
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch a,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch > button,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch a,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch > button {
+  color: rgb(255 255 255 / 0.88);
+}
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch a:hover,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch > button:hover,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch a:hover,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch > button:hover {
+  color: #fff;
+  background: color-mix(in srgb, #fff 14%, transparent);
+}
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch a[aria-current='page'],
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch > button[aria-current='page'],
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch > button[aria-selected='true'],
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch > button[aria-pressed='true'],
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch a[aria-current='page'],
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch > button[aria-current='page'],
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch > button[aria-selected='true'],
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch > button[aria-pressed='true'] {
+  color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 35%, var(--ink));
+  background: #fff;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.5) inset,
-    0 6px 18px color-mix(in srgb, var(--dashboard-tint) 10%, transparent);
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 2px 8px rgb(16 38 92 / 0.12);
 }
-.app-shell.dashboard-themed .segmented.lists-switch .art-icon-tab,
-.app-shell.dashboard-themed .segmented.friends-switch .art-icon-tab {
-  background: color-mix(in srgb, var(--cloud-fill) 45%, color-mix(in srgb, var(--dashboard-tint) 16%, var(--hero-bg)));
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch .art-icon-tab,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch .art-icon-tab {
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 38 92 / 0.1);
+}
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch a[aria-current='page'] .art-icon-tab,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch > button[aria-current='page'] .art-icon-tab,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.lists-switch > button[aria-selected='true'] .art-icon-tab,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch a[aria-current='page'] .art-icon-tab,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch > button[aria-current='page'] .art-icon-tab,
+:is(.app-shell, .modal-root).dashboard-themed .segmented.friends-switch > button[aria-selected='true'] .art-icon-tab {
+  background: transparent;
+  box-shadow: none;
 }
 .app-shell.dashboard-themed-dark .page-sky,
-.app-shell.dashboard-themed-dark .empty-sky {
-  border-color: var(--dash-panel-border);
-  box-shadow: var(--dash-panel-shadow);
-}
-.app-shell.dashboard-themed-dark .page-sky,
-.app-shell.dashboard-themed-dark .empty-sky,
 .app-shell.dashboard-themed-dark .page-sky-blush,
-.app-shell.dashboard-themed-dark .page-sky-kraft,
+.app-shell.dashboard-themed-dark .page-sky-kraft {
+  border-color: transparent;
+  background: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  color: #fff;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 28%, transparent);
+}
+.app-shell.dashboard-themed-dark .page-sky .page-title,
+.app-shell.dashboard-themed-dark .page-sky .page-sky-eyebrow {
+  color: #fff;
+}
+.app-shell.dashboard-themed-dark .page-sky .page-subtitle {
+  color: rgb(255 255 255 / 0.86);
+}
+.app-shell.dashboard-themed-dark .empty-sky,
 .app-shell.dashboard-themed-dark .empty-sky.empty-blush,
 .app-shell.dashboard-themed-dark .empty-sky.empty-kraft {
+  border-color: var(--dash-panel-border);
+  box-shadow: var(--dash-panel-shadow);
   background:
     var(--stars),
     linear-gradient(180deg, var(--dash-panel) 0%, var(--dash-panel-2) 100%);
   color: var(--dash-panel-ink);
 }
-.app-shell.dashboard-themed-dark .page-sky .page-title,
-.app-shell.dashboard-themed-dark .page-sky .page-sky-eyebrow,
 .app-shell.dashboard-themed-dark .empty-sky h3 {
   color: var(--dash-panel-ink);
 }
-.app-shell.dashboard-themed-dark .page-sky .page-subtitle,
 .app-shell.dashboard-themed-dark .empty-sky p {
   color: var(--dash-panel-muted);
 }
@@ -741,25 +953,27 @@
   fill: var(--cloud-fill);
 }
 
-/* Home bento: greeting sky, list tiles, and header icons follow the dashboard theme */
+/* Home bento: solid theme hero so white CTA cards read clearly on top. */
 .app-shell.dashboard-themed .tile-sky,
 .modal-root.dashboard-themed .tile-sky {
-  border-color: color-mix(in srgb, var(--dashboard-tint) 26%, var(--border));
-  background:
-    var(--stars),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 16%, var(--surface)) 0%,
-      color-mix(
-          in srgb,
-          var(--page-tint-2, var(--page-tint, var(--dashboard-tint))) 9%,
-          color-mix(in srgb, var(--cloud-fill) 42%, var(--surface))
-        )
-        100%
-    );
+  border-color: transparent;
+  background: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 22%, transparent);
+  color: #fff;
+}
+.app-shell.dashboard-themed .home-hub-hero-cta,
+.modal-root.dashboard-themed .home-hub-hero-cta {
+  background: #fff;
+  border-color: #fff;
+  color: var(--ink);
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.55) inset,
-    0 10px 28px color-mix(in srgb, var(--dashboard-tint) 12%, transparent);
+    0 1px 0 rgb(255 255 255 / 0.95) inset,
+    0 10px 24px rgb(16 38 92 / 0.18);
+}
+.app-shell.dashboard-themed .home-hub-hero-cta:hover,
+.modal-root.dashboard-themed .home-hub-hero-cta:hover {
+  background: #fff;
+  border-color: #fff;
 }
 .app-shell.dashboard-themed .tile-sky-date,
 .app-shell.dashboard-themed .tile-sky-add-label,
@@ -767,46 +981,44 @@
 .modal-root.dashboard-themed .tile-sky-date,
 .modal-root.dashboard-themed .tile-sky-add-label,
 .modal-root.dashboard-themed .tile-sky-add-more {
-  color: color-mix(in srgb, var(--dashboard-tint) 48%, var(--accent-ink));
+  color: rgb(255 255 255 / 0.88);
 }
 .app-shell.dashboard-themed .tile-sky-name,
 .app-shell.dashboard-themed .tile-sky-add-more:hover,
 .modal-root.dashboard-themed .tile-sky-name,
 .modal-root.dashboard-themed .tile-sky-add-more:hover {
-  color: color-mix(in srgb, var(--dashboard-tint) 70%, var(--accent-hover));
+  color: #fff;
 }
 .app-shell.dashboard-themed .tile-sky-bank .cloud-bank-back,
 .modal-root.dashboard-themed .tile-sky-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--dashboard-tint) 20%, var(--surface));
+  fill: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 55%, #1a2744);
 }
 .app-shell.dashboard-themed .tile-sky-bank .cloud-bank-front,
 .modal-root.dashboard-themed .tile-sky-bank .cloud-bank-front {
-  fill: color-mix(in srgb, var(--cloud-fill) 55%, var(--surface));
+  fill: var(--cloud-fill, #fff);
 }
-.app-shell.dashboard-themed .tile.tile-list-sky {
-  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 7%, var(--surface));
-  border-color: color-mix(in srgb, var(--dashboard-tint) 20%, var(--border));
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.5) inset,
-    0 8px 22px color-mix(in srgb, var(--dashboard-tint) 10%, transparent);
-}
+.app-shell.dashboard-themed .tile.tile-list-sky,
+.app-shell.dashboard-themed .tile.tile-list-sky.tile-blush,
 .app-shell.dashboard-themed .tile:not(.tile-sky):not(.tile-list-sky) {
-  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 6%, var(--surface));
-  border-color: color-mix(in srgb, var(--dashboard-tint) 18%, var(--border));
+  background: #fff;
+  border-color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 16%, var(--border));
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.5) inset,
-    0 8px 20px color-mix(in srgb, var(--dashboard-tint) 8%, transparent);
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 8px 22px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 10%, transparent);
 }
 .app-shell.dashboard-themed .wl-card {
-  border-color: color-mix(in srgb, var(--dashboard-tint) 16%, var(--border));
+  background: #fff;
+  border-color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 16%, var(--border));
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.45) inset,
-    0 8px 20px color-mix(in srgb, var(--dashboard-tint) 8%, transparent);
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 8px 20px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 8%, transparent);
 }
-/* When the dashboard is themed, blush accents follow the look instead of coral. */
-.app-shell.dashboard-themed .tile.tile-list-sky.tile-blush {
-  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 7%, var(--surface));
-  border-color: color-mix(in srgb, var(--dashboard-tint) 20%, var(--border));
+.app-shell.dashboard-themed .tile .empty-sky,
+.app-shell.dashboard-themed .tile .empty-sky.empty-blush,
+.app-shell.dashboard-themed .tile .empty-sky.empty-kraft {
+  background: #fff;
+  border-color: transparent;
+  box-shadow: none;
 }
 .app-shell.dashboard-themed .tile-header-icon,
 .app-shell.dashboard-themed .tile-note-icon,
@@ -819,16 +1031,18 @@
   background: color-mix(in srgb, var(--dashboard-tint) 14%, var(--hero-bg));
   color: color-mix(in srgb, var(--dashboard-tint) 58%, var(--ink));
 }
-.app-shell.dashboard-themed .topbar-art-btn .art-icon-tab,
-.app-shell.dashboard-themed .bottom-link .art-icon-tab {
+.app-shell.dashboard-themed .topbar-art-btn .art-icon-tab {
   background: transparent !important;
 }
 .app-shell.dashboard-themed .topbar-art-btn .art-icon-tab:not(.topbar-menu-icon),
 .app-shell.dashboard-themed .bottom-link .art-icon-tab {
   color: inherit;
 }
+.app-shell.dashboard-themed .bottom-link:not(.active):not([aria-expanded='true']) .art-icon-tab {
+  background: #fff !important;
+}
 .app-shell.dashboard-themed button.quick-action.quick-action-blush:hover {
-  background: color-mix(in srgb, var(--dashboard-tint) 6%, var(--surface));
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 5%, #fff);
 }
 /* Dark look: one elevated panel system for greeting, lists, and chrome tiles. */
 .app-shell.dashboard-themed-dark .tile-sky,
@@ -959,13 +1173,17 @@
   background: color-mix(in srgb, var(--dashboard-tint) 26%, #3d465c);
   color: var(--dash-panel-ink);
 }
-.app-shell.dashboard-themed-dark .topbar-art-btn .art-icon-tab,
-.app-shell.dashboard-themed-dark .bottom-link .art-icon-tab {
+.app-shell.dashboard-themed-dark .topbar-art-btn .art-icon-tab {
   background: transparent !important;
   border: 0;
 }
+.app-shell.dashboard-themed-dark .bottom-link:not(.active):not([aria-expanded='true']) .art-icon-tab {
+  background: #fff !important;
+}
 .app-shell.dashboard-themed-dark .quick-action {
-  box-shadow: 1px 0 0 color-mix(in srgb, #fff 10%, transparent), 0 1px 0 color-mix(in srgb, #fff 10%, transparent);
+  box-shadow:
+    inset -1px 0 0 color-mix(in srgb, #fff 12%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #fff 12%, transparent);
 }
 .app-shell.dashboard-themed-dark button.quick-action:hover,
 .app-shell.dashboard-themed-dark button.quick-action.quick-action-blush:hover {
@@ -1226,6 +1444,7 @@
 /* Menu tile uses currentColor — match the logo / brand accent. */
 .topbar-art-btn .topbar-menu-icon,
 .app-shell.dashboard-themed .topbar-art-btn .topbar-menu-icon {
+  position: relative;
   color: var(--page-tint, var(--dashboard-tint, var(--accent)));
 }
 .app-shell.dashboard-themed-dark .topbar-art-btn .topbar-menu-icon {
@@ -1291,52 +1510,17 @@
 
 @media (min-width: 1024px) {
   /*
-    Desktop: float as a content card aligned with `.page` / bento tiles
-    (same inset as page padding), not a full-bleed header strip.
-  */
-  /*
-    Use column/main padding — not topbar margins — so sticky + margin-collapse
-    can’t pull the card over the tiles underneath.
+    Desktop: search + account actions live in the sidebar; hide the empty topbar
+    card. Forced mobile layout still shows the phone chrome below.
   */
   .app-column {
     padding-top: var(--s-4);
   }
-  .app-column > .topbar {
-    position: relative;
-    top: auto;
-    box-sizing: border-box;
-    width: auto;
-    max-width: calc(var(--content-max) - 2 * var(--s-8));
-    height: var(--topbar-h);
-    margin: 0 max(var(--s-8), calc((100% - var(--content-max)) / 2 + var(--s-8)));
-    padding: 0 var(--s-4);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    background-color: var(--surface);
-    background: var(--surface);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.5) inset,
-      0 8px 20px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 8%, transparent);
+  .app-shell:not([data-layout-mode='mobile']) .app-column > .topbar {
+    display: none;
   }
   .app-column > .app-main {
     padding-top: var(--bento-gap);
-  }
-  .app-shell.dashboard-themed .app-column > .topbar {
-    background-color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 6%, var(--surface));
-    background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint)) 6%, var(--surface));
-    border-color: color-mix(in srgb, var(--dashboard-tint) 18%, var(--border));
-  }
-  .app-shell.dashboard-themed-dark .app-column > .topbar {
-    background-color: var(--dash-panel);
-    background: var(--dash-panel);
-    border-color: color-mix(in srgb, #fff 12%, transparent);
-    box-shadow: var(--dash-panel-shadow, 0 8px 20px rgb(0 0 0 / 0.2));
-  }
-  .app-column > .topbar.scrolled {
-    border-bottom-color: var(--border);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.5) inset,
-      0 10px 28px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 12%, transparent);
   }
   .topbar-brand {
     display: none;
@@ -1359,6 +1543,7 @@
     padding-top: 0;
   }
   .app-shell[data-layout-mode='mobile'] .app-column > .topbar {
+    display: flex;
     position: fixed;
     left: 0;
     right: 0;
@@ -1448,13 +1633,11 @@
   grid-auto-columns: 1fr;
   align-items: stretch;
   gap: 2px;
-  background:
-    radial-gradient(120% 80% at 12% 0%, color-mix(in srgb, var(--cloud-fill) 55%, transparent) 0%, transparent 55%),
-    color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45);
+  background: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: 1px solid transparent;
+  box-shadow: 0 -6px 20px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 28%, transparent);
 }
 @media (min-width: 1024px) {
   .bottom-nav {
@@ -1541,7 +1724,26 @@
 }
 .home-hub-hero.tile-sky {
   min-height: 0;
-  padding: var(--s-5) var(--s-5) calc(var(--cloud-bank-h) + var(--s-5));
+  justify-content: flex-start;
+  padding: 0 0 calc(var(--cloud-bank-h) + var(--s-5));
+}
+.home-hub-hero .tile-header {
+  position: relative;
+  z-index: 3;
+}
+.app-shell.dashboard-themed .home-hub-hero.tile .tile-header:not(.inline) {
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 55%, #1a2744);
+  border-bottom-color: transparent;
+  color: #fff;
+}
+.app-shell.dashboard-themed .home-hub-hero.tile .tile-header:not(.inline) .tile-title {
+  color: #fff;
+}
+.app-shell.dashboard-themed .home-hub-hero.tile .tile-header:not(.inline) .tile-header-icon {
+  background: #fff;
+}
+.home-hub-hero .home-hub-hero-copy {
+  padding: var(--s-5) var(--s-5) 0;
 }
 .bento > .home-hub-hero.tile-sky {
   justify-content: flex-start;
@@ -1552,6 +1754,7 @@
   max-width: 480px;
   position: relative;
   z-index: 2;
+  padding: var(--s-5) var(--s-5) 0;
 }
 .bento > .home-hub-hero .home-hub-hero-actions {
   max-width: min(100%, 440px);
@@ -1559,12 +1762,13 @@
 .bento > .home-hub-hero .tile-sky-scene {
   right: 3%;
   left: auto;
-  top: 48%;
+  /* Sit in the body below the tint header; don’t sink so far the top cluster clips. */
+  top: calc(50% + 18px);
   translate: 0 -50%;
   width: min(40%, 420px);
   aspect-ratio: 5 / 4;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
 }
 /* Denser, vertically spread cluster (illustrated thoughts sit after .sky-art-sils). */
 .bento > .home-hub-hero .tile-sky-scene > .sky-thought-main {
@@ -1607,28 +1811,13 @@
   gap: var(--s-1);
   width: 100%;
 }
-.home-hub-hero-greeting {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: color-mix(in srgb, var(--ink) 72%, transparent);
-}
 .home-hub-hero-actions {
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
   width: 100%;
   max-width: 420px;
-  margin-top: var(--s-3);
-}
-.home-hub-hero-prompt {
-  margin: 0 0 var(--s-1);
-  font-size: clamp(1.75rem, 6vw, 2.25rem);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  font-weight: 700;
-  color: inherit;
+  margin-top: 0;
 }
 .home-hub-hero-cta {
   display: flex;
@@ -1638,11 +1827,12 @@
   min-height: 84px;
   margin: 0;
   padding: var(--s-4) var(--s-4);
-  border: 1px solid color-mix(in srgb, var(--surface) 95%, transparent);
+  border: 1px solid rgb(255 255 255 / 0.7);
   border-radius: calc(var(--radius-lg) + 4px);
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  box-shadow: 0 2px 12px rgba(16, 38, 92, 0.1);
-  backdrop-filter: blur(8px);
+  background: #fff;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 8px 20px rgb(16 38 92 / 0.12);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -1650,11 +1840,15 @@
   -webkit-tap-highlight-color: transparent;
   transition:
     transform var(--dur-fast) var(--ease),
-    box-shadow var(--dur) var(--ease);
+    box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
 }
 .home-hub-hero-cta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(16, 38, 92, 0.14);
+  border-color: #fff;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 12px 28px rgb(16 38 92 / 0.16);
 }
 .home-hub-hero-cta:active {
   transform: translateY(1px);
@@ -1868,7 +2062,7 @@
   font: inherit;
   font-size: 11px;
   font-weight: 550;
-  color: var(--muted);
+  color: rgb(255 255 255 / 0.88);
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
   transition:
@@ -1879,121 +2073,158 @@
 .bottom-link .art-icon-tab {
   display: grid;
   place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fff !important;
+  border: 0;
+  box-shadow: 0 1px 2px rgb(16 38 92 / 0.12);
+  transition: transform var(--dur) var(--ease);
+}
+.bottom-link .art-icon-tab svg {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+  filter: none;
+  transition: transform var(--dur-slow) var(--ease);
+}
+.bottom-link.active,
+.bottom-link[aria-expanded='true'] {
+  color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 35%, var(--ink));
+  font-weight: 650;
+  background: #fff;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 2px 8px rgb(16 38 92 / 0.12);
+}
+.bottom-link.active .art-icon-tab,
+.bottom-link[aria-expanded='true'] .art-icon-tab {
   width: 28px;
   height: 28px;
   border-radius: 0;
   overflow: visible;
   background: transparent !important;
-  border: 0;
-  box-shadow: none;
-  transition: transform var(--dur) var(--ease);
-}
-.bottom-link .art-icon-tab svg {
-  width: 26px;
-  height: 26px;
-  overflow: visible;
-  filter: drop-shadow(0 1px 1px rgb(16 38 92 / 0.12));
-  transition: transform var(--dur-slow) var(--ease);
-}
-.bottom-link.active,
-.bottom-link[aria-expanded='true'] {
-  color: var(--ink);
-  font-weight: 650;
-  background: var(--surface);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.8) inset,
-    0 1px 2px rgb(16 38 92 / 0.06),
-    0 4px 12px rgb(16 38 92 / 0.08);
-}
-.bottom-link.active .art-icon-tab,
-.bottom-link[aria-expanded='true'] .art-icon-tab {
-  background: transparent !important;
-  border: 0;
   box-shadow: none;
 }
 .bottom-link.active .art-icon-tab svg,
 .bottom-link[aria-expanded='true'] .art-icon-tab svg {
+  width: 26px;
+  height: 26px;
   transform: translateY(-1px) rotate(-4deg);
 }
-/* Bottom-nav Add / Browse sheets — match lists-switch tab chips. */
+/* Add / Browse / card action sheets — soft surface with illustrated icon chips. */
 .bottom-browse-menu,
-.bottom-add-menu {
-  min-width: min(300px, calc(100vw - 24px));
+.bottom-add-menu,
+.card-actions-menu {
+  min-width: min(280px, calc(100vw - 24px));
   padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border-radius: calc(var(--radius-lg) + 6px);
-  background:
-    radial-gradient(120% 80% at 12% 0%, color-mix(in srgb, var(--cloud-fill) 70%, transparent) 0%, transparent 55%),
-    radial-gradient(90% 70% at 88% 100%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 50%),
-    linear-gradient(180deg, color-mix(in srgb, var(--hero-bg) 88%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 6%, var(--tint-base)) 100%);
-  border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border));
+  gap: 4px;
+  border-radius: calc(var(--radius-lg) + 4px);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 16%, var(--border));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    0 12px 32px color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 14%, transparent),
     var(--shadow-md);
 }
 .bottom-browse-menu .menu-item,
-.bottom-add-menu .menu-item {
+.bottom-add-menu .menu-item,
+.card-actions-menu .menu-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
-  padding: 8px 12px;
+  min-height: 48px;
+  padding: 8px 10px;
   margin: 0;
   border: 0;
   border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.8) inset,
-    0 1px 2px rgb(16 38 92 / 0.06),
-    0 6px 16px rgb(16 38 92 / 0.08);
-  font-size: 16px;
-  font-weight: 650;
+  background: transparent;
+  box-shadow: none;
+  font-size: var(--text-base);
+  font-weight: 600;
   line-height: 1.2;
   color: var(--ink);
   -webkit-tap-highlight-color: transparent;
   transition:
     background var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease),
     transform var(--dur-fast) var(--ease);
 }
 .bottom-browse-menu .menu-item:hover,
 .bottom-browse-menu .menu-item:focus-visible,
 .bottom-add-menu .menu-item:hover,
-.bottom-add-menu .menu-item:focus-visible {
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+.bottom-add-menu .menu-item:focus-visible,
+.card-actions-menu .menu-item:hover,
+.card-actions-menu .menu-item:focus-visible {
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 8%, var(--surface-sunken));
   color: var(--ink);
   outline: none;
 }
 .bottom-browse-menu .menu-item:active,
-.bottom-add-menu .menu-item:active {
+.bottom-add-menu .menu-item:active,
+.card-actions-menu .menu-item:active {
   transform: scale(0.98);
 }
 .bottom-browse-menu .menu-item .art-icon-tab,
-.bottom-add-menu .menu-item .art-icon-tab {
+.bottom-add-menu .menu-item .art-icon-tab,
+.card-actions-menu .menu-item .art-icon-tab {
+  display: grid;
+  place-items: center;
   width: 34px;
   height: 34px;
   border-radius: 10px;
   flex-shrink: 0;
+  overflow: hidden;
   background: color-mix(in srgb, var(--cloud-fill) 55%, var(--hero-bg));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .bottom-browse-menu .menu-item .art-icon-tab svg,
-.bottom-add-menu .menu-item .art-icon-tab svg {
+.bottom-add-menu .menu-item .art-icon-tab svg,
+.card-actions-menu .menu-item .art-icon-tab svg {
   width: 24px;
   height: 24px;
   overflow: visible;
 }
 .bottom-browse-menu .menu-item:hover .art-icon-tab svg,
-.bottom-add-menu .menu-item:hover .art-icon-tab svg {
+.bottom-add-menu .menu-item:hover .art-icon-tab svg,
+.card-actions-menu .menu-item:hover .art-icon-tab svg {
   transform: translateY(-1px) rotate(-4deg);
 }
+.bottom-browse-menu .menu-item.danger,
+.bottom-add-menu .menu-item.danger,
+.card-actions-menu .menu-item.danger {
+  color: var(--danger);
+}
+.bottom-browse-menu .menu-item.danger:hover,
+.bottom-add-menu .menu-item.danger:hover,
+.card-actions-menu .menu-item.danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.bottom-browse-menu .menu-item .menu-art-danger,
+.bottom-add-menu .menu-item .menu-art-danger,
+.card-actions-menu .menu-item .menu-art-danger,
+.menu-item .menu-art-danger {
+  background: color-mix(in srgb, var(--danger-soft) 70%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+.bottom-browse-menu .menu-item .menu-art-danger svg,
+.bottom-add-menu .menu-item .menu-art-danger svg,
+.card-actions-menu .menu-item .menu-art-danger svg,
+.menu-item .menu-art-danger svg {
+  width: 26px;
+  height: 26px;
+  color: unset;
+}
 .bottom-browse-menu .menu-sep,
-.bottom-add-menu .menu-sep {
+.bottom-add-menu .menu-sep,
+.card-actions-menu .menu-sep {
   height: 1px;
   margin: 4px 8px;
-  background: color-mix(in srgb, var(--accent) 14%, var(--border));
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 18%, var(--border));
 }
 .bottom-icon {
   position: relative;
@@ -2022,12 +2253,14 @@
 .bottom-add span {
   width: 46px;
   height: 46px;
-  border-radius: 14px;
-  background: var(--ink);
-  color: var(--on-ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--page-tint, var(--dashboard-tint, var(--accent)));
   display: grid;
   place-items: center;
-  box-shadow: var(--shadow-sm);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, #fff 35%, transparent),
+    0 2px 8px rgb(16 38 92 / 0.16);
   transition: transform var(--dur-fast) var(--ease);
 }
 .bottom-add:active span {
@@ -2087,8 +2320,14 @@
   margin-bottom: var(--s-4);
 }
 .section-title {
-  font-size: var(--text-lg);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
   font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  text-box: trim-both cap alphabetic;
 }
 .section-link {
   margin-left: auto;
@@ -2300,7 +2539,6 @@
 
 /* ── Page sky header (Friends, Shared, Settings) ─────────────────────── */
 .page-sky {
-  --cloud-bank-h: 40px;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -2310,14 +2548,14 @@
   gap: var(--s-6);
   min-height: 220px;
   margin-bottom: var(--s-8);
-  padding: var(--s-6) var(--s-5) calc(var(--cloud-bank-h) + var(--s-5));
+  padding: var(--s-6) var(--s-5);
   border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
   border-radius: var(--radius-lg);
   background: var(--hero-bg);
 }
 @media (min-width: 768px) {
   .page-sky {
-    padding: var(--s-8) var(--s-8) calc(var(--cloud-bank-h) + var(--s-6));
+    padding: var(--s-8);
   }
 }
 .page-sky-copy {
@@ -2666,6 +2904,14 @@ a.sky-stat {
   font-weight: 600;
   color: var(--accent);
 }
+.sky-form-row,
+.sky-form-row .input {
+  color: var(--ink);
+}
+.sky-form-row .sky-form-search-icon {
+  flex-shrink: 0;
+  color: var(--muted);
+}
 .sky-form-row .input {
   flex: 1;
   min-width: 0;
@@ -2673,13 +2919,61 @@ a.sky-stat {
   background: none;
   box-shadow: none;
   padding-left: 2px;
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+}
+.sky-form-row .input::placeholder {
+  color: var(--faint);
+  -webkit-text-fill-color: var(--faint);
 }
 .sky-form-row .input:focus {
   box-shadow: none;
 }
+.sky-form-row .input::-webkit-search-cancel-button,
+.sky-form-row .input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+.sky-form-clear {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  color: var(--muted);
+}
+.sky-form-clear:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
 .sky-form-row .btn {
   flex-shrink: 0;
   border-radius: var(--radius-full);
+}
+.app-shell.dashboard-themed .page-sky .sky-form-row,
+.app-shell.dashboard-themed .page-sky .sky-form-row .input {
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+}
+.app-shell.dashboard-themed .page-sky .sky-form-row .input::placeholder {
+  color: var(--faint);
+  -webkit-text-fill-color: var(--faint);
+}
+.app-shell.dashboard-themed .page-sky .sky-form-row .sky-form-search-icon,
+.app-shell.dashboard-themed .page-sky .sky-form-clear {
+  color: var(--muted);
+}
+.app-shell.dashboard-themed .page-sky .sky-form-row .btn-primary,
+.app-shell.dashboard-themed .page-sky .sky-form-row .btn-primary:disabled {
+  --btn-bg: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  --btn-fg: #fff;
+  --btn-border: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  opacity: 1;
+}
+.app-shell.dashboard-themed .page-sky .sky-form-row .btn-primary:hover:not(:disabled) {
+  --btn-bg: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 86%, #000);
+  --btn-border: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 86%, #000);
 }
 .sky-handle {
   display: flex;
@@ -3334,24 +3628,53 @@ a.sky-stat {
 .wl-hero-tint {
   position: absolute;
   inset: 0;
-  background: var(--stars), linear-gradient(180deg, color-mix(in srgb, var(--wl-accent) 24%, var(--tint-base)) 0%, color-mix(in srgb, var(--wl-accent) 8%, var(--tint-base)) 100%);
+  background: var(--stars),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--wl-accent) 58%, #a8c8ee) 0%,
+      color-mix(in srgb, var(--wl-accent) 28%, #e4eefb) 100%
+    );
 }
-.wl-hero-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--wl-accent) 20%, var(--tint-base));
+/* White fronts on the card edge; darker themed backs (cover tint × navy) so every
+   scene — including night/snow translucents and pale spring/sunset — still reads. */
+.wl-hero-bank .cloud-bank-back,
+.wl-hero .cover-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--wl-cover-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 55%, #1a2744) !important;
+  opacity: 1;
 }
-.wl-hero-bank .cloud-bank-front {
-  fill: var(--cloud-fill);
+.wl-hero-bank .cloud-bank-front,
+.wl-hero .cover-bank .cloud-bank-front {
+  fill: #fff !important;
+  opacity: 1;
+}
+/* Floating clouds stay opaque white; bank front lands on the card edge. */
+.wl-hero .cover-cloud {
+  fill: #fff;
+  opacity: 1;
 }
 .wl-hero-body {
   display: flex;
   align-items: flex-start;
   gap: var(--s-5);
-  padding: var(--s-5) var(--s-5) calc(var(--cloud-bank-h) - 6px);
+  /* Extra bottom pad so Add/Edit sit clear of the cloud bank. */
+  padding: var(--s-5) var(--s-5) calc(var(--cloud-bank-h) + var(--s-3));
 }
 @media (min-width: 768px) {
   .wl-hero-body {
     gap: var(--s-6);
-    padding: var(--s-8) var(--s-8) calc(var(--cloud-bank-h) - 4px);
+    padding: var(--s-8) var(--s-8) calc(var(--cloud-bank-h) + var(--s-4));
+  }
+}
+/* Color / gradient / none — no cloud bank, so drop the bank clearance. */
+.wl-hero-no-bank {
+  --cloud-bank-h: 0px;
+}
+.wl-hero-no-bank .wl-hero-body {
+  padding-bottom: var(--s-5);
+}
+@media (min-width: 768px) {
+  .wl-hero-no-bank .wl-hero-body {
+    padding-bottom: var(--s-8);
   }
 }
 .wl-hero-avatar {
@@ -3395,6 +3718,15 @@ a.sky-stat {
 .wl-hero-main .badge-outline {
   background: color-mix(in srgb, var(--surface) 75%, transparent);
 }
+.wl-hero-tags {
+  align-items: center;
+}
+.wl-hero-tag-btn {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+}
 .wl-hero-main .muted {
   color: var(--ink-2);
 }
@@ -3403,6 +3735,135 @@ a.sky-stat {
   flex-wrap: wrap;
   gap: var(--s-2);
   margin-top: var(--s-2);
+}
+/* Prefer the cover scene tint over the page wash (solid washes are often too pale). */
+.wl-hero:has(.cover-bg-sky) {
+  --wl-cover-tint: color-mix(in srgb, var(--accent) 55%, #3d7ec4);
+}
+.wl-hero:has(.cover-bg-blush) {
+  --wl-cover-tint: color-mix(in srgb, var(--blush, #e8a090) 70%, #c4553d);
+}
+.wl-hero:has(.cover-bg-mint) {
+  --wl-cover-tint: #5f9e6e;
+}
+.wl-hero:has(.cover-bg-lilac) {
+  --wl-cover-tint: #7c6cf0;
+}
+.wl-hero:has(.cover-bg-sunset) {
+  --wl-cover-tint: #e0897a;
+}
+.wl-hero:has(.cover-bg-night) {
+  --wl-cover-tint: #344a8c;
+}
+.wl-hero:has(.cover-bg-snow) {
+  --wl-cover-tint: #4f86d8;
+}
+.wl-hero:has(.cover-bg-spring) {
+  --wl-cover-tint: #6ba85c;
+}
+.wl-hero:has(.cover-bg-summer) {
+  --wl-cover-tint: #2f9bb0;
+}
+.wl-hero:has(.cover-bg-autumn) {
+  --wl-cover-tint: #d4893a;
+}
+.wl-hero:has(.cover-bg-hearts) {
+  --wl-cover-tint: #e07a92;
+}
+.wl-hero:has(.cover-bg-shamrock) {
+  --wl-cover-tint: #5a9a5c;
+}
+.wl-hero:has(.cover-bg-spooky) {
+  --wl-cover-tint: #573a82;
+}
+.wl-hero:has(.cover-bg-harvest) {
+  --wl-cover-tint: #d98d45;
+}
+.wl-hero:has(.cover-bg-hanukkah) {
+  --wl-cover-tint: #4479cf;
+}
+.wl-hero:has(.cover-bg-confetti) {
+  --wl-cover-tint: #d4a017;
+}
+.wl-hero:has(.cover-bg-solid.is-dark),
+.wl-hero:has(.cover-bg-gradient.is-dark) {
+  --wl-cover-tint: var(--page-tint, var(--wl-accent, var(--accent)));
+}
+.wl-hero:has(.cover-bg-solid:not(.is-dark)),
+.wl-hero:has(.cover-bg-gradient:not(.is-dark)) {
+  --wl-cover-tint: color-mix(in srgb, var(--page-tint, var(--wl-accent, var(--accent))) 72%, #1a2744);
+}
+.wl-hero-actions .btn-primary {
+  --btn-bg: var(--wl-cover-tint, var(--page-tint, var(--wl-accent, var(--accent))));
+  --btn-fg: #fff;
+  --btn-border: var(--wl-cover-tint, var(--page-tint, var(--wl-accent, var(--accent))));
+}
+.wl-hero-actions .btn-primary:hover,
+.wl-hero-actions .btn-primary[aria-expanded='true'] {
+  --btn-bg: color-mix(in srgb, var(--wl-cover-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 86%, #000);
+  --btn-border: color-mix(in srgb, var(--wl-cover-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 86%, #000);
+}
+/* Color + none: match the white Edit button (gradient keeps the tinted primary). */
+.wl-hero.wl-hero-no-bank:not(:has(.cover-bg-gradient)) .wl-hero-actions .btn-primary {
+  --btn-bg: var(--surface);
+  --btn-fg: var(--ink);
+  --btn-border: var(--border-strong);
+}
+.wl-hero.wl-hero-no-bank:not(:has(.cover-bg-gradient)) .wl-hero-actions .btn-primary:hover,
+.wl-hero.wl-hero-no-bank:not(:has(.cover-bg-gradient)) .wl-hero-actions .btn-primary[aria-expanded='true'] {
+  --btn-bg: var(--surface-2);
+  --btn-border: var(--faint);
+}
+.wl-hero-actions .hero-action-art {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #fff 72%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.wl-hero-actions .btn-primary .hero-action-art {
+  background: color-mix(in srgb, #fff 88%, transparent);
+}
+.wl-hero.wl-hero-no-bank:not(:has(.cover-bg-gradient)) .wl-hero-actions .btn-primary .hero-action-art {
+  background: color-mix(in srgb, #fff 72%, transparent);
+}
+.wl-hero-actions .hero-action-art svg {
+  width: 22px;
+  height: 22px;
+}
+.wl-hero-top .topbar-art-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 6px;
+  border-radius: 14px;
+  /* Solid white tiles — override .topbar-art-btn { background: transparent }. */
+  background: #fff !important;
+  border-color: color-mix(in srgb, var(--wl-accent, var(--accent)) 22%, var(--border));
+  box-shadow: none;
+}
+.wl-hero-top .topbar-art-btn:hover,
+.wl-hero-top .topbar-art-btn:focus-visible {
+  background: #fff !important;
+  border-color: color-mix(in srgb, var(--wl-accent, var(--accent)) 36%, var(--border-strong));
+  box-shadow: none;
+}
+.wl-hero-dark .wl-hero-top .topbar-art-btn {
+  background: #fff !important;
+  border-color: color-mix(in srgb, #fff 55%, var(--border));
+  box-shadow: none;
+}
+.wl-hero-dark .wl-hero-top .topbar-art-btn:hover,
+.wl-hero-dark .wl-hero-top .topbar-art-btn:focus-visible {
+  background: #fff !important;
+}
+.wl-hero-top .topbar-art-btn .art-icon-tab {
+  width: 28px;
+  height: 28px;
+}
+.wl-hero-top .topbar-art-btn .art-icon-tab svg {
+  width: 24px;
+  height: 24px;
+  filter: none;
 }
 .wl-hero-dark .wl-hero-title {
   color: #fff;
@@ -3640,9 +4101,49 @@ button.tile:hover {
   min-height: 0;
   border-bottom: 0;
 }
+/* Solid theme tint bar for section headers inside tiles. */
+.app-shell.dashboard-themed .tile .tile-header:not(.inline),
+.app-shell.dashboard-themed .tile-list-sky .tile-header:not(.inline) {
+  background: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  border-bottom-color: transparent;
+  color: #fff;
+}
+.app-shell.dashboard-themed .tile .tile-header:not(.inline) .tile-title,
+.app-shell.dashboard-themed .tile .tile-header:not(.inline) .tile-label,
+.app-shell.dashboard-themed .tile .tile-header:not(.inline) .section-link,
+.app-shell.dashboard-themed .tile-list-sky .tile-header:not(.inline) .tile-title,
+.app-shell.dashboard-themed .tile-list-sky .tile-header:not(.inline) .section-link {
+  color: #fff;
+}
+.app-shell.dashboard-themed .tile .tile-header:not(.inline) .section-link:hover,
+.app-shell.dashboard-themed .tile-list-sky .tile-header:not(.inline) .section-link:hover {
+  color: #fff;
+  opacity: 0.85;
+}
+.app-shell.dashboard-themed .tile .tile-header:not(.inline) .tile-header-icon,
+.app-shell.dashboard-themed .tile-list-sky .tile-header:not(.inline) .tile-header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 38 92 / 0.1);
+  filter: none;
+}
+.app-shell.dashboard-themed .tile .tile-header:not(.inline) .tile-header-icon svg,
+.app-shell.dashboard-themed .tile-list-sky .tile-header:not(.inline) .tile-header-icon svg {
+  width: 22px;
+  height: 22px;
+  filter: none;
+}
 .tile-title {
-  font-size: var(--text-base);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
   font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  text-box: trim-both cap alphabetic;
 }
 .tile-label {
   font-size: var(--text-sm);
@@ -3906,7 +4407,10 @@ a.tile-row:hover {
   text-align: left;
   cursor: pointer;
   min-width: 0;
-  box-shadow: 1px 0 0 var(--border), 0 1px 0 var(--border);
+  /* Inset so opaque fills don’t paint over neighbor dividers. */
+  box-shadow:
+    inset -1px 0 0 var(--border),
+    inset 0 -1px 0 var(--border);
 }
 .quick-action-link {
   display: flex;
@@ -3983,11 +4487,23 @@ a.tile-row:hover {
     margin-left: auto;
   }
 }
+.app-shell.dashboard-themed .quick-action {
+  background: #fff;
+  box-shadow:
+    inset -1px 0 0 color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 18%, var(--border)),
+    inset 0 -1px 0 color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 18%, var(--border));
+}
 button.quick-action:hover {
   background: color-mix(in srgb, var(--accent) 4%, var(--surface));
 }
+.app-shell.dashboard-themed button.quick-action:hover {
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 5%, #fff);
+}
 button.quick-action.quick-action-blush:hover {
   background: color-mix(in srgb, var(--blush) 5%, var(--surface));
+}
+.app-shell.dashboard-themed button.quick-action.quick-action-blush:hover {
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 5%, #fff);
 }
 .art-icon {
   width: 48px;
@@ -4044,6 +4560,11 @@ button.quick-action.quick-action-blush:hover {
   display: grid;
   gap: var(--s-3);
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.tile-flush > .mini-items,
+.tile-flush > .muted,
+.tile-flush > p.muted {
+  padding: var(--s-4) var(--s-5) var(--s-5);
 }
 @media (min-width: 900px) {
   .mini-items {
@@ -4116,21 +4637,69 @@ button.quick-action.quick-action-blush:hover {
 /* ── Search palette ───────────────────────────────────────────────────── */
 .palette {
   --modal-w: 620px;
+  overflow: hidden;
+}
+.palette-header {
+  padding: var(--s-4) var(--s-4) var(--s-3);
+  background: var(--page-tint, var(--dashboard-tint, var(--accent)));
 }
 .palette-input {
   display: flex;
   align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-5) var(--s-5) var(--s-3);
-  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  height: 48px;
+  padding: 0 12px 0 14px;
+  border: 1px solid rgb(255 255 255 / 0.55);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 8px 20px rgb(16 38 92 / 0.14);
+}
+.palette-input > svg {
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 40%, var(--muted));
 }
 .palette-input input {
   flex: 1;
   border: 0;
   outline: none;
   background: none;
-  font-size: var(--text-lg);
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: 500;
   min-width: 0;
+}
+.palette-input input::placeholder {
+  color: var(--faint);
+  font-weight: 450;
+}
+.palette-input kbd {
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 35%, var(--muted));
+  border-color: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 20%, var(--border));
+  background: color-mix(in srgb, var(--page-tint, var(--dashboard-tint, var(--accent))) 8%, var(--surface));
+}
+.palette-scope {
+  padding: var(--s-3) var(--s-4) 0;
+}
+.palette-scope .segmented-scroll {
+  width: 100%;
+}
+.palette-scope .segmented.lists-switch.palette-scope-switch {
+  margin-bottom: 0;
+}
+.palette-scope .segmented.lists-switch.palette-scope-switch > button {
+  flex: 1 1 0;
+  height: 42px;
+  font-size: var(--text-sm);
+}
+@media (min-width: 640px) {
+  .palette-scope .segmented.lists-switch.palette-scope-switch > button {
+    height: 46px;
+    font-size: var(--text-base);
+  }
 }
 .palette-results {
   overflow-y: auto;
@@ -4140,6 +4709,17 @@ button.quick-action.quick-action-blush:hover {
 }
 .palette-group {
   padding: var(--s-2) var(--s-3) 4px;
+}
+.palette-group.section-label {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-transform: none;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  text-box: trim-both cap alphabetic;
+  color: var(--page-tint, var(--dashboard-tint, var(--muted)));
 }
 .palette-item {
   display: flex;
@@ -4188,6 +4768,16 @@ mark {
   display: flex;
   flex-direction: column;
 }
+.notif-modal {
+  --modal-w: 440px;
+}
+.notif-modal-body {
+  padding: 0 !important;
+  max-height: min(60dvh, 520px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .notif-head {
   display: flex;
   align-items: center;
@@ -4196,6 +4786,11 @@ mark {
 }
 .notif-list {
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.notif-modal .notif-item:last-child {
+  border-bottom: 0;
 }
 .notif-item {
   display: flex;
@@ -4776,8 +5371,8 @@ button.empty:hover {
   --page-tint-2: var(--page-tint);
   --list-tint: var(--page-tint);
   --list-tint-2: var(--page-tint-2, var(--page-tint));
-  --page-wash: color-mix(in srgb, var(--page-tint, var(--tint-base)) 22%, var(--bg));
-  --page-wash-deep: color-mix(in srgb, var(--page-tint, var(--tint-base)) 14%, var(--bg));
+  --page-wash: color-mix(in srgb, var(--page-tint, var(--tint-base)) 44%, var(--bg));
+  --page-wash-deep: color-mix(in srgb, var(--page-tint, var(--tint-base)) 24%, var(--bg));
   position: relative;
   z-index: 0;
   min-height: 100%;
@@ -4808,28 +5403,123 @@ button.empty:hover {
   position: relative;
   z-index: 1;
 }
-/* Full-page scene so the cloud bank sits at the bottom of the list / public shell. */
+/* Full-page scene so the cloud bank sits at the bottom of the list / public shell.
+   Scene fades; bank stays fully opaque so footer clouds don’t go see-through. */
 .page-theme-sky {
-  --cloud-bank-h: 88px;
+  --cloud-bank-h: 104px;
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: 0.48;
+}
+.page-theme-sky-scene {
+  position: absolute;
+  /* Full-bleed behind the bank — any scene edge is hidden under the clouds. */
+  inset: 0;
+  opacity: 0.82;
+  -webkit-mask-image: none;
+  mask-image: none;
+  overflow: hidden;
 }
 .page-theme-sky .cover-art {
-  --cloud-bank-h: 88px;
+  --cloud-bank-h: 104px;
 }
+.page-theme-bank-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: calc(var(--cloud-bank-h) + 2px);
+  z-index: 2;
+  pointer-events: none;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0;
+  box-shadow: none;
+  outline: none;
+  overflow: visible;
+}
+.page-theme-sky .page-theme-bank.cover-bank,
+.page-theme-sky .cover-bank {
+  bottom: 0;
+  height: 100%;
+  overflow: visible;
+  /* Above the scene so scallops fully cover whatever is behind. */
+  z-index: 2;
+  border: 0;
+  box-shadow: none;
+  outline: none;
+}
+/* Sway can leave a 1px transform gap that reads as a border above the bank. */
+.page-theme-sky .page-theme-bank .cloud-bank-back,
+.page-theme-sky .page-theme-bank .cloud-bank-front,
+.page-theme-sky .cover-bank .cloud-bank-back,
 .page-theme-sky .cover-bank .cloud-bank-front {
-  fill: var(--page-wash-deep, var(--page-wash, var(--bg))) !important;
+  animation: none !important;
+  transform: none !important;
+}
+/* Sidebar-depth backs; front matches the page wash so the bank bottoms out cleanly. */
+.page-theme-sky .page-theme-bank .cloud-bank-back,
+.page-theme-sky .cover-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--page-tint, var(--accent)) 55%, #1a2744) !important;
+  opacity: 1;
+}
+.page-theme-sky .page-theme-bank .cloud-bank-front,
+.page-theme-sky .cover-bank .cloud-bank-front {
+  fill: var(--cloud-fill, #fff) !important;
+  opacity: 1;
+}
+.page-themed-dark .page-theme-sky .page-theme-bank .cloud-bank-back,
+.page-themed-dark .page-theme-sky .cover-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--page-tint, var(--accent)) 45%, #0e1422) !important;
+}
+.page-themed-dark .page-theme-sky .page-theme-bank .cloud-bank-front,
+.page-themed-dark .page-theme-sky .cover-bank .cloud-bank-front {
+  fill: var(--cloud-fill, #fff) !important;
 }
 /* Public footer owns the bottom cloud seam — hide the full-page sky bank there. */
+.public-shell.page-themed .page-theme-sky .page-theme-bank-wrap,
 .public-shell.page-themed .page-theme-sky .cover-bank {
   display: none;
 }
 .page.page-themed {
   min-height: calc(100dvh - var(--topbar-h, 60px));
+}
+/* Clearance for the full-page sky bank so cards don’t sit on top of the puffs. */
+.page.page-themed:has(.page-theme-sky) {
+  --page-footer-bank-h: 104px;
+}
+/* Themed list/box washes fill the main column — no shell-coloured strips above/below. */
+.app-main:has(> .page-themed) {
+  padding-bottom: 0;
+}
+.app-main > .page.page-themed {
+  padding-bottom: calc(var(--bottom-nav-h, 0px) + var(--safe-bottom, 0px) + var(--s-6));
+  box-sizing: border-box;
+}
+.app-main > .page.page-themed:has(.page-theme-sky) {
+  padding-bottom: calc(
+    var(--bottom-nav-h, 0px) + var(--safe-bottom, 0px) + var(--page-footer-bank-h, 104px) + var(--s-6)
+  );
+}
+@media (min-width: 1024px) {
+  .app-shell:not([data-layout-mode='mobile']) .app-column:has(> .app-main > .page-themed) {
+    padding-top: 0;
+  }
+  .app-shell:not([data-layout-mode='mobile']) .app-main:has(> .page-themed) {
+    padding-top: 0;
+  }
+  .app-shell:not([data-layout-mode='mobile']) .app-main > .page.page-themed {
+    min-height: 100dvh;
+    padding-top: var(--s-4);
+    /* Desktop has no bottom nav — modest end pad only. */
+    padding-bottom: var(--s-6);
+  }
+  .app-shell:not([data-layout-mode='mobile']) .app-main > .page.page-themed:has(.page-theme-sky) {
+    /* Leave a clear runway for the footer cloud bank. */
+    padding-bottom: calc(var(--page-footer-bank-h, 104px) + var(--s-6));
+  }
 }
 .public-shell.page-themed {
   min-height: 100dvh;
@@ -4865,14 +5555,19 @@ button.empty:hover {
   backdrop-filter: blur(10px);
   color: var(--ink);
 }
+/* Beat `.app-shell.dashboard-themed-dark .page .section-link` so list washes keep light chrome. */
+.app-shell .page.page-themed-dark .section-link,
+.app-shell.dashboard-themed-dark .page.page-themed-dark .section-link,
 .page-themed-dark .section-link,
 .page-themed-dark .page-subtitle,
 .page-themed-dark .toolbar > .muted,
 .page-themed-dark .toolbar-sort,
 .page-themed-dark > .muted,
 .page-themed-dark > .text-sm.muted {
-  color: rgb(255 255 255 / 0.78);
+  color: rgb(255 255 255 / 0.86);
 }
+.app-shell .page.page-themed-dark .section-link:hover,
+.app-shell.dashboard-themed-dark .page.page-themed-dark .section-link:hover,
 .page-themed-dark .section-link:hover {
   color: #fff;
 }
@@ -5209,6 +5904,17 @@ button.empty:hover {
     padding: var(--s-10) var(--s-8) var(--s-16);
   }
 }
+/* A little extra clearance for the rising footer cloud bank. */
+.public-shell.page-themed > .public-content,
+.public-shell.page-themed > main.public-content {
+  padding-bottom: calc(var(--s-16) + var(--s-4));
+}
+@media (min-width: 768px) {
+  .public-shell.page-themed > .public-content,
+  .public-shell.page-themed > main.public-content {
+    padding-bottom: calc(var(--s-16) + var(--s-5));
+  }
+}
 
 /* ── Legal pages ──────────────────────────────────────────────────────── */
 .legal {
@@ -5424,6 +6130,20 @@ button.empty:hover {
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   backdrop-filter: blur(4px);
   border-color: var(--border);
+}
+.cash-fund-edit .topbar-art-btn {
+  min-width: 36px;
+  min-height: 36px;
+  border-color: transparent;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+.cash-fund-edit .topbar-art-btn .art-icon-tab {
+  width: 28px;
+  height: 28px;
+}
+.cash-fund-edit .topbar-art-btn .art-icon-tab svg {
+  width: 24px;
+  height: 24px;
 }
 .cash-fund-banner {
   margin: 0 0 var(--s-5);
@@ -5755,7 +6475,8 @@ button.empty:hover {
   z-index: 0;
 }
 .public-footer-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--accent) 18%, var(--tint-base));
+  /* Same depth language as sidebar / page-theme banks. */
+  fill: color-mix(in srgb, var(--page-tint, var(--accent)) 55%, #1a2744);
 }
 .public-footer-bank .cloud-bank-front {
   fill: var(--public-footer-bg);
@@ -5781,7 +6502,11 @@ button.empty:hover {
   color: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--ink)))) 28%, var(--ink-2));
 }
 .page-themed .public-footer-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 24%, var(--tint-base));
+  fill: color-mix(
+    in srgb,
+    var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 55%,
+    #1a2744
+  );
 }
 .page-themed .public-footer a:not(.logo) {
   color: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--wl-accent, var(--accent)))) 45%, var(--ink));
@@ -5797,7 +6522,7 @@ button.empty:hover {
   color: rgb(255 255 255 / 0.72);
 }
 .page-themed-dark .public-footer-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--list-tint, var(--page-tint)) 30%, #1c2438);
+  fill: color-mix(in srgb, var(--list-tint, var(--page-tint, var(--accent))) 45%, #0e1422);
 }
 .page-themed-dark .public-footer a:not(.logo) {
   color: rgb(255 255 255 / 0.92);
@@ -5832,11 +6557,17 @@ button.empty:hover {
   flex-direction: column;
   overflow: hidden;
 }
-.item-detail-close {
+.item-detail-chrome {
   position: absolute;
   top: var(--s-3);
   right: var(--s-3);
   z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.item-detail-close,
+.item-detail-menu-btn {
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(4px);
   border-color: var(--border);
@@ -5906,37 +6637,112 @@ button.empty:hover {
 .detail-panel-scroll {
   padding: var(--s-4) var(--s-5) var(--s-5);
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
 }
-.detail-title {
-  font-family: var(--font-sans);
-  font-variation-settings: normal;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  font-size: var(--text-xl);
-  line-height: 1.25;
-  margin: 0;
-  padding-right: 2.5rem;
+.detail-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4.5rem;
   min-width: 0;
 }
-.detail-actions {
+.detail-title {
+  font-size: clamp(1.35rem, 1.1rem + 0.7vw, 1.75rem);
+  line-height: 1.15;
+  margin: 0;
+  min-width: 0;
+}
+.detail-kicker {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+.detail-hero-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-2);
-  justify-content: flex-end;
-  padding: var(--s-3) var(--s-5);
-  border-top: 1px solid var(--border);
-  background: var(--surface);
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+}
+.detail-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.detail-price {
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--ink);
   flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
 }
-.detail-actions .btn {
-  min-width: 96px;
+.detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
 }
-@media (max-width: 719px) {
-  .detail-actions .btn {
-    flex: 1;
-  }
+.detail-description {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--ink-2);
+  white-space: pre-line;
+}
+.detail-notes {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  white-space: pre-line;
+  color: var(--ink-2);
+}
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-2) 88%, var(--page-tint, var(--accent)) 6%);
+  border: 1px solid color-mix(in srgb, var(--border) 85%, var(--page-tint, var(--accent)));
+}
+.detail-section .section-label {
+  margin: 0;
+}
+.detail-owned-review {
+  display: grid;
+  gap: 6px;
+}
+.detail-extras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.detail-extras > .stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-2) 88%, var(--page-tint, var(--accent)) 6%);
+  border: 1px solid color-mix(in srgb, var(--border) 85%, var(--page-tint, var(--accent)));
+}
+.detail-extras > .stack-sm .section-label {
+  margin: 0;
+}
+.detail-extras > .claim-box {
+  margin: 0;
 }
 @media (min-width: 640px) {
   .detail-media-wrap {
@@ -5944,18 +6750,16 @@ button.empty:hover {
   }
   .detail-panel-scroll {
     padding: var(--s-5) var(--s-6) var(--s-6);
+    gap: var(--s-6);
   }
-  .detail-actions {
-    padding: var(--s-4) var(--s-6);
-  }
-  .item-detail-close {
+  .item-detail-chrome {
     top: var(--s-4);
     right: var(--s-4);
   }
 }
 @media (min-width: 720px) {
   .detail-grid {
-    grid-template-columns: minmax(260px, 0.95fr) minmax(0, 1.15fr);
+    grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.18fr);
     overflow: hidden;
   }
   .detail-media-wrap {
@@ -5969,7 +6773,7 @@ button.empty:hover {
   }
   .detail-media {
     aspect-ratio: auto;
-    min-height: min(420px, 55dvh);
+    min-height: min(440px, 58dvh);
     height: 100%;
     border: 0;
     border-radius: 0;
@@ -5983,24 +6787,38 @@ button.empty:hover {
   .detail-panel-scroll {
     overflow-y: auto;
     overscroll-behavior: contain;
+    min-height: 100%;
   }
-  .detail-actions {
-    position: static;
+  .detail-hero {
+    gap: 10px;
+  }
+  .detail-body {
+    gap: var(--s-5);
   }
 }
 .detail-facts {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 6px var(--s-4);
+  gap: 8px var(--s-4);
   font-size: var(--text-sm);
   margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+.detail-section .detail-facts {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
 }
 .detail-facts dt {
   color: var(--muted);
 }
 .detail-facts dd {
   margin: 0;
-  font-weight: 500;
+  font-weight: 550;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -8189,47 +9007,29 @@ button.empty:hover {
 .error-page {
   --error-tint: var(--page-tint, var(--dashboard-tint, var(--accent)));
   --error-tint-2: var(--page-tint-2, var(--page-tint, var(--dashboard-tint, var(--accent))));
+  --cloud-bank-h: 88px;
+  --error-foot-h: 40px;
   position: relative;
   isolation: isolate;
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: var(--s-6);
+  padding: var(--s-6) var(--s-6) calc(var(--error-foot-h) + var(--s-6));
   overflow: hidden;
   background:
-    var(--stars, none),
-    radial-gradient(ellipse 90% 55% at 18% -5%, color-mix(in srgb, var(--error-tint) 22%, transparent), transparent 58%),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--error-tint) 16%, var(--tint-base, var(--bg))) 0%,
-      color-mix(in srgb, var(--error-tint-2) 8%, var(--bg)) 55%,
-      var(--bg) 100%
-    );
+    linear-gradient(to top, var(--cloud-fill) var(--error-foot-h), transparent var(--error-foot-h)),
+    var(--error-tint);
+  color: #fff;
 }
-.error-page.dashboard-themed-paint {
-  background: linear-gradient(
-    155deg,
-    color-mix(in srgb, var(--error-tint) 42%, var(--bg)) 0%,
-    color-mix(in srgb, var(--error-tint) 18%, var(--bg)) 48%,
-    color-mix(in srgb, var(--error-tint-2) 28%, var(--bg)) 100%
-  );
-}
+.error-page.dashboard-themed-paint,
 .error-page.dashboard-themed-dark {
   background:
-    var(--stars, none),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--error-tint) 32%, #1c2438) 0%,
-      color-mix(in srgb, var(--error-tint-2) 18%, #151b2c) 100%
-    );
-  color: rgb(255 255 255 / 0.92);
+    linear-gradient(to top, var(--cloud-fill) var(--error-foot-h), transparent var(--error-foot-h)),
+    var(--error-tint);
+  color: #fff;
 }
 .error-page-scene {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.55;
+  display: none;
 }
 .error-page-scene .cover-art {
   --cloud-bank-h: 88px;
@@ -8237,55 +9037,137 @@ button.empty:hover {
 .error-page-scene .cover-bank .cloud-bank-front {
   fill: color-mix(in srgb, var(--error-tint-2) 12%, var(--bg)) !important;
 }
-.error-page-clouds {
+/* Free-floating whites + silhouette lanes (sidebar pattern — not drop-shadow locked). */
+.error-page-drift {
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--error-foot-h);
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  container-type: inline-size;
 }
-.error-cloud {
+.error-page-drift .error-cloud,
+.error-page-drift .error-sil {
   position: absolute;
   left: 0;
+  aspect-ratio: 200 / 110;
+  overflow: visible;
+  pointer-events: none;
   will-change: transform;
-  animation-name: cover-cloud-cross;
+  animation-name: sidebar-cloud-ltr;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
-.error-cloud .cloud-back {
-  fill: color-mix(in srgb, var(--error-tint) 22%, var(--tint-base, var(--surface)));
+.error-page-drift .error-cloud {
+  z-index: 2;
+  fill: var(--cloud-fill, #fff);
 }
-.error-cloud-a {
-  top: 10%;
-  width: clamp(120px, 16vw, 240px);
+.error-page-drift .error-sil {
+  z-index: 1;
+  fill: color-mix(in srgb, var(--error-tint) 55%, #1a2744);
+}
+.error-page.dashboard-themed-dark .error-page-drift .error-sil {
+  fill: color-mix(in srgb, var(--error-tint) 28%, #121826);
+}
+.error-page-drift .error-cloud-1 {
+  width: clamp(140px, 18vw, 220px);
+  top: 6%;
+  animation-duration: 22s;
+  animation-delay: -3s;
+}
+.error-page-drift .error-cloud-1.error-phase-b {
+  animation-delay: -14s;
+}
+.error-page-drift .error-cloud-2 {
+  width: clamp(110px, 14vw, 180px);
+  top: 22%;
+  animation-duration: 36s;
+  animation-delay: -18s;
+}
+.error-page-drift .error-cloud-3 {
+  width: clamp(96px, 12vw, 150px);
+  top: 48%;
   animation-duration: 48s;
+  animation-delay: -28s;
+  opacity: 0.94;
+}
+.error-page-drift .error-cloud-3.error-phase-b {
+  top: 62%;
   animation-delay: -8s;
 }
-.error-cloud-b {
-  top: 28%;
-  width: clamp(100px, 14vw, 200px);
-  opacity: 0.85;
-  animation-duration: 64s;
+.error-page-drift .error-cloud-4 {
+  width: clamp(120px, 15vw, 190px);
+  top: 34%;
+  animation-duration: 58s;
+  animation-delay: -41s;
+}
+.error-page-drift .error-sil-a {
+  width: clamp(130px, 16vw, 200px);
+  top: 14%;
+  animation-duration: 28s;
+  animation-delay: -11s;
+}
+.error-page-drift .error-sil-a.error-phase-b {
+  top: 40%;
   animation-delay: -24s;
-  animation-direction: reverse;
 }
-.error-cloud-c {
-  top: 52%;
-  width: clamp(140px, 18vw, 280px);
-  opacity: 0.75;
-  animation-duration: 56s;
-  animation-delay: -16s;
+.error-page-drift .error-sil-b {
+  width: clamp(100px, 13vw, 160px);
+  top: 56%;
+  animation-duration: 44s;
+  animation-delay: -31s;
 }
-.error-cloud-d {
+.error-page-drift .error-sil-c {
+  width: clamp(88px, 11vw, 140px);
   top: 72%;
-  width: clamp(110px, 15vw, 220px);
-  opacity: 0.7;
-  animation-duration: 72s;
-  animation-delay: -40s;
-  animation-direction: reverse;
+  animation-duration: 54s;
+  animation-delay: -19s;
+  opacity: 0.9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .error-page-drift .error-cloud,
+  .error-page-drift .error-sil {
+    animation: none;
+  }
+  .error-page-drift .error-phase-b {
+    display: none;
+  }
+  .error-page-drift .error-cloud-1 {
+    transform: translateX(8%);
+  }
+  .error-page-drift .error-cloud-2 {
+    transform: translateX(42%);
+  }
+  .error-page-drift .error-cloud-3 {
+    transform: translateX(68%);
+  }
+  .error-page-drift .error-cloud-4 {
+    transform: translateX(24%);
+  }
+  .error-page-drift .error-sil-a {
+    transform: translateX(18%);
+  }
+  .error-page-drift .error-sil-b {
+    transform: translateX(55%);
+  }
+  .error-page-drift .error-sil-c {
+    transform: translateX(78%);
+  }
+}
+.error-page-bank {
+  z-index: 0;
+  bottom: -1px;
+}
+.error-page-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--error-tint) 55%, #1a2744);
+}
+.error-page-bank .cloud-bank-front {
+  fill: var(--cloud-fill, #fff);
+}
+.error-page.dashboard-themed-dark .error-page-bank .cloud-bank-back {
+  fill: color-mix(in srgb, var(--error-tint) 28%, #121826);
 }
 .error-sky {
-  --cloud-bank-h: 56px;
   position: relative;
   z-index: 1;
   isolation: isolate;
@@ -8296,44 +9178,33 @@ button.empty:hover {
   gap: var(--s-6);
   width: min(100%, 720px);
   min-height: 320px;
-  padding: var(--s-8) var(--s-6) calc(var(--cloud-bank-h) + var(--s-6));
-  border: 1px solid color-mix(in srgb, var(--error-tint) 22%, var(--border));
+  padding: var(--s-8) var(--s-6);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
-  background:
-    var(--stars, none),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--error-tint) 14%, var(--surface)) 0%,
-      color-mix(in srgb, var(--error-tint-2) 7%, color-mix(in srgb, var(--cloud-fill) 40%, var(--surface))) 100%
-    );
+  background: #fff;
+  color: var(--ink);
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.5) inset,
-    0 16px 40px color-mix(in srgb, var(--error-tint) 14%, transparent);
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 16px 40px rgb(16 38 92 / 0.18);
   text-align: left;
 }
 .error-page.dashboard-themed-dark .error-sky {
-  background:
-    var(--stars, none),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--error-tint) 28%, #1c2438) 0%,
-      color-mix(in srgb, var(--error-tint-2) 16%, #151b2c) 100%
-    );
-  border-color: color-mix(in srgb, var(--error-tint) 34%, transparent);
-  color: rgb(255 255 255 / 0.92);
+  background: #fff;
+  border-color: transparent;
+  color: var(--ink);
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.06) inset,
-    0 16px 40px rgb(0 0 0 / 0.35);
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 16px 40px rgb(0 0 0 / 0.28);
 }
 .error-sky .page-sky-eyebrow {
-  color: color-mix(in srgb, var(--error-tint) 45%, var(--accent-ink));
+  color: var(--error-tint);
 }
 .error-page.dashboard-themed-dark .error-sky .page-sky-eyebrow,
 .error-page.dashboard-themed-dark .error-sky-title {
-  color: #fff;
+  color: var(--error-tint);
 }
 .error-page.dashboard-themed-dark .error-sky-body {
-  color: rgb(255 255 255 / 0.78);
+  color: var(--ink-2);
 }
 .error-sky-copy {
   position: relative;
@@ -8349,6 +9220,7 @@ button.empty:hover {
   font-size: clamp(1.7rem, 4vw, 2.4rem);
   line-height: 1.1;
   letter-spacing: -0.02em;
+  color: var(--error-tint);
 }
 .error-sky-body {
   color: var(--ink-2);
@@ -8360,6 +9232,15 @@ button.empty:hover {
   gap: var(--s-2);
   margin-top: var(--s-2);
 }
+.error-sky-actions .btn-primary {
+  --btn-bg: var(--error-tint);
+  --btn-fg: #fff;
+  --btn-border: var(--error-tint);
+}
+.error-sky-actions .btn-primary:hover {
+  --btn-bg: color-mix(in srgb, var(--error-tint) 86%, #000);
+  --btn-border: color-mix(in srgb, var(--error-tint) 86%, #000);
+}
 .error-sky-art {
   position: relative;
   z-index: 1;
@@ -8370,27 +9251,6 @@ button.empty:hover {
   width: 100%;
   margin: 0;
 }
-.error-sky-bank {
-  z-index: 0;
-}
-.error-sky-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--error-tint) 20%, var(--tint-base, var(--surface)));
-}
-.error-sky-bank .cloud-bank-front {
-  fill: color-mix(in srgb, var(--cloud-fill) 55%, var(--surface));
-}
-.error-page.dashboard-themed-dark .error-sky-bank .cloud-bank-front {
-  fill: color-mix(in srgb, #151b2c 80%, #121826);
-}
-@media (prefers-reduced-motion: reduce) {
-  .error-cloud {
-    animation: none;
-  }
-  .error-cloud-a { left: 12%; }
-  .error-cloud-b { left: 68%; }
-  .error-cloud-c { left: 38%; }
-  .error-cloud-d { left: 55%; }
-}
 /* Stack on narrow viewports. (Do not use @container on .error-sky itself — a
    container cannot query its own size for rules that target it.) */
 @media (max-width: 640px) {
@@ -8400,7 +9260,7 @@ button.empty:hover {
     align-items: stretch;
     gap: var(--s-5);
     min-height: 0;
-    padding: var(--s-6) var(--s-5) calc(var(--cloud-bank-h) + var(--s-5));
+    padding: var(--s-6) var(--s-5);
     width: 100%;
   }
   .error-sky-copy {
@@ -8618,18 +9478,22 @@ button.empty:hover {
   aspect-ratio: auto;
 }
 
-/* Backdrops */
+/* Backdrops — soft skies are opaque pastels (same language as summer / picker thumbs). */
 .cover-bg-sky {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, var(--tint-base)) 0%, color-mix(in srgb, var(--accent) 9%, var(--tint-base)) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 62%, #8ebef0) 0%,
+    color-mix(in srgb, var(--accent) 28%, #d7e8fb) 100%
+  );
 }
 .cover-bg-blush {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--blush) 26%, var(--tint-base)) 0%, color-mix(in srgb, var(--blush) 10%, var(--tint-base)) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--blush, #e8a090) 72%, #f6cfc4) 0%, #fde8e0 100%);
 }
 .cover-bg-mint {
-  background: linear-gradient(180deg, color-mix(in srgb, #5f9e6e 26%, var(--tint-base)) 0%, color-mix(in srgb, #5f9e6e 10%, var(--tint-base)) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, #5f9e6e 68%, #9fd0ab) 0%, #dff0e4 100%);
 }
 .cover-bg-lilac {
-  background: linear-gradient(180deg, color-mix(in srgb, #7c6cf0 22%, var(--tint-base)) 0%, color-mix(in srgb, #7c6cf0 8%, var(--tint-base)) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, #7c6cf0 68%, #b5acf8) 0%, #e6e2fb 100%);
 }
 .cover-bg-sunset {
   background: linear-gradient(180deg, #f9c9b4 0%, #fde2cc 55%, #fbe0ea 100%);
@@ -8748,16 +9612,16 @@ button.empty:hover {
   fill: var(--cloud-fill);
 }
 .cover-bg-sky .cover-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--accent) 24%, var(--tint-base));
+  fill: color-mix(in srgb, var(--accent) 52%, #5b8ec8);
 }
 .cover-bg-blush .cover-bank .cloud-bank-back {
-  fill: color-mix(in srgb, var(--blush) 28%, var(--tint-base));
+  fill: color-mix(in srgb, var(--blush, #e8a090) 58%, #d48978);
 }
 .cover-bg-mint .cover-bank .cloud-bank-back {
-  fill: color-mix(in srgb, #5f9e6e 26%, var(--tint-base));
+  fill: color-mix(in srgb, #5f9e6e 55%, #3f7a4e);
 }
 .cover-bg-lilac .cover-bank .cloud-bank-back {
-  fill: color-mix(in srgb, #7c6cf0 22%, var(--tint-base));
+  fill: color-mix(in srgb, #7c6cf0 55%, #5a4ec4);
 }
 .cover-bg-sunset .cover-bank .cloud-bank-back {
   fill: #f6c6c4;
@@ -9533,8 +10397,35 @@ button.empty:hover {
   margin-bottom: 0;
   min-width: 0;
 }
-.gift-card .item-overlay-tr .btn {
+.gift-card .item-media {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+}
+.gift-card .item-media img {
+  object-fit: cover;
+  padding: 0;
+  border-radius: inherit;
+}
+.gift-card .item-overlay-tr .btn,
+.gift-card .item-overlay-tr .gift-add-btn {
+  --gift-add: var(--page-tint, var(--dashboard-tint, var(--accent)));
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-full);
+  border-color: transparent;
+  background: var(--gift-add);
+  color: #fff;
+  box-shadow:
+    0 1px 2px rgb(16 38 92 / 0.16),
+    0 6px 14px color-mix(in srgb, var(--gift-add) 28%, transparent);
+  backdrop-filter: none;
+}
+.gift-card .item-overlay-tr .gift-add-btn:hover {
+  background: color-mix(in srgb, var(--gift-add, var(--page-tint, var(--dashboard-tint, var(--accent)))) 86%, #000);
+  color: #fff;
+}
+.gift-card .item-overlay-tr .gift-add-btn svg {
+  stroke: #fff;
 }
 .gift-rating {
   display: inline-flex;
@@ -11453,8 +12344,12 @@ button.empty:hover {
 }
 .segmented.lists-switch a[aria-current='page'],
 .segmented.lists-switch > button[aria-current='page'],
+.segmented.lists-switch > button[aria-selected='true'],
+.segmented.lists-switch > button[aria-pressed='true'],
 .segmented.friends-switch a[aria-current='page'],
-.segmented.friends-switch > button[aria-current='page'] {
+.segmented.friends-switch > button[aria-current='page'],
+.segmented.friends-switch > button[aria-selected='true'],
+.segmented.friends-switch > button[aria-pressed='true'] {
   color: var(--ink);
   background: var(--surface);
   box-shadow:

@@ -513,7 +513,7 @@ export default function Friends() {
           </aside>
         </>
       )}
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
 
       <Modal
         open={manualOpen}

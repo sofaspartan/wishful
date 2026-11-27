@@ -1242,16 +1242,21 @@ const Backpack = (
 
 const Pencil = (
   <Svg>
-    <g transform="rotate(-45 24 24)">
-      <rect x="8" y="19.5" width="26" height="9" fill="#f6c443" />
-      <path d="M8 22.5h26M8 25.5h26" stroke="#e8ae2f" strokeWidth="1" />
-      <rect x="34" y="19.5" width="4" height="9" fill="#c9d1dc" />
-      <path d="M35.3 19.5v9M36.7 19.5v9" stroke="#9aa3b2" strokeWidth=".8" />
-      <rect x="38" y="19.5" width="4.5" height="9" rx="1.6" fill="#f19bb0" />
-      <path d="M8 19.5L1.5 24 8 28.5z" fill="#f3d9b0" />
-      <path d="M3.6 22.5L1.5 24l2.1 1.5z" fill={INK} />
+    {/* Nested groups: scale → rotate → place at canvas center (unambiguous order). */}
+    <g transform="translate(24 24)">
+      <g transform="rotate(-45)">
+        <g transform="scale(0.88)">
+          <rect x="-14" y="-4.5" width="26" height="9" fill="#f6c443" />
+          <path d="M-14 -1.5h26M-14 1.5h26" stroke="#e8ae2f" strokeWidth="1" />
+          <rect x="12" y="-4.5" width="4" height="9" fill="#c9d1dc" />
+          <path d="M13.3 -4.5v9M14.7 -4.5v9" stroke="#9aa3b2" strokeWidth=".8" />
+          <rect x="16" y="-4.5" width="4.5" height="9" rx="1.6" fill="#f19bb0" />
+          <path d="M-14 -4.5L-20.5 0 -14 4.5z" fill="#f3d9b0" />
+          <path d="M-18.4 -1.5L-20.5 0l2.1 1.5z" fill={INK} />
+        </g>
+      </g>
     </g>
-    <path className="fa-spark" d={sparklePath(10, 9, 3)} fill="#7c6cf0" />
+    <path className="fa-spark" d={sparklePath(12, 10, 2.4)} fill="#7c6cf0" />
   </Svg>
 );
 

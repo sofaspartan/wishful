@@ -286,12 +286,13 @@ function luminance(hex: string): number {
   return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
 }
 
-/** Whether text on this cover should be white: dark scenes, or plain colours past the point where white reads better than ink. */
+/** Whether text on this cover should be white: dark scenes, or plain colours past the point where white reads better than ink.
+ *  Threshold sits above the black/white crossover (~0.18) so mid tones (teal, coral, violet) still get light chrome. */
 export function isDarkCover(art: Pick<CoverArt, 'backdrop' | 'colors'> | null | undefined): boolean {
   if (!art) return false;
   if (!isPlainBackdrop(art.backdrop)) return isDarkBackdrop(art.backdrop);
   const [a, b] = coverColors(art);
-  return (luminance(a) + luminance(b)) / 2 < 0.2;
+  return (luminance(a) + luminance(b)) / 2 < 0.45;
 }
 
 export const COVER_FRAME_SHAPES = ['none', 'rounded', 'circle', 'cloud'] as const;

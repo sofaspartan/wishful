@@ -268,12 +268,7 @@ export default function Wishlists() {
           ))}
         </div>
       )}
-      {canDrag && (
-        <p className="faint text-xs" style={{ marginTop: 'var(--s-4)' }}>
-          Tip: drag the handle on a card to change the order.
-        </p>
-      )}
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
     </div>
   );
 }

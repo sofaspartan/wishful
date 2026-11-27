@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   CalendarDays,
   Copy,
-  ExternalLink,
   EyeOff,
   Gift,
   ListChecks,
@@ -15,22 +14,17 @@ import {
   LogOut,
   MoreHorizontal,
   Package,
-  PartyPopper,
   ChevronDown,
-  Pencil,
   Plus,
   RefreshCw,
-  ScanBarcode,
   Search,
   Settings2,
-  Share2,
   Filter,
   Trash2,
   Undo2,
   Users,
-  Wallet,
 } from 'lucide-react';
-import { isDarkCover, type Item, type OwnerClaimView, type OwnerPledgeView, type Priority, type WishlistDetail as Detail, type WishlistEntry } from '../../shared/types';
+import { coverPaint, isDarkCover, type Item, type OwnerClaimView, type OwnerPledgeView, type Priority, type WishlistDetail as Detail, type WishlistEntry } from '../../shared/types';
 import {
   PRIORITY_LABELS,
   PRIORITY_LAYOUTS,
@@ -60,15 +54,16 @@ import { CollectionBadge, VisibilityBadge } from '../components/ItemVisuals';
 import { CollectionStats } from '../components/CollectionStats';
 import { GotItDialog } from '../components/GotItDialog';
 import { SkyArt } from '../components/SkyArt';
-import { CoverArt, CoverAvatar, suggestCoverArt } from '../components/CoverArt';
-import { CloudBank } from '../components/Cloud';
+import { CoverArt, CoverAvatar, COVER_ICON_ART, suggestCoverArt } from '../components/CoverArt';
 import { ThemedPage } from '../components/PageTheme';
 import { FavoriteMenuItem } from '../components/FavoriteToggle';
+import { FEATURE_ILLUSTRATIONS } from '../components/ItemIllustrations';
 import { WishlistFormModal } from '../components/WishlistFormModal';
 import { CashFundDisplay } from '../components/CashFund';
 import { CashFundDialog, CollaboratorsDialog, EntrySettingsDialog, GiftSettingsDialog, MoveEntryDialog, ShareDialog } from '../components/WishlistDialogs';
 import { filterPaymentMethods } from '../../shared/paymentLinks';
 import { useWishlistActions } from '../components/WishlistMenu';
+import { menuArt, menuDeleteArt, menuPartyArt } from '../components/menuArt';
 import { DragHandle, SortableList } from '../components/Sortable';
 import { Menu, MenuItem, MenuSeparator } from '../components/ui/Menu';
 import { BoxChip, useBoxMap } from '../components/BoxVisuals';
@@ -340,10 +335,15 @@ function WishlistView({ detail }: { detail: Detail }) {
 
   const itemMenu = (r: Row) =>
     canEdit ? (
-      <Menu label={`Actions for ${r.item.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm">
+      <Menu
+        label={`Actions for ${r.item.title}`}
+        icon={<MoreHorizontal size={18} />}
+        buttonClassName="btn btn-icon btn-sm"
+        className="card-actions-menu"
+      >
         {isOwner && <FavoriteMenuItem targetType="item" targetId={r.item.id} name={r.item.title} />}
         <MenuItem
-          icon={<Pencil size={16} />}
+          icon={menuArt(COVER_ICON_ART.pencil)}
           onSelect={() => {
             setEditingItem(r.item);
             setEditingEntry(collection ? null : r.entry);
@@ -352,49 +352,52 @@ function WishlistView({ detail }: { detail: Detail }) {
           Edit item
         </MenuItem>
         {isOwner && !collection && !synced(r.item) && !r.item.owned && (
-          <MenuItem icon={<PartyPopper size={16} />} onSelect={() => setGotIt(r.item)}>
+          <MenuItem icon={menuPartyArt()} onSelect={() => setGotIt(r.item)}>
             Got it!
           </MenuItem>
         )}
         {isOwner && !collection && r.item.owned && !synced(r.item) && (
-          <MenuItem icon={<PartyPopper size={16} />} onSelect={() => setGotIt(r.item)}>
+          <MenuItem icon={menuPartyArt()} onSelect={() => setGotIt(r.item)}>
             File in a collection…
           </MenuItem>
         )}
         {isOwner && !collection && r.item.owned && (
-          <MenuItem icon={<Undo2 size={16} />} onSelect={() => clearOwned(r)}>
+          <MenuItem icon={menuArt(COVER_ICON_ART.heart)} onSelect={() => clearOwned(r)}>
             Still want it
           </MenuItem>
         )}
         {!collection && (
-          <MenuItem icon={<Settings2 size={16} />} onSelect={() => setEntrySettings(r.entry)}>
+          <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.tasks)} onSelect={() => setEntrySettings(r.entry)}>
             Priority, note & already own
           </MenuItem>
         )}
         {!synced(r.item) && (
-          <MenuItem icon={<ArrowLeft size={16} style={{ transform: 'scaleX(-1)' }} />} onSelect={() => setMoving(r.entry)}>
+          <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.move)} onSelect={() => setMoving(r.entry)}>
             Move to another list
           </MenuItem>
         )}
         {isOwner && (
-          <MenuItem icon={<ListChecks size={16} />} onSelect={() => setListsFor(r.item)}>
+          <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.lists)} onSelect={() => setListsFor(r.item)}>
             Add to other lists
           </MenuItem>
         )}
         {isOwner && (
-          <MenuItem icon={<Package size={16} />} onSelect={() => setBoxFor(r.item)}>
+          <MenuItem
+            icon={menuArt(r.item.boxId ? FEATURE_ILLUSTRATIONS.move : FEATURE_ILLUSTRATIONS.boxes)}
+            onSelect={() => setBoxFor(r.item)}
+          >
             {r.item.boxId ? 'Move to another box…' : 'Put in a box…'}
           </MenuItem>
         )}
         {r.claim && (
-          <MenuItem icon={<Undo2 size={16} />} onSelect={() => clearClaim(r)}>
+          <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.share)} onSelect={() => clearClaim(r)}>
             Clear reservation
           </MenuItem>
         )}
         {!synced(r.item) && (
           <>
             <MenuSeparator />
-            <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => removeEntry(r)}>
+            <MenuItem icon={menuDeleteArt()} danger onSelect={() => removeEntry(r)}>
               Remove from list
             </MenuItem>
           </>
@@ -461,15 +464,20 @@ function WishlistView({ detail }: { detail: Detail }) {
       </Link>
 
       <header
-        className={['wl-hero', !w.coverImage && isDarkCover(w.coverArt) && 'wl-hero-dark'].filter(Boolean).join(' ')}
+        className={[
+          'wl-hero',
+          !w.coverImage && isDarkCover(w.coverArt) && 'wl-hero-dark',
+          /* Scene covers keep a cloud bank; color / gradient / none do not. */
+          !(w.coverArt && !w.coverImage && !coverPaint(w.coverArt) && w.coverArt.backdrop !== 'confetti') && 'wl-hero-no-bank',
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
         <div className="wl-hero-bg" aria-hidden>
           {!w.coverImage && w.coverArt ? (
             <CoverArt art={w.coverArt} showIcon={false} />
           ) : (
-            <div className="wl-hero-tint">
-              <CloudBank className="wl-hero-bank" />
-            </div>
+            <div className="wl-hero-tint" />
           )}
         </div>
         <div className="wl-hero-body">
@@ -484,21 +492,29 @@ function WishlistView({ detail }: { detail: Detail }) {
             <div className="wl-hero-top">
               {w.shareToken && w.visibility !== 'private' && (
                 <a
-                  className={buttonClass({ size: 'sm', iconOnly: true })}
+                  className={`${buttonClass({ size: 'sm', iconOnly: true, variant: 'ghost' })} topbar-art-btn`}
                   href={shareUrl(w.shareToken)}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-tooltip="Open shared page"
                   aria-label="Open shared page"
                 >
-                  <ExternalLink size={15} aria-hidden />
+                  <span className="art-icon art-icon-tab" aria-hidden>
+                    {FEATURE_ILLUSTRATIONS.open}
+                  </span>
                 </a>
               )}
               {isOwner && !w.archivedAt && (
                 <Button
                   size="sm"
+                  variant="ghost"
                   iconOnly
-                  icon={<Share2 size={15} />}
+                  className="topbar-art-btn"
+                  icon={
+                    <span className="art-icon art-icon-tab" aria-hidden>
+                      {FEATURE_ILLUSTRATIONS.share}
+                    </span>
+                  }
                   onClick={() => setSharing(true)}
                   data-tooltip="Share"
                   aria-label="Share"
@@ -512,7 +528,7 @@ function WishlistView({ detail }: { detail: Detail }) {
               {w.description}
             </p>
           )}
-          <div className="row-wrap">
+          <div className="row-wrap wl-hero-tags">
             {isOwner ? <VisibilityBadge visibility={w.visibility} outline /> : <span className="badge badge-outline">{detail.role === 'editor' ? 'You can edit' : 'View only'}</span>}
             {collection && <CollectionBadge outline />}
             {w.link && (
@@ -526,98 +542,108 @@ function WishlistView({ detail }: { detail: Detail }) {
               </span>
             )}
             {w.archivedAt && <span className="badge">Archived</span>}
-          </div>
-          <div className="row-wrap text-sm muted" style={{ gap: 'var(--s-4)' }}>
-            {(people.length > 0 || !isOwner) && (
-              <ListForLine people={people} meId={me?.id} maker={isOwner ? null : detail.owner} avatarSize={22} />
-            )}
-            {w.eventDate && (
-              <span className="row" style={{ gap: 6 }}>
-                <CalendarDays size={15} aria-hidden />
-                {w.occasion ? `${w.occasion} · ` : ''}
-                {formatDate(w.eventDate)}
-                {days && days !== 'Passed' && <strong style={{ color: 'var(--accent-ink)' }}>· {days}</strong>}
-              </span>
-            )}
-            {!w.eventDate && w.occasion && <span>{w.occasion}</span>}
-            <span>
+            <span className="badge badge-outline">
               {rows.length} item{rows.length === 1 ? '' : 's'}
             </span>
+            <span className="badge badge-outline">Updated {relativeTime(w.updatedAt)}</span>
+            {w.eventDate && (
+              <span className="badge badge-outline">
+                <CalendarDays size={14} aria-hidden />
+                {w.occasion ? `${w.occasion} · ` : ''}
+                {formatDate(w.eventDate)}
+                {days && days !== 'Passed' ? ` · ${days}` : ''}
+              </span>
+            )}
+            {!w.eventDate && w.occasion && <span className="badge badge-outline">{w.occasion}</span>}
             {w.collaborators.length > 0 && (
-              <button type="button" className="row link-button" style={{ gap: 6 }} onClick={() => setCollaborators(true)}>
-                <Users size={15} aria-hidden /> {w.collaborators.length} collaborator{w.collaborators.length === 1 ? '' : 's'}
+              <button type="button" className="badge badge-outline wl-hero-tag-btn" onClick={() => setCollaborators(true)}>
+                <Users size={14} aria-hidden /> {w.collaborators.length} collaborator{w.collaborators.length === 1 ? '' : 's'}
               </button>
             )}
-            <span>Updated {relativeTime(w.updatedAt)}</span>
           </div>
+          {(people.length > 0 || !isOwner) && (
+            <div className="row-wrap text-sm muted" style={{ gap: 'var(--s-4)' }}>
+              <ListForLine people={people} meId={me?.id} maker={isOwner ? null : detail.owner} avatarSize={22} />
+            </div>
+          )}
 
           <div className="wl-hero-actions">
             {canEdit && !w.archivedAt && (
               <Menu
                 label="Add to list"
                 align="left"
+                className="card-actions-menu"
                 buttonClassName={buttonClass({ variant: 'primary' })}
                 buttonContent={
                   <>
-                    <Plus size={17} aria-hidden />
+                    <span className="art-icon art-icon-tab hero-action-art" aria-hidden>
+                      {FEATURE_ILLUSTRATIONS.store}
+                    </span>
                     <span>Add</span>
                     <ChevronDown size={15} aria-hidden style={{ marginLeft: 2, opacity: 0.85 }} />
                   </>
                 }
               >
-                <MenuItem icon={<Plus size={16} />} onSelect={addItem}>
+                <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.store)} onSelect={addItem}>
                   Add item
                 </MenuItem>
-                <MenuItem icon={<ScanBarcode size={16} />} onSelect={scanBarcode}>
+                <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.barcode)} onSelect={scanBarcode}>
                   Scan barcode
                 </MenuItem>
-                <MenuItem icon={<ListPlus size={16} />} onSelect={addSeveral}>
+                <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.tasks)} onSelect={addSeveral}>
                   Add several
                 </MenuItem>
                 {isOwner && !collection && (
-                  <MenuItem icon={<Wallet size={16} />} onSelect={() => setCashFundOpen(true)}>
+                  <MenuItem icon={menuArt(COVER_ICON_ART.cash)} onSelect={() => setCashFundOpen(true)}>
                     {w.cashFund ? 'Edit cash fund' : 'Cash fund'}
                   </MenuItem>
                 )}
               </Menu>
             )}
             {isOwner && (
-              <Button icon={<Pencil size={16} />} onClick={() => setEditingList(true)}>
+              <Button
+                icon={
+                  <span className="art-icon art-icon-tab hero-action-art" aria-hidden>
+                    {COVER_ICON_ART.pencil}
+                  </span>
+                }
+                onClick={() => setEditingList(true)}
+              >
                 Edit
               </Button>
             )}
             {isOwner ? (
-              <Menu label="More list actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
+              <Menu label="More list actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon" className="card-actions-menu">
                 <FavoriteMenuItem targetType="wishlist" targetId={w.id} name={w.title} />
                 {!collection && (
-                  <MenuItem icon={<Gift size={16} />} onSelect={() => setGiftSettings(true)}>
+                  <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.surprise)} onSelect={() => setGiftSettings(true)}>
                     Gift settings
                   </MenuItem>
                 )}
-                <MenuItem icon={<Users size={16} />} onSelect={() => setCollaborators(true)}>
+                <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.together)} onSelect={() => setCollaborators(true)}>
                   Collaborators
                 </MenuItem>
-                <MenuItem icon={<Copy size={16} />} onSelect={() => listActions.duplicate(w)}>
+                <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.lists)} onSelect={() => listActions.duplicate(w)}>
                   Duplicate
                 </MenuItem>
                 {w.archivedAt ? (
-                  <MenuItem icon={<ArchiveRestore size={16} />} onSelect={() => listActions.setArchived(w, false)}>
+                  <MenuItem icon={menuArt(COVER_ICON_ART['archive-box'])} onSelect={() => listActions.setArchived(w, false)}>
                     Restore
                   </MenuItem>
                 ) : (
-                  <MenuItem icon={<Archive size={16} />} onSelect={() => listActions.setArchived(w, true)}>
+                  <MenuItem icon={menuArt(COVER_ICON_ART['archive-box'])} onSelect={() => listActions.setArchived(w, true)}>
                     Archive
                   </MenuItem>
                 )}
                 <MenuSeparator />
-                <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => listActions.remove(w, () => navigate('/app/lists', { replace: true }))}>
+                <MenuItem icon={menuDeleteArt()} danger onSelect={() => listActions.remove(w, () => navigate('/app/lists', { replace: true }))}>
                   Delete {collection ? 'collection' : 'wishlist'}
                 </MenuItem>
               </Menu>
             ) : (
-              <Menu label="List actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon">
+              <Menu label="List actions" icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon" className="card-actions-menu">
                 <FavoriteMenuItem targetType="wishlist" targetId={w.id} name={w.title} />
-                <MenuItem icon={<LogOut size={16} />} onSelect={leave}>
+                <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.share)} onSelect={leave}>
                   Leave
                 </MenuItem>
               </Menu>
@@ -881,7 +907,7 @@ function WishlistView({ detail }: { detail: Detail }) {
           </>
         );
       })()}
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
 
       <ItemDetailModal
         item={openRow?.item ?? null}
@@ -890,40 +916,35 @@ function WishlistView({ detail }: { detail: Detail }) {
         entryNote={collection ? undefined : openRow?.entry.customNotes}
         alreadyHave={openRow && !collection ? alreadyHaveFor(openRow) : undefined}
         badges={openRow ? statusBadge(openRow) : null}
-        footer={
+        actions={
           openRow && canEdit ? (
             <>
               {isOwner && !collection && !synced(openRow.item) && (
-                <Button
-                  icon={<PartyPopper size={16} />}
-                  onClick={() => {
+                <MenuItem
+                  icon={menuPartyArt()}
+                  onSelect={() => {
                     setGotIt(openRow.item);
                     setOpenItem(null);
                   }}
                 >
                   {openRow.item.owned ? 'File in a collection…' : 'Got it!'}
-                </Button>
+                </MenuItem>
               )}
               {!collection && (
-                <Button
-                  onClick={() => {
-                    setEntrySettings(openRow.entry);
-                  }}
-                >
+                <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.tasks)} onSelect={() => setEntrySettings(openRow.entry)}>
                   This wish…
-                </Button>
+                </MenuItem>
               )}
-              <Button
-                variant="primary"
-                icon={<Pencil size={16} />}
-                onClick={() => {
+              <MenuItem
+                icon={menuArt(COVER_ICON_ART.pencil)}
+                onSelect={() => {
                   setEditingItem(openRow.item);
                   setEditingEntry(collection ? null : openRow.entry);
                   setOpenItem(null);
                 }}
               >
                 Edit item
-              </Button>
+              </MenuItem>
             </>
           ) : undefined
         }

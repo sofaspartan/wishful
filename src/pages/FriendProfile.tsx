@@ -212,7 +212,7 @@ export default function FriendProfile() {
           </section>
         </>
       )}
-      <div style={{ height: 'var(--s-12)' }} />
+      <div className="page-end-space" />
     </div>
   );
 }

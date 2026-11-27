@@ -175,27 +175,32 @@ export function SearchPalette({ open, onClose }: { open: boolean; onClose: () =>
 
   return (
     <Modal open={open} onClose={onClose} title="Search" bare className="palette">
-      <div className="palette-input">
-        <Search size={20} className="faint" aria-hidden />
-        <input
-          data-autofocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Search lists, items, stores, tags…"
-          aria-label="Search"
-          role="combobox"
-          aria-expanded="true"
-          aria-controls="palette-results"
-          autoComplete="off"
-        />
-        <kbd className="hide-xs">Esc</kbd>
+      <div className="palette-header">
+        <div className="palette-input">
+          <Search size={18} strokeWidth={2.25} aria-hidden />
+          <input
+            data-autofocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Search lists, items, stores, tags…"
+            aria-label="Search"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="palette-results"
+            autoComplete="off"
+          />
+          <kbd className="hide-xs">Esc</kbd>
+        </div>
       </div>
-      <div style={{ padding: '10px 16px 0' }}>
+      <div className="palette-scope">
         <Segmented
           label="Search scope"
           value={scope}
           onChange={setScope}
+          full
+          role="tablist"
+          className="lists-switch palette-scope-switch"
           options={[
             { value: 'all', label: 'All' },
             { value: 'lists', label: 'Wishlists' },

@@ -1,9 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Printer, Trash2 } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import type { BoxSummary } from '../../shared/types';
 import { useInvalidate } from '../lib/queries';
 import { del, errorMessage, patch } from '../lib/api';
+import { COVER_ICON_ART } from './CoverArt';
+import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 import { FavoriteMenuItem } from './FavoriteToggle';
+import { menuArt, menuDeleteArt } from './menuArt';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { useConfirm } from './ui/misc';
 import { useToast } from './ui/Toast';
@@ -50,27 +53,32 @@ export function BoxCardMenu({ box }: { box: BoxSummary }) {
   const navigate = useNavigate();
   const actions = useBoxActions();
   return (
-    <Menu label={`Actions for ${box.name}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm card-menu-btn">
+    <Menu
+      label={`Actions for ${box.name}`}
+      icon={<MoreHorizontal size={18} />}
+      buttonClassName="btn btn-icon btn-sm card-menu-btn"
+      className="card-actions-menu"
+    >
       <FavoriteMenuItem targetType="box" targetId={box.id} name={box.name} />
-      <MenuItem icon={<Pencil size={16} />} onSelect={() => navigate(`/app/boxes/${box.id}?edit=1`)}>
+      <MenuItem icon={menuArt(COVER_ICON_ART.pencil)} onSelect={() => navigate(`/app/boxes/${box.id}?edit=1`)}>
         Edit details
       </MenuItem>
       {!box.archivedAt && (
-        <MenuItem icon={<Printer size={16} />} onSelect={() => navigate(`/app/boxes/labels?ids=${box.id}`)}>
+        <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.barcode)} onSelect={() => navigate(`/app/boxes/labels?ids=${box.id}`)}>
           Print label
         </MenuItem>
       )}
       {box.archivedAt ? (
-        <MenuItem icon={<ArchiveRestore size={16} />} onSelect={() => actions.setArchived(box, false)}>
+        <MenuItem icon={menuArt(COVER_ICON_ART['archive-box'])} onSelect={() => actions.setArchived(box, false)}>
           Restore
         </MenuItem>
       ) : (
-        <MenuItem icon={<Archive size={16} />} onSelect={() => actions.setArchived(box, true)}>
+        <MenuItem icon={menuArt(COVER_ICON_ART['archive-box'])} onSelect={() => actions.setArchived(box, true)}>
           Archive
         </MenuItem>
       )}
       <MenuSeparator />
-      <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => actions.remove(box)}>
+      <MenuItem icon={menuDeleteArt()} danger onSelect={() => actions.remove(box)}>
         Delete
       </MenuItem>
     </Menu>

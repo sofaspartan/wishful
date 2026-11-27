@@ -458,9 +458,95 @@ const BellNotify = (
 const MenuStack = (
   <Svg>
     <rect x="2" y="2" width="44" height="44" rx="12" fill="currentColor" />
-    <rect x="11" y="14" width="26" height="5" rx="2.5" fill="#fff" />
-    <rect x="11" y="21.5" width="26" height="5" rx="2.5" fill="#fff" />
-    <rect x="11" y="29" width="26" height="5" rx="2.5" fill="#fff" />
+    <rect x="11" y="15" width="26" height="3.5" rx="1.75" fill="#fff" />
+    <rect x="11" y="22.25" width="26" height="3.5" rx="1.75" fill="#fff" />
+    <rect x="11" y="29.5" width="26" height="3.5" rx="1.75" fill="#fff" />
+  </Svg>
+);
+
+/** Party popper — simple cone + mouth + short streamers (from brand/party-popper.svg). */
+const PartyPopper = (
+  <Svg>
+    <path d="M7.58 42.58l27.42-9.45L15.66 13.79l-9.45 27.42C5.92 42.06 6.73 42.87 7.58 42.58Z" fill="#e5b13e" />
+    {/* Mouth oval baked as a path — element transforms break under `.art-icon svg * { transform-box: fill-box }`. */}
+    <path
+      d="M28.863 19.927A4.46 13.68 -45 1 1 22.556 26.234A4.46 13.68 -45 1 1 28.863 19.927Z"
+      fill="#a8791a"
+    />
+    <path
+      d="M26.48 22.11l2.68-1.34c2.84-1.42 5.14-3.75 6.53-6.61l1.2-2.47"
+      stroke="#9800e8"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M30.87 10.93l.3-1.21c.32-1.29.98-2.52 1.88-3.49l.78-.84"
+      stroke="#0027e8"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M41.82 15.02l-.31.64c-.33.69-.84 1.32-1.44 1.79l-.51.41"
+      stroke="#15931d"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M26.27 7.56l-.11 1.72c-.11 1.83-.67 3.68-1.59 5.26l-.79 1.37"
+      stroke="#00bce8"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M41.22 22.11l-1.84.08c-1.96.1-3.76.92-5.1 2.35l-1.17 1.24"
+      stroke="#e92500"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+/** Soft trash can for delete / remove actions. */
+const TrashCan = (
+  <Svg>
+    <path d="M12 12h24" stroke={INK} strokeWidth="2.4" strokeLinecap="round" />
+    <path d="M18 12V9.5a2.5 2.5 0 0 1 2.5-2.5h7A2.5 2.5 0 0 1 30 9.5V12" stroke={INK} strokeWidth="2.2" strokeLinecap="round" />
+    <path d="M11 12l1.8 28.5A4 4 0 0 0 16.8 44h14.4a4 4 0 0 0 4-3.5L37 12" fill="#e8745b" />
+    <path d="M17 19v16M24 19v16M31 19v16" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" opacity=".85" />
+    <path d="M11 12h26" stroke="#c4553d" strokeWidth="3" strokeLinecap="round" />
+  </Svg>
+);
+
+/** Forward arrow — move / transfer actions (distinct from stacked lists). */
+const ForwardArrow = (
+  <Svg>
+    <circle cx="24" cy="24" r="18" fill="#4fa3a5" />
+    <path
+      d="M14.5 24h14.5M22.5 16.5 31.5 24l-9 7.5"
+      stroke="#fff"
+      strokeWidth="3.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+/** Open / go-to page — color circle with white up-right arrow. */
+const OpenPage = (
+  <Svg>
+    <circle cx="24" cy="24" r="18" fill="#5b7bb5" />
+    <path
+      d="M17.5 30.5 30.5 17.5M19.2 17.5H30.5V28.8"
+      stroke="#fff"
+      strokeWidth="3.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </Svg>
 );
 
@@ -482,6 +568,10 @@ export const FEATURE_ILLUSTRATIONS = {
   boxes: ScannedBox,
   bell: BellNotify,
   menu: MenuStack,
+  party: PartyPopper,
+  trash: TrashCan,
+  move: ForwardArrow,
+  open: OpenPage,
 };
 
 export const ILLUSTRATED_ITEMS: IllustratedItem[] = [

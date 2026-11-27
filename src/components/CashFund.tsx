@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { ExternalLink, Pencil } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import type { CashFundDisplayMode, CoverIcon, PaymentMethod, PaymentProvider, PublicCashFundView, PublicContribution } from '../../shared/types';
 import { PAYMENT_PROVIDER_LABELS, buildPaymentUrl } from '../../shared/paymentLinks';
 import { brand } from '../config/brand';
 import { formatPrice } from '../lib/format';
-import { CoverAvatar, DEFAULT_COVER_FRAME } from './CoverArt';
+import { CoverAvatar, COVER_ICON_ART, DEFAULT_COVER_FRAME } from './CoverArt';
 import { Button } from './ui/Button';
 import { Field, FormError } from './ui/Field';
 import { Modal } from './ui/Modal';
@@ -73,7 +73,12 @@ export function CashFundDisplay({
         size="sm"
         variant="ghost"
         iconOnly
-        icon={<Pencil size={16} aria-hidden />}
+        className="topbar-art-btn"
+        icon={
+          <span className="art-icon art-icon-tab" aria-hidden>
+            {COVER_ICON_ART.pencil}
+          </span>
+        }
         aria-label="Edit cash fund"
         title="Edit cash fund"
         onClick={onEdit}

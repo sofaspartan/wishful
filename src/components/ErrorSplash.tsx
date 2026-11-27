@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { CloudBank, CloudPuff } from './Cloud';
+import { Cloud, CloudBank } from './Cloud';
 import { CoverArt } from './CoverArt';
 import { SkyArt, type SkyScene } from './SkyArt';
 import { dashboardLookSurface, useDashboardLook, type DashboardLook } from '../lib/dashboardScene';
@@ -33,7 +33,8 @@ export function ErrorSplash({ kind, actions }: { kind: Kind; actions: ReactNode 
   const look = me === null ? GUEST_SKY : storedLook;
   const surface = dashboardLookSurface(look);
   const showSceneArt = look.mode === 'scene';
-  const showSoftClouds = look.mode === 'classic' || look.mode === 'scene';
+  /* Soft classics skip drifting clouds (same as sidebar); scene keeps free sils + whites. */
+  const showDrift = look.mode !== 'classic';
 
   return (
     <div
@@ -47,12 +48,19 @@ export function ErrorSplash({ kind, actions }: { kind: Kind; actions: ReactNode 
           <CoverArt art={{ icon: 'gift', backdrop: look.mode === 'scene' ? look.backdrop : 'sky' }} showIcon={false} />
         </div>
       )}
-      {showSoftClouds && (
-        <div className="error-page-clouds" aria-hidden>
-          <CloudPuff className="error-cloud error-cloud-a" />
-          <CloudPuff className="error-cloud error-cloud-b" />
-          <CloudPuff className="error-cloud error-cloud-c" />
-          <CloudPuff className="error-cloud error-cloud-d" />
+      {showDrift && (
+        <div className="error-page-drift" aria-hidden>
+          {/* Independent dark lanes first (behind), then whites — not shadow-locked pairs. */}
+          <Cloud className="error-sil error-sil-a" />
+          <Cloud className="error-sil error-sil-b" />
+          <Cloud className="error-sil error-sil-a error-phase-b" />
+          <Cloud className="error-sil error-sil-c" />
+          <Cloud className="error-cloud error-cloud-1" />
+          <Cloud className="error-cloud error-cloud-1 error-phase-b" />
+          <Cloud className="error-cloud error-cloud-2" />
+          <Cloud className="error-cloud error-cloud-3" />
+          <Cloud className="error-cloud error-cloud-3 error-phase-b" />
+          <Cloud className="error-cloud error-cloud-4" />
         </div>
       )}
 
@@ -66,8 +74,9 @@ export function ErrorSplash({ kind, actions }: { kind: Kind; actions: ReactNode 
         <div className="error-sky-art" aria-hidden>
           <SkyArt scene={copy.scene} />
         </div>
-        <CloudBank className="error-sky-bank" />
       </div>
+
+      <CloudBank className="error-page-bank" />
     </div>
   );
 }

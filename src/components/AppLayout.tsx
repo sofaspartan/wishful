@@ -18,7 +18,7 @@ import { BoxFormModal } from './BoxFormModal';
 import { CreateMenu } from './CreateMenu';
 import { WishlistFormModal } from './WishlistFormModal';
 import { SearchPalette } from './SearchPalette';
-import { NotificationsButton } from './NotificationsButton';
+import { NotificationsButton, useNotificationUnreadCount } from './NotificationsButton';
 import { DashboardScenePicker } from './DashboardScenePicker';
 import { InstallTip } from './InstallTip';
 
@@ -92,6 +92,7 @@ export function AppLayout() {
   const [layoutMode, setLayoutMode] = useLayoutMode();
   useStandaloneDisplayAttr();
   const requestCount = friends?.incoming.length ?? 0;
+  const notifUnread = useNotificationUnreadCount();
   const badgeFor = (to: string) =>
     to === '/app/friends' && requestCount > 0 ? (
       <span className="nav-badge" aria-label={`${requestCount} friend request${requestCount === 1 ? '' : 's'}`}>
@@ -105,6 +106,8 @@ export function AppLayout() {
   const [createList, setCreateList] = useState<CreateListOptions | null>(null);
   const [createBox, setCreateBox] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [lookOpen, setLookOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -144,6 +147,18 @@ export function AppLayout() {
 
   const userMenuItems = (
     <>
+      <MenuItem icon={tabArt(FEATURE_ILLUSTRATIONS.bell)} onSelect={() => setNotificationsOpen(true)}>
+        Notifications
+        {notifUnread > 0 ? (
+          <span className="menu-item-badge" aria-label={`${notifUnread} unread`}>
+            {notifUnread}
+          </span>
+        ) : null}
+      </MenuItem>
+      <MenuItem icon={tabArt(COVER_ICON_ART.palette)} onSelect={() => setLookOpen(true)}>
+        Dashboard look
+      </MenuItem>
+      <MenuSeparator />
       <MenuItem icon={tabArt(COVER_ICON_ART.pencil)} onSelect={() => navigate('/app/settings')}>
         Profile & settings
       </MenuItem>
@@ -197,20 +212,26 @@ export function AppLayout() {
         <div className="ios-status-bleed" aria-hidden />
         <aside className="sidebar" aria-label="Sidebar">
           <div className="sidebar-drift" aria-hidden>
+            {/* Independent dark lanes first (behind), then whites — not shadow-locked pairs. */}
             <Cloud className="sidebar-sil sidebar-sil-a" />
             <Cloud className="sidebar-sil sidebar-sil-b" />
+            <Cloud className="sidebar-sil sidebar-sil-a sidebar-phase-b" />
             <Cloud className="sidebar-cloud sidebar-cloud-1" />
+            <Cloud className="sidebar-cloud sidebar-cloud-1 sidebar-phase-b" />
             <Cloud className="sidebar-cloud sidebar-cloud-2" />
             <Cloud className="sidebar-cloud sidebar-cloud-3" />
-            {/* Phase twins keep coverage without stacking on the same beat. */}
-            <Cloud className="sidebar-cloud sidebar-cloud-1 sidebar-phase-b" />
-            <Cloud className="sidebar-sil sidebar-sil-b sidebar-phase-b" />
+            <Cloud className="sidebar-cloud sidebar-cloud-3 sidebar-phase-b" />
           </div>
           <div className="sidebar-main">
             <div className="sidebar-brand">
               <Logo to="/app" size={56} />
             </div>
             <nav className="sidebar-nav" aria-label="Main">
+              <button type="button" className="sidebar-search" onClick={() => setSearchOpen(true)}>
+                <Search size={15} strokeWidth={2.25} aria-hidden />
+                <span>Search…</span>
+                <kbd>⌘K</kbd>
+              </button>
               {SIDEBAR_NAV.map(({ to, label, art, end }) => (
                 <NavLink
                   key={to}
@@ -243,6 +264,7 @@ export function AppLayout() {
                       @{user.username}
                     </span>
                   </span>
+                  {notifUnread > 0 && <span className="user-button-dot" aria-hidden />}
                 </>
               }
             >
@@ -262,19 +284,8 @@ export function AppLayout() {
             <div className="topbar-brand">
               <Logo to="/app" size={42} variant="mark" />
             </div>
-            <button type="button" className="search-trigger" onClick={() => setSearchOpen(true)}>
-              <Search size={16} aria-hidden />
-              <span>Search wishlists and items…</span>
-              <kbd>⌘K</kbd>
-            </button>
             <div className="spacer" />
-            <div className="hide-mobile row" style={{ gap: 'var(--s-1)' }}>
-              <DashboardScenePicker />
-              <NotificationsButton />
-            </div>
             <div className="hide-desktop topbar-mobile-actions">
-              <DashboardScenePicker />
-              <NotificationsButton />
               <Menu
                 label="Menu"
                 buttonClassName="btn btn-ghost btn-icon topbar-art-btn"
@@ -347,6 +358,8 @@ export function AppLayout() {
         }}
       />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <NotificationsButton open={notificationsOpen} onOpenChange={setNotificationsOpen} />
+      <DashboardScenePicker open={lookOpen} onOpenChange={setLookOpen} showTrigger={false} />
     </AppActionsContext.Provider>
   );
 }

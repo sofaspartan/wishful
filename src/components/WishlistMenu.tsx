@@ -1,9 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { Archive, ArchiveRestore, Copy, MoreHorizontal, Pencil, Share2, Trash2 } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import type { Wishlist, WishlistSummary } from '../../shared/types';
 import { useInvalidate } from '../lib/queries';
 import { del, errorMessage, patch, post } from '../lib/api';
+import { COVER_ICON_ART } from './CoverArt';
+import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 import { FavoriteMenuItem } from './FavoriteToggle';
+import { menuArt, menuDeleteArt } from './menuArt';
 import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 import { useConfirm } from './ui/misc';
 import { useToast } from './ui/Toast';
@@ -59,30 +62,35 @@ export function WishlistCardMenu({ wishlist: w }: { wishlist: WishlistSummary })
   const actions = useWishlistActions();
   if (w.role !== 'owner') return null;
   return (
-    <Menu label={`Actions for ${w.title}`} icon={<MoreHorizontal size={18} />} buttonClassName="btn btn-icon btn-sm card-menu-btn">
+    <Menu
+      label={`Actions for ${w.title}`}
+      icon={<MoreHorizontal size={18} />}
+      buttonClassName="btn btn-icon btn-sm card-menu-btn"
+      className="card-actions-menu"
+    >
       <FavoriteMenuItem targetType="wishlist" targetId={w.id} name={w.title} />
-      <MenuItem icon={<Pencil size={16} />} onSelect={() => navigate(`/app/lists/${w.id}?edit=1`)}>
+      <MenuItem icon={menuArt(COVER_ICON_ART.pencil)} onSelect={() => navigate(`/app/lists/${w.id}?edit=1`)}>
         Edit details
       </MenuItem>
       {!w.archivedAt && (
-        <MenuItem icon={<Share2 size={16} />} onSelect={() => navigate(`/app/lists/${w.id}?share=1`)}>
+        <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.share)} onSelect={() => navigate(`/app/lists/${w.id}?share=1`)}>
           Share
         </MenuItem>
       )}
-      <MenuItem icon={<Copy size={16} />} onSelect={() => actions.duplicate(w)}>
+      <MenuItem icon={menuArt(FEATURE_ILLUSTRATIONS.lists)} onSelect={() => actions.duplicate(w)}>
         Duplicate
       </MenuItem>
       {w.archivedAt ? (
-        <MenuItem icon={<ArchiveRestore size={16} />} onSelect={() => actions.setArchived(w, false)}>
+        <MenuItem icon={menuArt(COVER_ICON_ART['archive-box'])} onSelect={() => actions.setArchived(w, false)}>
           Restore
         </MenuItem>
       ) : (
-        <MenuItem icon={<Archive size={16} />} onSelect={() => actions.setArchived(w, true)}>
+        <MenuItem icon={menuArt(COVER_ICON_ART['archive-box'])} onSelect={() => actions.setArchived(w, true)}>
           Archive
         </MenuItem>
       )}
       <MenuSeparator />
-      <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => actions.remove(w)}>
+      <MenuItem icon={menuDeleteArt()} danger onSelect={() => actions.remove(w)}>
         Delete
       </MenuItem>
     </Menu>
