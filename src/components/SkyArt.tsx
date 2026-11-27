@@ -30,59 +30,59 @@ const SCENES: Record<SkyScene, Array<[ReactElement, number, number, number]>> = 
     [camera, 26, 72, 64],
   ],
   wishlist: [
-    [F.surprise, 52, 24, 16],
-    [camera, 30, 0, 0],
-    [headphones, 30, 70, 44],
+    [F.surprise, 62, 20, 14],
+    [camera, 34, -4, 40],
+    [headphones, 34, 68, 8],
   ],
   collection: [
-    [F.collection, 52, 24, 16],
-    [plant, 30, 0, 44],
-    [book, 30, 70, 0],
+    [F.collection, 62, 20, 14],
+    [plant, 34, -4, 40],
+    [book, 34, 68, 8],
   ],
   items: [
-    [F.store, 52, 24, 16],
-    [sneaker, 30, 0, 2],
-    [watch, 30, 70, 44],
+    [F.store, 62, 20, 14],
+    [sneaker, 34, -4, 8],
+    [watch, 34, 68, 40],
   ],
   search: [
-    [F.lists, 52, 24, 16],
-    [mug, 30, 0, 44],
-    [book, 30, 70, 2],
+    [F.lists, 62, 20, 14],
+    [mug, 34, -4, 40],
+    [book, 34, 68, 8],
   ],
   friends: [
-    [F.together, 52, 24, 16],
-    [F.surprise, 30, 0, 2],
-    [mug, 30, 70, 44],
+    [F.together, 62, 20, 14],
+    [F.surprise, 34, -4, 8],
+    [mug, 34, 68, 40],
   ],
   invite: [
-    [F.phone, 52, 24, 16],
-    [F.share, 30, 0, 44],
-    [plant, 30, 70, 2],
+    [F.phone, 62, 20, 14],
+    [F.share, 34, -4, 40],
+    [plant, 34, 68, 8],
   ],
   shared: [
-    [F.share, 52, 24, 16],
-    [F.lists, 30, 0, 44],
-    [headphones, 30, 70, 2],
+    [F.share, 62, 20, 14],
+    [F.lists, 34, -4, 40],
+    [headphones, 34, 68, 8],
   ],
   invites: [
-    [F.surprise, 52, 24, 16],
-    [sweater, 30, 0, 2],
-    [book, 30, 70, 44],
+    [F.surprise, 62, 20, 14],
+    [sweater, 34, -4, 8],
+    [book, 34, 68, 40],
   ],
   gifts: [
-    [F.surprise, 52, 24, 16],
-    [headphones, 30, 0, 44],
-    [sneaker, 30, 70, 2],
+    [F.surprise, 62, 20, 14],
+    [headphones, 34, -4, 40],
+    [sneaker, 34, 68, 8],
   ],
   boxes: [
-    [COVER_ILLUSTRATIONS.box, 52, 24, 16],
-    [COVER_ILLUSTRATIONS.tote, 30, 0, 2],
-    [mug, 30, 70, 44],
+    [COVER_ILLUSTRATIONS.box, 62, 20, 14],
+    [COVER_ILLUSTRATIONS.tote, 34, -4, 8],
+    [mug, 34, 68, 40],
   ],
   favorites: [
-    [COVER_ILLUSTRATIONS.star, 52, 24, 16],
-    [COVER_ILLUSTRATIONS.heart, 30, 0, 2],
-    [F.surprise, 30, 70, 44],
+    [COVER_ILLUSTRATIONS.star, 62, 20, 14],
+    [COVER_ILLUSTRATIONS.heart, 34, -4, 8],
+    [F.surprise, 34, 68, 40],
   ],
 };
 
@@ -91,10 +91,29 @@ const SPARKS: Array<[number, number, number]> = [
   [86, 14, -0.9],
 ];
 
+/** Soft silhouette clouds behind the illustrated ones — own positions, not shadow copies. */
+const SILHOUETTES: Array<[number, number, number]> = [
+  [42, -10, 8],
+  [36, 58, -12],
+  [40, 72, 42],
+  [34, 4, 56],
+];
+
 /** Decorative scene of illustrated things floating in thought clouds, for empty states and the dashboard. */
 export function SkyArt({ scene, className }: { scene: SkyScene; className?: string }) {
   return (
     <div className={['sky-art', `sky-art-${scene}`, className].filter(Boolean).join(' ')} aria-hidden>
+      <div className="sky-art-sils">
+        {SILHOUETTES.map(([w, left, top], i) => (
+          <span
+            key={i}
+            className="sky-thought sky-thought-sil"
+            style={{ width: `${w}%`, left: `${left}%`, top: `${top}%`, animationDelay: `${-i * 1.7 - 0.4}s` } as CSSProperties}
+          >
+            <Cloud className="thought-cloud" />
+          </span>
+        ))}
+      </div>
       {SCENES[scene].map(([art, w, left, top], i) => (
         <span
           key={i}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, ListChecks, MoreHorizontal, Package, PartyPopper, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Check, ListChecks, MoreHorizontal, Package, PartyPopper, Pencil, Plus, Search, Filter, Trash2 } from 'lucide-react';
 import type { Item, Priority } from '../../shared/types';
 import { PRIORITY_LABELS, PRIORITY_RANK } from '../../shared/constants';
 import { useItems, useWishlists, useInvalidate } from '../lib/queries';
@@ -238,26 +238,25 @@ export default function SavedItems() {
       </PageSky>
 
       <div className="toolbar toolbar-items">
-        <div className="input-group toolbar-items-search">
-          <Search size={16} aria-hidden />
-          <input
-            className="input"
-            type="search"
-            placeholder="Search items"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search items"
-          />
-        </div>
-        <div className="toolbar-items-mobile-actions">
+        <div className="toolbar-search-cluster">
+          <div className="input-group toolbar-items-search">
+            <Search size={16} aria-hidden />
+            <input
+              className="input"
+              type="search"
+              placeholder="Search items"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search items"
+            />
+          </div>
           <Popover
             label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
-            align="end"
+            align="start"
             buttonClassName={`btn toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
             buttonContent={
               <>
-                <SlidersHorizontal size={18} aria-hidden />
-                <span>Filters</span>
+                <Filter size={18} aria-hidden />
                 {panelFiltersActive && <span className="toolbar-filters-dot" aria-hidden />}
               </>
             }
@@ -270,6 +269,8 @@ export default function SavedItems() {
               </div>
             )}
           </Popover>
+        </div>
+        <div className="toolbar-items-actions">
           <ViewToggle value={view} onChange={setView} labels="grid" />
         </div>
       </div>

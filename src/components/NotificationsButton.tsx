@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bell, CalendarDays, Inbox, LifeBuoy, Pencil, Tag, UserCheck, UserPlus, Users } from 'lucide-react';
+import { Bell, CalendarDays, Inbox, Pencil, Tag, UserCheck, UserPlus, Users } from 'lucide-react';
 import type { AppNotification, NotificationType } from '../../shared/types';
 import { keys, useMe, useNotifications } from '../lib/queries';
 import { post } from '../lib/api';
 import { relativeTime } from '../lib/format';
+import { COVER_ICON_ART } from './CoverArt';
 import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 import { Popover } from './ui/Popover';
 
@@ -66,7 +67,9 @@ export function NotificationsButton() {
                   navigate('/app/settings?tab=account');
                 }}
               >
-                <LifeBuoy size={16} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden />
+                <span className="art-icon art-icon-tab notif-alert-art" aria-hidden>
+                  {COVER_ICON_ART.chest}
+                </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block' }}>Set up a recovery code</span>
                   <span className="faint text-xs">So you can get back in if you forget your password</span>

@@ -12,8 +12,23 @@ export function LogoMark({ size = 30 }: { size?: number }) {
   );
 }
 
-/** Full Wishful cloud wordmark — used in top nav and footers. Idle animation on hover. */
-export function Logo({ to = '/', size = 38 }: { to?: string; size?: number }) {
+/** Brand home link — full wordmark by default, or W+cloud mark for tight chrome. */
+export function Logo({
+  to = '/',
+  size = 38,
+  variant = 'wordmark',
+}: {
+  to?: string;
+  size?: number;
+  variant?: 'wordmark' | 'mark';
+}) {
+  if (variant === 'mark') {
+    return (
+      <Link to={to} className="logo logo-full" aria-label={`${brand.name} home`}>
+        <LogoMark size={size} />
+      </Link>
+    );
+  }
   const height = size;
   const width = Math.round(size * WORDMARK_RATIO);
   return (

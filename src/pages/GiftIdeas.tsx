@@ -169,20 +169,8 @@ export default function GiftIdeas({ banner = false }: { banner?: boolean }) {
 
         <section className="section" aria-live="polite" aria-busy={search.isLoading || undefined}>
           <div className="gift-head">
-            <h2 className="section-title">{q ? <>Results for “{q}”</> : `${category?.label ?? 'Gift'} ideas`}</h2>
-            <div className="gift-filters">
-              {stores.length > 1 && (
-                <div className="filter-row" role="group" aria-label="Store">
-                  <button type="button" className="chip" aria-pressed={!store} onClick={() => update({ store: null })}>
-                    All stores
-                  </button>
-                  {stores.map((s) => (
-                    <button key={s} type="button" className="chip" aria-pressed={store === s} onClick={() => update({ store: s })}>
-                      {GIFT_STORE_LABELS[s]}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div className="gift-head-title">
+              <h2 className="section-title">{q ? <>Results for “{q}”</> : `${category?.label ?? 'Gift'} ideas`}</h2>
               <select
                 className="select"
                 aria-label="Price"
@@ -197,6 +185,20 @@ export default function GiftIdeas({ banner = false }: { banner?: boolean }) {
                 ))}
               </select>
             </div>
+            {stores.length > 1 && (
+              <div className="gift-filters">
+                <div className="filter-row" role="group" aria-label="Store">
+                  <button type="button" className="chip" aria-pressed={!store} onClick={() => update({ store: null })}>
+                    All stores
+                  </button>
+                  {stores.map((s) => (
+                    <button key={s} type="button" className="chip" aria-pressed={store === s} onClick={() => update({ store: s })}>
+                      {GIFT_STORE_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {search.isLoading ? (

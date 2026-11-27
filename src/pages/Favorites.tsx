@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Search, SlidersHorizontal } from 'lucide-react';
+import { MoreHorizontal, Search, Filter } from 'lucide-react';
 import type { FavoriteCard, FavoriteTargetType } from '../../shared/types';
 import { useFavorites } from '../lib/queries';
 import { WishlistCard } from '../components/WishlistCard';
@@ -131,27 +131,25 @@ export default function Favorites() {
       />
 
       <div className="toolbar toolbar-items">
-        <div className="input-group toolbar-items-search">
-          <Search size={16} aria-hidden />
-          <input
-            className="input"
-            type="search"
-            placeholder="Search favorites"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search favorites"
-          />
-        </div>
-        <div className="toolbar-items-mobile-actions">
-          {type !== 'all' && <span className="toolbar-filter-chip">{TYPE_LABELS[type]}</span>}
+        <div className="toolbar-search-cluster">
+          <div className="input-group toolbar-items-search">
+            <Search size={16} aria-hidden />
+            <input
+              className="input"
+              type="search"
+              placeholder="Search favorites"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search favorites"
+            />
+          </div>
           <Popover
             label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
-            align="end"
+            align="start"
             buttonClassName={`btn toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
             buttonContent={
               <>
-                <SlidersHorizontal size={18} aria-hidden />
-                <span>Filters</span>
+                <Filter size={18} aria-hidden />
                 {panelFiltersActive && <span className="toolbar-filters-dot" aria-hidden />}
               </>
             }
@@ -164,6 +162,9 @@ export default function Favorites() {
               </div>
             )}
           </Popover>
+        </div>
+        <div className="toolbar-items-actions">
+          {type !== 'all' && <span className="toolbar-filter-chip">{TYPE_LABELS[type]}</span>}
           <ViewToggle value={view} onChange={setView} />
         </div>
       </div>

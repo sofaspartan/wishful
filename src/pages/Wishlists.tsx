@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Archive, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { Archive, Plus, Search, Filter } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { WishlistSummary } from '../../shared/types';
 import { isTaskList } from '../../shared/constants';
@@ -154,27 +154,25 @@ export default function Wishlists() {
       </PageSky>
 
       <div className="toolbar toolbar-lists">
-        <div className="input-group toolbar-lists-search">
-          <Search size={16} aria-hidden />
-          <input
-            className="input"
-            type="search"
-            placeholder={collectionsOnly ? 'Search collections' : taskListsOnly ? 'Search lists' : 'Search wishlists'}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label={collectionsOnly ? 'Search collections' : taskListsOnly ? 'Search lists' : 'Search wishlists'}
-          />
-        </div>
-        <div className="toolbar-items-mobile-actions">
-          {tab !== 'active' && <span className="toolbar-filter-chip">{tab === 'archived' ? 'Archived' : 'Shared'}</span>}
+        <div className="toolbar-search-cluster">
+          <div className="input-group toolbar-lists-search">
+            <Search size={16} aria-hidden />
+            <input
+              className="input"
+              type="search"
+              placeholder={collectionsOnly ? 'Search collections' : taskListsOnly ? 'Search lists' : 'Search wishlists'}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label={collectionsOnly ? 'Search collections' : taskListsOnly ? 'Search lists' : 'Search wishlists'}
+            />
+          </div>
           <Popover
             label={panelFiltersActive ? 'Filters (active)' : 'Filters'}
-            align="end"
+            align="start"
             buttonClassName={`btn toolbar-filters-btn${panelFiltersActive ? ' is-active' : ''}`}
             buttonContent={
               <>
-                <SlidersHorizontal size={18} aria-hidden />
-                <span>Filters</span>
+                <Filter size={18} aria-hidden />
                 {panelFiltersActive && <span className="toolbar-filters-dot" aria-hidden />}
               </>
             }
@@ -188,6 +186,9 @@ export default function Wishlists() {
               </div>
             )}
           </Popover>
+        </div>
+        <div className="toolbar-items-actions">
+          {tab !== 'active' && <span className="toolbar-filter-chip">{tab === 'archived' ? 'Archived' : 'Shared'}</span>}
           <ViewToggle value={view} onChange={setView} />
         </div>
       </div>

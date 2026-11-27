@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties, type Rea
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, Search } from 'lucide-react';
-import { useFriends, useMe, useWishlists } from '../lib/queries';
+import { useFriends, useMe } from '../lib/queries';
 import { post } from '../lib/api';
 import { CLASSIC_DASHBOARD_TINTS, dashboardLookIsDark, useDashboardLook } from '../lib/dashboardScene';
 import { useLayoutMode, useStandaloneDisplayAttr } from '../lib/layoutMode';
 import { Logo } from './Logo';
-import { CloudBank } from './Cloud';
+import { Cloud, CloudBank } from './Cloud';
 import { CoverArt, COVER_ICON_ART } from './CoverArt';
 import { FEATURE_ILLUSTRATIONS } from './ItemIllustrations';
 import { Avatar } from './ui/misc';
@@ -87,7 +87,6 @@ function BrowseMenu({ active, onNavigate }: { active: boolean; onNavigate: (to: 
 
 export function AppLayout() {
   const { data: user } = useMe();
-  const { data: wishlists } = useWishlists();
   const { data: friends } = useFriends();
   const [dashboardLook] = useDashboardLook();
   const [layoutMode, setLayoutMode] = useLayoutMode();
@@ -142,7 +141,6 @@ export function AppLayout() {
   }, [qc, navigate]);
 
   if (!user) return null;
-  const recentLists = (wishlists ?? []).filter((w) => !w.archivedAt).slice(0, 8);
 
   const userMenuItems = (
     <>
@@ -198,42 +196,37 @@ export function AppLayout() {
         {/* Opaque paint under the iOS status bar (same idea as Add Item’s fullscreen modal). */}
         <div className="ios-status-bleed" aria-hidden />
         <aside className="sidebar" aria-label="Sidebar">
-          <div className="sidebar-brand">
-            <Logo to="/app" />
+          <div className="sidebar-drift" aria-hidden>
+            <Cloud className="sidebar-sil sidebar-sil-a" />
+            <Cloud className="sidebar-sil sidebar-sil-b" />
+            <Cloud className="sidebar-cloud sidebar-cloud-1" />
+            <Cloud className="sidebar-cloud sidebar-cloud-2" />
+            <Cloud className="sidebar-cloud sidebar-cloud-3" />
+            {/* Phase twins keep coverage without stacking on the same beat. */}
+            <Cloud className="sidebar-cloud sidebar-cloud-1 sidebar-phase-b" />
+            <Cloud className="sidebar-sil sidebar-sil-b sidebar-phase-b" />
           </div>
-          <CreateMenu variant="add" block align="left" />
-          <nav className="sidebar-nav" aria-label="Main" style={{ marginTop: 12 }}>
-            {SIDEBAR_NAV.map(({ to, label, art, end }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  `nav-link${isActive || (to === '/app/lists' && pathname.startsWith('/app/boxes')) ? ' active' : ''}`
-                }
-              >
-                {tabArt(art)}
-                {label}
-                {badgeFor(to)}
-              </NavLink>
-            ))}
-          </nav>
-          {recentLists.length > 0 && (
-            <div className="sidebar-section">
-              <div className="section-label">Your lists</div>
-              {recentLists.map((w) => (
-                <NavLink key={w.id} to={`/app/lists/${w.id}`} className={({ isActive }) => `sidebar-list-link${isActive ? ' active' : ''}`}>
-                  {w.coverArt && !w.coverImage ? (
-                    <CoverArt art={w.coverArt} size="sm" className="sidebar-list-art" />
-                  ) : (
-                    <span className="swatch-dot" style={{ background: w.accentColor }} aria-hidden />
-                  )}
-                  <span className="truncate">{w.title}</span>
-                  <span className="nav-count">{w.itemCount}</span>
+          <div className="sidebar-main">
+            <div className="sidebar-brand">
+              <Logo to="/app" size={56} />
+            </div>
+            <nav className="sidebar-nav" aria-label="Main">
+              {SIDEBAR_NAV.map(({ to, label, art, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    `nav-link${isActive || (to === '/app/lists' && pathname.startsWith('/app/boxes')) ? ' active' : ''}`
+                  }
+                >
+                  {tabArt(art)}
+                  {label}
+                  {badgeFor(to)}
                 </NavLink>
               ))}
-            </div>
-          )}
+            </nav>
+          </div>
           <div className="sidebar-footer">
             <Menu
               label="Account menu"
@@ -267,7 +260,7 @@ export function AppLayout() {
           )}
           <header className={`topbar${scrolled ? ' scrolled' : ''}`}>
             <div className="topbar-brand">
-              <Logo to="/app" size={36} />
+              <Logo to="/app" size={42} variant="mark" />
             </div>
             <button type="button" className="search-trigger" onClick={() => setSearchOpen(true)}>
               <Search size={16} aria-hidden />

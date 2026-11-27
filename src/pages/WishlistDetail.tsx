@@ -24,7 +24,7 @@ import {
   Search,
   Settings2,
   Share2,
-  SlidersHorizontal,
+  Filter,
   Trash2,
   Undo2,
   Users,
@@ -730,19 +730,18 @@ function WishlistView({ detail }: { detail: Detail }) {
         );
         return (
           <div className="toolbar toolbar-items">
-            <div className="input-group toolbar-items-search">
-              <Search size={16} aria-hidden />
-              <input className="input" type="search" placeholder="Search this list" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search this list" />
-            </div>
-            <div className="toolbar-items-mobile-actions">
+            <div className="toolbar-search-cluster">
+              <div className="input-group toolbar-items-search">
+                <Search size={16} aria-hidden />
+                <input className="input" type="search" placeholder="Search this list" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search this list" />
+              </div>
               <Popover
                 label={filtersActive ? 'Filters (active)' : 'Filters'}
-                align="end"
+                align="start"
                 buttonClassName={`btn toolbar-filters-btn${filtersActive ? ' is-active' : ''}`}
                 buttonContent={
                   <>
-                    <SlidersHorizontal size={18} aria-hidden />
-                    <span>Filters</span>
+                    <Filter size={18} aria-hidden />
                     {filtersActive && <span className="toolbar-filters-dot" aria-hidden />}
                   </>
                 }
@@ -755,6 +754,8 @@ function WishlistView({ detail }: { detail: Detail }) {
                   </div>
                 )}
               </Popover>
+            </div>
+            <div className="toolbar-items-actions">
               <ViewToggle value={view} onChange={setView} labels="grid" />
             </div>
           </div>
